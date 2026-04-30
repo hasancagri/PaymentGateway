@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="Modules\BankIntegration\" />
+      <Folder Include="Modules\CommissionManagement\" />
+      <Folder Include="Modules\IAM\" />
+      <Folder Include="Modules\MerchantManagement\" />
+      <Folder Include="Modules\PaymentProcessing\" />
+      <Folder Include="Modules\Settlement\" />
+    </ItemGroup>
+
+</Project>
