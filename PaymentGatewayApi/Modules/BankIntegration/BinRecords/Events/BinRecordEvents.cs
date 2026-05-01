@@ -1,18 +1,18 @@
 namespace PaymentGatewayApi.Modules.BankIntegration.BinRecords.Events;
 
 public sealed record BinRecordCreated(
-    Guid     EventId,
-    DateTime OccuredOn,
-    Guid     BinRecordId,
-    string   BinStart,
-    string   BinEnd,
-    string   CardBrand,
-    string   CardType
-) : IDomainEvent;
+    Guid EventId,
+    DateTime OccurredOn,
+    Guid BinRecordId,
+    string BinStart,
+    string BinEnd,
+    string CardBrand,
+    string CardType
+);
 
 public sealed record BinDatabaseImported(
-    Guid     EventId,
-    DateTime OccuredOn,
-    int      TotalRecords,
+    Guid EventId,
+    DateTime OccurredOn,
+    int TotalRecords,
     DateTime ImportedAt
-) : IDomainEvent;
+);

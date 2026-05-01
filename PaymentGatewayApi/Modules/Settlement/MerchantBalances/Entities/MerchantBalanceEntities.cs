@@ -1,89 +1,77 @@
-using PaymentGatewayApi.Modules.Settlement.MerchantBalances.ValueObjects;
 using PaymentGatewayApi.Modules.Settlement.Settlements.Enums;
 
 namespace PaymentGatewayApi.Modules.Settlement.MerchantBalances.Entities;
 
-public sealed class BalanceMovement
+public sealed class BalanceMovement : BaseModel
 {
-    public Guid Id { get; private set; }
-    public BalanceMovementType Type { get; private set; }
-    public Money Amount { get; private set; }
-    public string Description { get; private set; }
-    public Guid? ReferenceId { get; private set; } // SettlementId or WithdrawalId
-    public DateTime OccuredAt { get; private set; }
+    public BalanceMovementType Type        { get; private set; }
+    public Money               Amount      { get; private set; }
+    public string              Description { get; private set; }
+    public Guid?               ReferenceId { get; private set; }
+    public DateTime            OccurredAt   { get; private set; }
 
-    private BalanceMovement()
-    {
-    } // EF Core
+    private BalanceMovement() { }
 
     internal static BalanceMovement Create(
-        BalanceMovementType type,
-        Money amount,
-        string description,
-        Guid? referenceId = null) => new()
+        BalanceMovementType type, Money amount, string description, Guid? referenceId = null) => new()
     {
-        Id = Guid.NewGuid(),
-        Type = type,
-        Amount = amount,
+        Type        = type,
+        Amount      = amount,
         Description = description,
         ReferenceId = referenceId,
-        OccuredAt = DateTime.UtcNow
+        OccurredAt   = DateTime.UtcNow
     };
 }
 
-public sealed class WithdrawalRequest
+public sealed class WithdrawalRequest : BaseModel
 {
-    public WithdrawalId Id { get; private set; }
-    public Money Amount { get; private set; }
-    public string TargetIban { get; private set; }
-    public WithdrawalStatus Status { get; private set; }
-    public string? RejectionReason { get; private set; }
-    public DateTime RequestedAt { get; private set; }
-    public DateTime? ProcessedAt { get; private set; }
+    public Money    Amount          { get; private set; }
+    public string   TargetIban      { get; private set; }
+    public WithdrawalStatus Status  { get; private set; }
+    public string?  RejectionReason { get; private set; }
+    public DateTime RequestedAt     { get; private set; }
+    public DateTime? ProcessedAt    { get; private set; }
 
-    private WithdrawalRequest()
-    {
-    } // EF Core
+    private WithdrawalRequest() { }
 
-    internal static WithdrawalRequest Create(Money amount, string targetIban)
+    internal static ResultDomain<WithdrawalRequest> Create(Money amount, string targetIban)
     {
         if (string.IsNullOrWhiteSpace(targetIban))
-            throw new DomainException("Target IBAN cannot be empty.");
+            return ResultDomain<WithdrawalRequest>.Error(new MessageItem { Code = "WithdrawalRequest.IbanEmpty" });
 
-        return new WithdrawalRequest
+        return ResultDomain<WithdrawalRequest>.Ok(new WithdrawalRequest
         {
-            Id = WithdrawalId.New(),
-            Amount = amount,
-            TargetIban = targetIban.Trim().ToUpperInvariant(),
-            Status = WithdrawalStatus.Requested,
+            Amount      = amount,
+            TargetIban  = targetIban.Trim().ToUpperInvariant(),
+            Status      = WithdrawalStatus.Requested,
             RequestedAt = DateTime.UtcNow
-        };
+        });
     }
 
-    internal void Approve()
+    internal ResultDomain Approve()
     {
         if (Status != WithdrawalStatus.Requested)
-            throw new DomainException("Only requested withdrawals can be approved.");
-
+            return ResultDomain.Error(new MessageItem { Code = "WithdrawalRequest.CannotApprove" });
         Status = WithdrawalStatus.Approved;
+        return ResultDomain.Ok();
     }
 
-    internal void Reject(string reason)
+    internal ResultDomain Reject(string reason)
     {
         if (Status != WithdrawalStatus.Requested)
-            throw new DomainException("Only requested withdrawals can be rejected.");
-
-        Status = WithdrawalStatus.Rejected;
+            return ResultDomain.Error(new MessageItem { Code = "WithdrawalRequest.CannotReject" });
+        Status          = WithdrawalStatus.Rejected;
         RejectionReason = reason;
-        ProcessedAt = DateTime.UtcNow;
+        ProcessedAt     = DateTime.UtcNow;
+        return ResultDomain.Ok();
     }
 
-    internal void MarkProcessed()
+    internal ResultDomain MarkProcessed()
     {
         if (Status != WithdrawalStatus.Approved)
-            throw new DomainException("Only approved withdrawals can be marked as processed.");
-
-        Status = WithdrawalStatus.Processed;
+            return ResultDomain.Error(new MessageItem { Code = "WithdrawalRequest.CannotProcess" });
+        Status      = WithdrawalStatus.Processed;
         ProcessedAt = DateTime.UtcNow;
+        return ResultDomain.Ok();
     }
 }

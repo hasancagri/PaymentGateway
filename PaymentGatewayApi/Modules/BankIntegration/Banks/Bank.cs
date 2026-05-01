@@ -1,102 +1,70 @@
 using PaymentGatewayApi.Modules.BankIntegration.Banks.Enums;
-using PaymentGatewayApi.Modules.BankIntegration.Banks.Events;
 using PaymentGatewayApi.Modules.BankIntegration.Banks.ValueObjects;
 
 namespace PaymentGatewayApi.Modules.BankIntegration.Banks;
 
 public sealed class Bank : AggregateRoot
 {
-    // ── Identity ──────────────────────────────────────────
-    public BankId Id { get; private set; }
-    public BankName Name { get; private set; }
+    public BankName     Name     { get; private set; }
     public BankPriority Priority { get; private set; }
-    public BankStatus Status { get; private set; }
+    public BankStatus   Status   { get; private set; }
 
-    // ── Collections ───────────────────────────────────────
-    private readonly List<string> _supportedCurrencies = []; // ISO 4217 codes
+    private readonly List<string> _supportedCurrencies = [];
     public IReadOnlyCollection<string> SupportedCurrencies => _supportedCurrencies.AsReadOnly();
 
-    // ── Audit ─────────────────────────────────────────────
-    public DateTime CreatedAt { get; private set; }
-    public DateTime? UpdatedAt { get; private set; }
+    private Bank() { }
 
-    private Bank()
+    public static ResultDomain<Bank> Configure(string name, int priority)
     {
-    } // EF Core
+        var nameResult     = BankName.Create(name);
+        var priorityResult = BankPriority.Create(priority);
 
-    // ── Factory ───────────────────────────────────────────
-    public static Bank Configure(BankName name, BankPriority priority)
-    {
-        var bank = new Bank
+        var errors = new List<MessageItem>();
+        if (!nameResult.IsSuccess)     errors.AddRange(nameResult.Messages!);
+        if (!priorityResult.IsSuccess) errors.AddRange(priorityResult.Messages!);
+        if (errors.Count > 0) return ResultDomain<Bank>.Error(errors);
+
+        return ResultDomain<Bank>.Ok(new Bank
         {
-            Id = BankId.New(),
-            Name = name,
-            Priority = priority,
-            Status = BankStatus.Active,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        bank.RaiseDomainEvent(new BankConfigured(
-            Guid.NewGuid(), DateTime.UtcNow,
-            bank.Id.Value, bank.Name.Value));
-
-        return bank;
+            Name     = nameResult.Data!,
+            Priority = priorityResult.Data!,
+            Status   = BankStatus.Active,
+        });
     }
 
-    // ── Update ────────────────────────────────────────────
-    public void Update(BankName name, BankPriority priority)
+    public ResultDomain Update(string name, int priority)
     {
-        Name = name;
-        Priority = priority;
-        Touch();
+        var nameResult     = BankName.Create(name);
+        var priorityResult = BankPriority.Create(priority);
 
-        RaiseDomainEvent(new BankUpdated(
-            Guid.NewGuid(), DateTime.UtcNow, Id.Value));
+        var errors = new List<MessageItem>();
+        if (!nameResult.IsSuccess)     errors.AddRange(nameResult.Messages!);
+        if (!priorityResult.IsSuccess) errors.AddRange(priorityResult.Messages!);
+        if (errors.Count > 0) return ResultDomain.Error(errors);
+
+        Name     = nameResult.Data!;
+        Priority = priorityResult.Data!;
+        return ResultDomain.Ok();
     }
 
-    // ── Status ────────────────────────────────────────────
-    public void Activate()
-    {
-        var old = Status;
-        Status = BankStatus.Active;
-        Touch();
+    public void Activate()   => Status = BankStatus.Active;
+    public void Deactivate() => Status = BankStatus.Passive;
 
-        RaiseDomainEvent(new BankStatusChanged(
-            Guid.NewGuid(), DateTime.UtcNow,
-            Id.Value, old.ToString(), Status.ToString()));
-    }
-
-    public void Deactivate()
-    {
-        var old = Status;
-        Status = BankStatus.Passive;
-        Touch();
-
-        RaiseDomainEvent(new BankStatusChanged(
-            Guid.NewGuid(), DateTime.UtcNow,
-            Id.Value, old.ToString(), Status.ToString()));
-    }
-
-    // ── Currencies ────────────────────────────────────────
-    public void AddSupportedCurrency(string currencyCode)
+    public ResultDomain AddSupportedCurrency(string currencyCode)
     {
         if (string.IsNullOrWhiteSpace(currencyCode) || currencyCode.Length != 3)
-            throw new DomainException("Currency code must be 3 letters.");
+            return ResultDomain.Error(new MessageItem { Code = "Bank.InvalidCurrencyCode" });
 
         var code = currencyCode.ToUpperInvariant();
-
         if (_supportedCurrencies.Contains(code))
-            throw new DomainException($"Currency '{code}' is already supported by this bank.");
+            return ResultDomain.Error(new MessageItem { Code = "Bank.CurrencyAlreadySupported", Params = [code] });
 
         _supportedCurrencies.Add(code);
-        Touch();
+        return ResultDomain.Ok();
     }
 
     public bool SupportsCurrency(string currencyCode) =>
         _supportedCurrencies.Contains(currencyCode.ToUpperInvariant());
 
     public bool IsAvailable() => Status == BankStatus.Active;
-
-    // ── Helpers ───────────────────────────────────────────
-    private void Touch() => UpdatedAt = DateTime.UtcNow;
 }

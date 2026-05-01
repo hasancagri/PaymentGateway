@@ -1,11 +1,14 @@
-namespace PaymentGatewayApi.Contexts.Settlement;
+namespace PaymentGatewayApi.Contexts;
 
-public class SettlementContext
+public class SettlementContext : BaseDbContext<SettlementContext>
 {
-    
-}
+    public SettlementContext(IServiceProvider serviceProvider, DbContextOptions<SettlementContext> option,
+        ICurrentUser currentUser) : base(serviceProvider, option, currentUser)
+    {
+    }
 
-public class SettlementContextFactory
-{
-    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+    }
 }

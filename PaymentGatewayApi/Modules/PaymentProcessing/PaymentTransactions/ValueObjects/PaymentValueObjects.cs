@@ -1,60 +1,66 @@
 namespace PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.ValueObjects;
 
-public sealed record TransactionId(Guid Value)
-{
-    public static TransactionId New()            => new(Guid.NewGuid());
-    public static TransactionId From(Guid value) => new(value);
-    public override string ToString()            => Value.ToString();
-}
-
 public sealed record OrderId
 {
     public string Value { get; }
+    private OrderId(string value) => Value = value;
 
-    public OrderId(string value)
+    public static ResultDomain<OrderId> Create(string value)
     {
+        var errors = new List<MessageItem>();
         if (string.IsNullOrWhiteSpace(value))
-            throw new DomainException("Order ID cannot be empty.");
-        if (value.Length > 64)
-            throw new DomainException("Order ID cannot exceed 64 characters.");
-
-        Value = value.Trim();
+            errors.Add(new MessageItem { Code = "OrderId.Empty" });
+        else if (value.Length > 64)
+            errors.Add(new MessageItem { Code = "OrderId.TooLong" });
+        if (errors.Count > 0) return ResultDomain<OrderId>.Error(errors);
+        return ResultDomain<OrderId>.Ok(new OrderId(value.Trim()));
     }
 
+    public static OrderId FromPersistence(string value) => new(value);
     public override string ToString() => Value;
 }
 
-
 public sealed record CardInfo
 {
-    public string EncryptedCardNumber { get; } // AES encrypted — plain text never stored
+    public string EncryptedCardNumber { get; }
     public string CardHolderName      { get; }
     public string ExpiryMonth         { get; }
     public string ExpiryYear          { get; }
     public string CardHolderIp        { get; }
 
-    public CardInfo(
-        string encryptedCardNumber,
-        string cardHolderName,
-        string expiryMonth,
-        string expiryYear,
-        string cardHolderIp)
+    [JsonConstructor]
+    private CardInfo(
+        string encryptedCardNumber, string cardHolderName,
+        string expiryMonth, string expiryYear, string cardHolderIp)
     {
-        if (string.IsNullOrWhiteSpace(encryptedCardNumber))
-            throw new DomainException("Card number cannot be empty.");
-        if (string.IsNullOrWhiteSpace(cardHolderName))
-            throw new DomainException("Card holder name cannot be empty.");
-        if (!System.Net.IPAddress.TryParse(cardHolderIp, out _))
-            throw new DomainException("Invalid card holder IP address.");
-
         EncryptedCardNumber = encryptedCardNumber;
-        CardHolderName      = cardHolderName.Trim();
-        ExpiryMonth         = expiryMonth.Trim();
-        ExpiryYear          = expiryYear.Trim();
-        CardHolderIp        = cardHolderIp.Trim();
+        CardHolderName      = cardHolderName;
+        ExpiryMonth         = expiryMonth;
+        ExpiryYear          = expiryYear;
+        CardHolderIp        = cardHolderIp;
+    }
+
+    public static ResultDomain<CardInfo> Create(
+        string encryptedCardNumber, string cardHolderName,
+        string expiryMonth, string expiryYear, string cardHolderIp)
+    {
+        var errors = new List<MessageItem>();
+        if (string.IsNullOrWhiteSpace(encryptedCardNumber))
+            errors.Add(new MessageItem { Code = "CardInfo.CardNumberEmpty" });
+        if (string.IsNullOrWhiteSpace(cardHolderName))
+            errors.Add(new MessageItem { Code = "CardInfo.CardHolderNameEmpty" });
+        if (!System.Net.IPAddress.TryParse(cardHolderIp, out _))
+            errors.Add(new MessageItem { Code = "CardInfo.InvalidIpAddress" });
+        if (errors.Count > 0) return ResultDomain<CardInfo>.Error(errors);
+
+        return ResultDomain<CardInfo>.Ok(new CardInfo(
+            encryptedCardNumber,
+            cardHolderName.Trim(),
+            expiryMonth.Trim(),
+            expiryYear.Trim(),
+            cardHolderIp.Trim()));
     }
 }
-
 
 public sealed record CommissionInfo
 {
@@ -64,21 +70,31 @@ public sealed record CommissionInfo
     public decimal MerchantAmount { get; }
     public decimal NetAmount      { get; }
 
-    public CommissionInfo(
-        decimal grossAmount,
-        decimal bankRate,
-        decimal merchantRate)
+    [JsonConstructor]
+    private CommissionInfo(
+        decimal bankRate, decimal merchantRate,
+        decimal bankAmount, decimal merchantAmount, decimal netAmount)
     {
-        if (bankRate < 0 || merchantRate < 0)
-            throw new DomainException("Commission rates cannot be negative.");
-        if (merchantRate < bankRate)
-            throw new DomainException("Merchant rate cannot be less than bank rate.");
-
         BankRate       = bankRate;
         MerchantRate   = merchantRate;
-        BankAmount     = Math.Round(grossAmount * bankRate     / 100, 2);
-        MerchantAmount = Math.Round(grossAmount * merchantRate / 100, 2);
-        NetAmount      = Math.Round(grossAmount - MerchantAmount, 2);
+        BankAmount     = bankAmount;
+        MerchantAmount = merchantAmount;
+        NetAmount      = netAmount;
+    }
+
+    public static ResultDomain<CommissionInfo> Create(decimal grossAmount, decimal bankRate, decimal merchantRate)
+    {
+        var errors = new List<MessageItem>();
+        if (bankRate < 0 || merchantRate < 0)
+            errors.Add(new MessageItem { Code = "CommissionInfo.NegativeRates" });
+        if (merchantRate < bankRate)
+            errors.Add(new MessageItem { Code = "CommissionInfo.MerchantRateBelowBankRate" });
+        if (errors.Count > 0) return ResultDomain<CommissionInfo>.Error(errors);
+
+        var bankAmount     = Math.Round(grossAmount * bankRate / 100, 2);
+        var merchantAmount = Math.Round(grossAmount * merchantRate / 100, 2);
+        var netAmount      = Math.Round(grossAmount - merchantAmount, 2);
+        return ResultDomain<CommissionInfo>.Ok(new CommissionInfo(bankRate, merchantRate, bankAmount, merchantAmount, netAmount));
     }
 }
 
@@ -88,17 +104,26 @@ public sealed record BankRoutingInfo
     public string MerchantCode   { get; }
     public string TerminalCode   { get; }
 
-    public BankRoutingInfo(Guid selectedBankId, string merchantCode, string terminalCode)
+    [JsonConstructor]
+    private BankRoutingInfo(Guid selectedBankId, string merchantCode, string terminalCode)
     {
-        if (selectedBankId == Guid.Empty)
-            throw new DomainException("Selected bank ID cannot be empty.");
-        if (string.IsNullOrWhiteSpace(merchantCode))
-            throw new DomainException("Merchant code cannot be empty.");
-        if (string.IsNullOrWhiteSpace(terminalCode))
-            throw new DomainException("Terminal code cannot be empty.");
-
         SelectedBankId = selectedBankId;
-        MerchantCode   = merchantCode.Trim();
-        TerminalCode   = terminalCode.Trim();
+        MerchantCode   = merchantCode;
+        TerminalCode   = terminalCode;
+    }
+
+    public static ResultDomain<BankRoutingInfo> Create(Guid selectedBankId, string merchantCode, string terminalCode)
+    {
+        var errors = new List<MessageItem>();
+        if (selectedBankId == Guid.Empty)
+            errors.Add(new MessageItem { Code = "BankRoutingInfo.BankIdEmpty" });
+        if (string.IsNullOrWhiteSpace(merchantCode))
+            errors.Add(new MessageItem { Code = "BankRoutingInfo.MerchantCodeEmpty" });
+        if (string.IsNullOrWhiteSpace(terminalCode))
+            errors.Add(new MessageItem { Code = "BankRoutingInfo.TerminalCodeEmpty" });
+        if (errors.Count > 0) return ResultDomain<BankRoutingInfo>.Error(errors);
+
+        return ResultDomain<BankRoutingInfo>.Ok(
+            new BankRoutingInfo(selectedBankId, merchantCode.Trim(), terminalCode.Trim()));
     }
 }

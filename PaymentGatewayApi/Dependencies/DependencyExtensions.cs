@@ -1,4 +1,4 @@
-namespace VenueTalk.Dependencies;
+namespace PaymentGatewayApi.Dependencies;
 
 public static class DependencyExtensions
 {

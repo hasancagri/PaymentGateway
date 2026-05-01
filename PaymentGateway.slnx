@@ -1,3 +1,8 @@
 <Solution>
+  <Project Path="AppHost/AppHost.csproj" />
+  <Project Path="Common/Common.csproj" />
   <Project Path="PaymentGatewayApi/PaymentGatewayApi.csproj" />
+  <Project Path="PaymentGatewayBff/PaymentGatewayBff.csproj" />
+  <Project Path="PaymentGatewayPortal/PaymentGatewayPortal.csproj" />
+  <Project Path="ServiceDefaults/ServiceDefaults.csproj" />
 </Solution>

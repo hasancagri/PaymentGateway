@@ -1,11 +1,14 @@
-namespace PaymentGatewayApi.Contexts.BankIntegration;
+namespace PaymentGatewayApi.Contexts;
 
-public class BankIntegrationContext
+public class BankIntegrationContext : BaseDbContext<BankIntegrationContext>
 {
-    
-}
+    public BankIntegrationContext(IServiceProvider serviceProvider, DbContextOptions<BankIntegrationContext> option,
+        ICurrentUser currentUser) : base(serviceProvider, option, currentUser)
+    {
+    }
 
-public class BankIntegrationContextFactory
-{
-    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+    }
 }

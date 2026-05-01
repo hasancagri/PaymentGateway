@@ -3,3 +3,13 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+*.user
+
+# Local secrets
+appsettings.Development.json

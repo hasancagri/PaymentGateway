@@ -1,11 +1,14 @@
-namespace PaymentGatewayApi.Contexts.MerchantManagement;
+namespace PaymentGatewayApi.Contexts;
 
-public class MerchantManagementContext
+public class MerchantManagementContext : BaseDbContext<MerchantManagementContext>
 {
-    
-}
+    public MerchantManagementContext(IServiceProvider serviceProvider, DbContextOptions<MerchantManagementContext> option,
+        ICurrentUser currentUser) : base(serviceProvider, option, currentUser)
+    {
+    }
 
-public class MerchantManagementContextFactory
-{
-    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+    }
 }

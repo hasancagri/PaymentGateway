@@ -1,4 +1,4 @@
-namespace VenueTalk.Exceptions;
+namespace PaymentGatewayApi.Exceptions;
 
 public static class GlobalExceptionExtension
 {

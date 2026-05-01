@@ -2,51 +2,51 @@ namespace PaymentGatewayApi.Modules.IAM.Users.Events;
 
 public sealed record UserCreated(
     Guid EventId,
-    DateTime OccuredOn,
+    DateTime OccurredOn,
     Guid UserId,
     string Email,
     string FullName
-) : IDomainEvent;
+);
 
 public sealed record UserStatusChanged(
     Guid EventId,
-    DateTime OccuredOn,
+    DateTime OccurredOn,
     Guid UserId,
     string OldStatus,
     string NewStatus
-) : IDomainEvent;
+);
 
 public sealed record UserPasswordChanged(
     Guid EventId,
-    DateTime OccuredOn,
+    DateTime OccurredOn,
     Guid UserId
-) : IDomainEvent;
+);
 
 public sealed record UserRoleAssigned(
     Guid EventId,
-    DateTime OccuredOn,
+    DateTime OccurredOn,
     Guid UserId,
     Guid RoleId
-) : IDomainEvent;
+);
 
-public sealed record UserRoleRevoked(
+public sealed record UserRoleRemoved(
     Guid EventId,
-    DateTime OccuredOn,
+    DateTime OccurredOn,
     Guid UserId,
     Guid RoleId
-) : IDomainEvent;
+);
 
 public sealed record UserLoggedIn(
     Guid EventId,
-    DateTime OccuredOn,
+    DateTime OccurredOn,
     Guid UserId,
     string IpAddress
-) : IDomainEvent;
+);
 
 public sealed record UserLoginFailed(
     Guid EventId,
-    DateTime OccuredOn,
+    DateTime OccurredOn,
     string Email,
     string IpAddress,
     int FailCount
-) : IDomainEvent;
+);

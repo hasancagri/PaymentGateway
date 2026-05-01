@@ -1,4 +1,4 @@
-namespace PaymentGatewayApi.Contexts;
+namespace PaymentGatewayApi.Shared;
 
 internal class DesignTimeCurrentUser : ICurrentUser
 {

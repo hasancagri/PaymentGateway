@@ -5,15 +5,18 @@ public sealed record FullName
     public string FirstName { get; }
     public string LastName  { get; }
 
-    public FullName(string firstName, string lastName)
-    {
-        if (string.IsNullOrWhiteSpace(firstName))
-            throw new DomainException("First name cannot be empty.");
-        if (string.IsNullOrWhiteSpace(lastName))
-            throw new DomainException("Last name cannot be empty.");
+    [JsonConstructor]
+    private FullName(string firstName, string lastName) { FirstName = firstName; LastName = lastName; }
 
-        FirstName = firstName.Trim();
-        LastName  = lastName.Trim();
+    public static ResultDomain<FullName> Create(string firstName, string lastName)
+    {
+        var errors = new List<MessageItem>();
+        if (string.IsNullOrWhiteSpace(firstName))
+            errors.Add(new MessageItem { Code = "FullName.FirstNameEmpty" });
+        if (string.IsNullOrWhiteSpace(lastName))
+            errors.Add(new MessageItem { Code = "FullName.LastNameEmpty" });
+        if (errors.Count > 0) return ResultDomain<FullName>.Error(errors);
+        return ResultDomain<FullName>.Ok(new FullName(firstName.Trim(), lastName.Trim()));
     }
 
     public string Display => $"{FirstName} {LastName}";

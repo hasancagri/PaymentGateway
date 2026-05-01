@@ -2,41 +2,40 @@ using PaymentGatewayApi.Modules.CommissionManagement.BankCommissions.Enums;
 
 namespace PaymentGatewayApi.Modules.CommissionManagement.BankCommissions.ValueObjects;
 
-public sealed record BankCommissionId(Guid Value)
-{
-    public static BankCommissionId New()            => new(Guid.NewGuid());
-    public static BankCommissionId From(Guid value) => new(value);
-    public override string ToString()               => Value.ToString();
-}
-
 public sealed record CommissionRate
 {
     public decimal Value { get; }
+    private CommissionRate(decimal value) => Value = value;
 
-    public CommissionRate(decimal value)
+    public static ResultDomain<CommissionRate> Create(decimal value)
     {
-        if (value < 0 || value > 100)
-            throw new DomainException("Commission rate must be between 0 and 100.");
+        if (value is < 0 or > 100)
+        {
+            return ResultDomain<CommissionRate>.Error(new MessageItem { Code = "CommissionRate.OutOfRange" });
+        }
 
-        Value = Math.Round(value, 4);
+        return ResultDomain<CommissionRate>.Ok(new CommissionRate(Math.Round(value, 4)));
     }
 
+    public static CommissionRate FromPersistence(decimal value) => new(value);
     public override string ToString() => $"{Value}%";
 }
 
 public sealed record CommissionCriteria
 {
-    public CardBrand         CardBrand         { get; }
-    public CardType          CardType          { get; }
+    public CardBrand CardBrand { get; }
+    public CardType CardType { get; }
     public TransactionRegion TransactionRegion { get; }
 
-    public CommissionCriteria(
-        CardBrand         cardBrand,
-        CardType          cardType,
-        TransactionRegion transactionRegion)
+    [JsonConstructor]
+    public CommissionCriteria(CardBrand cardBrand, CardType cardType, TransactionRegion transactionRegion)
     {
-        CardBrand         = cardBrand;
-        CardType          = cardType;
+        CardBrand = cardBrand;
+        CardType = cardType;
         TransactionRegion = transactionRegion;
     }
+
+    public static CommissionCriteria FromPersistence(CardBrand cardBrand, CardType cardType,
+        TransactionRegion transactionRegion)
+        => new(cardBrand, cardType, transactionRegion);
 }

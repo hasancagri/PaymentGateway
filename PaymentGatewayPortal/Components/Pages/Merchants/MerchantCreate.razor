@@ -1,0 +1,60 @@
+@page "/merchants/create"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject PaymentGatewayPortal.Clients.MerchantBffClient MerchantClient
+@inject NavigationManager Navigation
+
+<h2>Yeni Merchant</h2>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <p style="color:red">@_error</p>
+}
+
+<EditForm Model="_model" OnValidSubmit="HandleCreate">
+    <DataAnnotationsValidator />
+    <div><label>Ad</label><InputText @bind-Value="_model.Name" /></div>
+    <div><label>E-posta</label><InputText @bind-Value="_model.Email" /></div>
+    <div><label>Telefon</label><InputText @bind-Value="_model.Phone" /></div>
+    <div><label>Ülke</label><InputText @bind-Value="_model.Country" /></div>
+    <div><label>Şehir</label><InputText @bind-Value="_model.City" /></div>
+    <div><label>MCC</label><InputText @bind-Value="_model.Mcc" /></div>
+    <button type="submit" disabled="@_loading">
+        @(_loading ? "Kaydediliyor..." : "Kaydet")
+    </button>
+    <a href="/merchants">İptal</a>
+</EditForm>
+
+@code {
+    private readonly FormModel _model = new();
+    private bool _loading;
+    private string? _error;
+
+    private async Task HandleCreate()
+    {
+        _loading = true;
+        _error = null;
+
+        var request = new PaymentGatewayPortal.Models.CreateMerchantRequest(
+            _model.Name, _model.Email, _model.Phone,
+            _model.Country, _model.City, _model.Mcc);
+
+        var response = await MerchantClient.CreateAsync(request);
+        if (response.IsSuccessStatusCode)
+            Navigation.NavigateTo("/merchants");
+        else
+            _error = "Merchant oluşturulamadı.";
+
+        _loading = false;
+    }
+
+    private class FormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string Mcc { get; set; } = string.Empty;
+    }
+}

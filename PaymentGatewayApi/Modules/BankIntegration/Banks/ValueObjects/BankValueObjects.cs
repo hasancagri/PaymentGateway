@@ -1,37 +1,32 @@
 namespace PaymentGatewayApi.Modules.BankIntegration.Banks.ValueObjects;
 
-public sealed record BankId(Guid Value)
-{
-    public static BankId New()            => new(Guid.NewGuid());
-    public static BankId From(Guid value) => new(value);
-    public override string ToString()     => Value.ToString();
-}
-
 public sealed record BankName
 {
     public string Value { get; }
+    private BankName(string value) => Value = value;
 
-    public BankName(string value)
+    public static ResultDomain<BankName> Create(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new DomainException("Bank name cannot be empty.");
-
-        Value = value.Trim();
+            return ResultDomain<BankName>.Error(new MessageItem { Code = "BankName.Empty" });
+        return ResultDomain<BankName>.Ok(new BankName(value.Trim()));
     }
 
+    public static BankName FromPersistence(string value) => new(value);
     public override string ToString() => Value;
 }
 
 public sealed record BankPriority
 {
     public int Value { get; }
+    private BankPriority(int value) => Value = value;
 
-    public BankPriority(int value)
+    public static ResultDomain<BankPriority> Create(int value)
     {
         if (value < 1)
-            throw new DomainException("Bank priority must be greater than 0.");
-
-        Value = value;
+            return ResultDomain<BankPriority>.Error(new MessageItem { Code = "BankPriority.MustBePositive" });
+        return ResultDomain<BankPriority>.Ok(new BankPriority(value));
     }
-}
 
+    public static BankPriority FromPersistence(int value) => new(value);
+}

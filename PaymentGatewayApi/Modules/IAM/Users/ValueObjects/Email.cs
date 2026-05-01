@@ -3,14 +3,15 @@ namespace PaymentGatewayApi.Modules.IAM.Users.ValueObjects;
 public sealed record Email
 {
     public string Value { get; }
+    private Email(string value) => Value = value;
 
-    public Email(string value)
+    public static ResultDomain<Email> Create(string value)
     {
         if (string.IsNullOrWhiteSpace(value) || !value.Contains('@'))
-            throw new DomainException("Invalid email address.");
-
-        Value = value.Trim().ToLowerInvariant();
+            return ResultDomain<Email>.Error(new MessageItem { Code = "Email.Invalid" });
+        return ResultDomain<Email>.Ok(new Email(value.Trim().ToLowerInvariant()));
     }
 
+    public static Email FromPersistence(string value) => new(value);
     public override string ToString() => Value;
 }

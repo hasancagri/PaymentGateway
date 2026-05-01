@@ -1,0 +1,23 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.2.4">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UserSecretsId>f92f7968-4d75-4c40-88fa-0831b3d80656</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\PaymentGatewayApi\PaymentGatewayApi.csproj" />
+      <ProjectReference Include="..\PaymentGatewayBff\PaymentGatewayBff.csproj" />
+      <ProjectReference Include="..\PaymentGatewayPortal\PaymentGatewayPortal.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="9.3.0" />
+        <PackageReference Include="Aspire.Hosting.Redis" Version="9.3.0" />
+        <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="9.3.0" />
+    </ItemGroup>
+
+</Project>

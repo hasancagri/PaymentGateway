@@ -1,0 +1,55 @@
+@page "/merchants"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject PaymentGatewayPortal.Clients.MerchantBffClient MerchantClient
+@inject NavigationManager Navigation
+
+<h2>Merchant'lar</h2>
+<a href="/merchants/create">Yeni Merchant</a>
+
+@if (_merchants is null)
+{
+    <p>Yükleniyor...</p>
+}
+else if (_merchants.Count == 0)
+{
+    <p>Kayıt bulunamadı.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Ad</th>
+                <th>Durum</th>
+                <th>E-posta</th>
+                <th>Ülke</th>
+                <th>MCC</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in _merchants)
+            {
+                <tr>
+                    <td>@m.Name</td>
+                    <td>@m.Status</td>
+                    <td>@m.Email</td>
+                    <td>@m.Country</td>
+                    <td>@m.Mcc</td>
+                    <td><a href="/merchants/@m.Id">Detay</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<PaymentGatewayPortal.Models.MerchantListItem>? _merchants;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await MerchantClient.GetAllAsync();
+        _merchants = result?.Data ?? [];
+    }
+}

@@ -1,8 +1,11 @@
-namespace VenueTalk.Utils.Constants;
+namespace PaymentGatewayApi.Utils.Constants;
 
 public class SchemaConstants
 {
-    public static readonly string VENUE_SCHEMA_NAME = "venue";
-    public static readonly string BOOK_SCHEMA_NAME = "book";
-
+    public static readonly string BANK_INTEGRATION_SCHEMA_NAME = "bankIntegration";
+    public static readonly string COMMISSION_MANAGEMENT_SCHEMA_NAME = "commissionManagement";
+    public static readonly string IAM_SCHEMA_NAME = "iam";
+    public static readonly string MERCHANT_MANAGEMENT_SCHEMA_NAME = "merchantManagement";
+    public static readonly string PAYMENT_PROCESSING_SCHEMA_NAME = "paymentProcessing";
+    public static readonly string SETTLEMENT_SCHEMA_NAME = "settlement";
 }

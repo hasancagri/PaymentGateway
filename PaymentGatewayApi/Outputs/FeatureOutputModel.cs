@@ -1,6 +1,9 @@
+using Common;
 using Common.Results.BaseClasses;
+using Common.Utils.Constants;
+using PagedList.Core;
 
-namespace VenueTalk.Outputs;
+namespace PaymentGatewayApi.Outputs;
 
 public class FeatureResultModel : BaseResultModel
 {

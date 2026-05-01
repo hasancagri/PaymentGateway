@@ -1,6 +1,7 @@
+using Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 
-namespace VenueTalk.Exceptions;
+namespace PaymentGatewayApi.Exceptions;
 
 public class GlobalExceptionHandler : IExceptionHandler
 {

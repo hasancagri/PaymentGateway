@@ -1,20 +1,16 @@
-using PaymentGatewayApi.Modules.IAM.Roles.ValueObjects;
-
 namespace PaymentGatewayApi.Modules.IAM.Users.Entities;
 
-public sealed class UserRole
+public sealed class UserRole : BaseModel
 {
-    public Guid Id { get; private set; }
-    public RoleId RoleId { get; private set; }
+    public Guid RoleId { get; private set; }
     public DateTime AssignedAt { get; private set; }
 
     private UserRole()
     {
-    } // EF Core
+    }
 
-    internal static UserRole Create(RoleId roleId) => new()
+    internal static UserRole Create(Guid roleId) => new()
     {
-        Id = Guid.NewGuid(),
         RoleId = roleId,
         AssignedAt = DateTime.UtcNow
     };

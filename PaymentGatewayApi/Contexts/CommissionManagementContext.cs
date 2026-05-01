@@ -1,11 +1,14 @@
-namespace PaymentGatewayApi.Contexts.CommissionManagement;
+namespace PaymentGatewayApi.Contexts;
 
-public class CommissionManagementContext
+public class CommissionManagementContext : BaseDbContext<CommissionManagementContext>
 {
-    
-}
+    public CommissionManagementContext(IServiceProvider serviceProvider, DbContextOptions<CommissionManagementContext> option,
+        ICurrentUser currentUser) : base(serviceProvider, option, currentUser)
+    {
+    }
 
-public class CommissionManagementContextFactory
-{
-    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+    }
 }

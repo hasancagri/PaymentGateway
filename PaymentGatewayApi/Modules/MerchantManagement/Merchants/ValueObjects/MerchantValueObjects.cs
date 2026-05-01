@@ -1,26 +1,22 @@
 namespace PaymentGatewayApi.Modules.MerchantManagement.Merchants.ValueObjects;
 
-public sealed record MerchantId(Guid Value)
-{
-    public static MerchantId New() => new(Guid.NewGuid());
-    public static MerchantId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString();
-}
-
 public sealed record MerchantName
 {
     public string Value { get; }
+    private MerchantName(string value) => Value = value;
 
-    public MerchantName(string value)
+    public static ResultDomain<MerchantName> Create(string value)
     {
+        var errors = new List<MessageItem>();
         if (string.IsNullOrWhiteSpace(value))
-            throw new DomainException("Merchant name cannot be empty.");
-        if (value.Length > 100)
-            throw new DomainException("Merchant name cannot exceed 100 characters.");
-
-        Value = value.Trim();
+            errors.Add(new MessageItem { Code = "MerchantName.Empty" });
+        else if (value.Length > 100)
+            errors.Add(new MessageItem { Code = "MerchantName.TooLong" });
+        if (errors.Count > 0) return ResultDomain<MerchantName>.Error(errors);
+        return ResultDomain<MerchantName>.Ok(new MerchantName(value.Trim()));
     }
 
+    public static MerchantName FromPersistence(string value) => new(value);
     public override string ToString() => Value;
 }
 
@@ -29,95 +25,96 @@ public sealed record ContactInfo
     public string Email { get; }
     public string Phone { get; }
 
-    public ContactInfo(string email, string phone)
+    [JsonConstructor]
+    private ContactInfo(string email, string phone)
     {
-        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
-            throw new DomainException("Invalid email address.");
-        if (string.IsNullOrWhiteSpace(phone))
-            throw new DomainException("Phone cannot be empty.");
+        Email = email;
+        Phone = phone;
+    }
 
-        Email = email.Trim().ToLowerInvariant();
-        Phone = phone.Trim();
+    public static ResultDomain<ContactInfo> Create(string email, string phone)
+    {
+        var errors = new List<MessageItem>();
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+            errors.Add(new MessageItem { Code = "ContactInfo.InvalidEmail" });
+        if (string.IsNullOrWhiteSpace(phone))
+            errors.Add(new MessageItem { Code = "ContactInfo.PhoneEmpty" });
+        if (errors.Count > 0) return ResultDomain<ContactInfo>.Error(errors);
+        return ResultDomain<ContactInfo>.Ok(new ContactInfo(email.Trim().ToLowerInvariant(), phone.Trim()));
     }
 }
 
 public sealed record MerchantAddress
 {
-    public string Country { get; } // ISO 3166-1 alpha-2
+    public string Country { get; }
     public string City { get; }
 
-    public MerchantAddress(string country, string city)
+    [JsonConstructor]
+    private MerchantAddress(string country, string city)
     {
-        if (string.IsNullOrWhiteSpace(country) || country.Length != 2)
-            throw new DomainException("Country must be a valid ISO 3166-1 alpha-2 code.");
-        if (string.IsNullOrWhiteSpace(city))
-            throw new DomainException("City cannot be empty.");
+        Country = country;
+        City = city;
+    }
 
-        Country = country.Trim().ToUpperInvariant();
-        City = city.Trim();
+    public static ResultDomain<MerchantAddress> Create(string country, string city)
+    {
+        var errors = new List<MessageItem>();
+        if (string.IsNullOrWhiteSpace(country) || country.Length != 2)
+            errors.Add(new MessageItem { Code = "MerchantAddress.InvalidCountry" });
+        if (string.IsNullOrWhiteSpace(city))
+            errors.Add(new MessageItem { Code = "MerchantAddress.CityEmpty" });
+        if (errors.Count > 0) return ResultDomain<MerchantAddress>.Error(errors);
+        return ResultDomain<MerchantAddress>.Ok(new MerchantAddress(country.Trim().ToUpperInvariant(), city.Trim()));
     }
 }
 
 public sealed record Mcc
 {
     public string Value { get; }
+    private Mcc(string value) => Value = value;
 
-    public Mcc(string value)
+    public static ResultDomain<Mcc> Create(string value)
     {
         if (string.IsNullOrWhiteSpace(value) || value.Length != 4 || !value.All(char.IsDigit))
-            throw new DomainException("MCC must be a 4-digit numeric code.");
-
-        Value = value;
+            return ResultDomain<Mcc>.Error(new MessageItem { Code = "Mcc.Invalid" });
+        return ResultDomain<Mcc>.Ok(new Mcc(value));
     }
 
-    public override string ToString() => Value;
-}
-
-public sealed record IpAddress
-{
-    public string Value { get; }
-
-    public IpAddress(string value)
-    {
-        if (!System.Net.IPAddress.TryParse(value, out _))
-            throw new DomainException($"'{value}' is not a valid IP address.");
-
-        Value = value.Trim();
-    }
-
+    public static Mcc FromPersistence(string value) => new(value);
     public override string ToString() => Value;
 }
 
 public sealed record Currency
 {
-    private static readonly HashSet<string> _validCodes =
-        ["USD", "EUR", "TRY", "GBP", "AED", "SAR"];
+    private static readonly HashSet<string> _validCodes = ["USD", "EUR", "TRY", "GBP", "AED", "SAR"];
 
     public string Code { get; }
+    private Currency(string code) => Code = code;
 
-    public Currency(string code)
+    public static ResultDomain<Currency> Create(string code)
     {
+        var errors = new List<MessageItem>();
         if (string.IsNullOrWhiteSpace(code) || code.Length != 3)
-            throw new DomainException("Currency must be a 3-letter ISO 4217 code.");
-        if (!_validCodes.Contains(code.ToUpperInvariant()))
-            throw new DomainException($"Unsupported currency: {code}.");
-
-        Code = code.ToUpperInvariant();
+            errors.Add(new MessageItem { Code = "Currency.InvalidFormat" });
+        else if (!_validCodes.Contains(code.ToUpperInvariant()))
+            errors.Add(new MessageItem { Code = "Currency.Unsupported", Params = [code] });
+        if (errors.Count > 0) return ResultDomain<Currency>.Error(errors);
+        return ResultDomain<Currency>.Ok(new Currency(code.ToUpperInvariant()));
     }
 
+    public static Currency FromPersistence(string code) => new(code);
     public override string ToString() => Code;
 }
 
 public sealed record ApiKeyValue
 {
-    public string PlainText { get; } // Only available at generation time
+    public string PlainText { get; }
     public string Hash { get; }
 
     public static ApiKeyValue Generate()
     {
         var plain = $"pfk_{Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))}";
-        var hash = HashKey(plain);
-        return new ApiKeyValue(plain, hash);
+        return new ApiKeyValue(plain, HashKey(plain));
     }
 
     public static ApiKeyValue FromHash(string hash) => new(null!, hash);

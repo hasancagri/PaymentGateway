@@ -1,0 +1,11 @@
+global using Common.Dependencies.Models;
+global using System.Reflection;
+global using System.Linq.Expressions;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.DependencyInjection;
+global using Common.Auths;
+global using Common.Domains;
+global using Common.Utils.Helpers;
+global using System.IdentityModel.Tokens.Jwt;
+global using System.Security.Claims;
+global using Common.Inputs.BaseClasses;

@@ -1,0 +1,58 @@
+@page "/login"
+@rendermode InteractiveServer
+@inject PaymentGatewayPortal.Clients.AuthBffClient AuthClient
+@inject PaymentGatewayPortal.Auth.PortalAuthStateProvider AuthProvider
+@inject NavigationManager Navigation
+
+<h2>Giriş Yap</h2>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <p style="color:red">@_error</p>
+}
+
+<EditForm Model="_model" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <div>
+        <label>E-posta</label>
+        <InputText @bind-Value="_model.Email" />
+    </div>
+    <div>
+        <label>Şifre</label>
+        <InputText @bind-Value="_model.Password" type="password" />
+    </div>
+    <button type="submit" disabled="@_loading">
+        @(_loading ? "Giriş yapılıyor..." : "Giriş Yap")
+    </button>
+</EditForm>
+
+@code {
+    private readonly LoginModel _model = new();
+    private bool _loading;
+    private string? _error;
+
+    private async Task HandleLogin()
+    {
+        _loading = true;
+        _error = null;
+
+        var result = await AuthClient.LoginAsync(_model.Email, _model.Password);
+        if (result?.IsSuccess == true && result.Data?.Token is not null)
+        {
+            await AuthProvider.SignInAsync(result.Data.Token);
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            _error = "E-posta veya şifre hatalı.";
+        }
+
+        _loading = false;
+    }
+
+    private class LoginModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

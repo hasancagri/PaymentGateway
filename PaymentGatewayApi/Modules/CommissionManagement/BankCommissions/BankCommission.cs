@@ -1,4 +1,3 @@
-using PaymentGatewayApi.Modules.CommissionManagement.BankCommissions.Events;
 using PaymentGatewayApi.Modules.CommissionManagement.BankCommissions.ValueObjects;
 
 namespace PaymentGatewayApi.Modules.CommissionManagement.BankCommissions;
@@ -6,15 +5,10 @@ namespace PaymentGatewayApi.Modules.CommissionManagement.BankCommissions;
 public sealed class BankCommission : AggregateRoot
 {
     // ── Identity ──────────────────────────────────────────
-    public BankCommissionId Id { get; private set; }
     public Guid BankId { get; private set; } // Cross-BC reference
     public CommissionCriteria Criteria { get; private set; }
     public CommissionRate Rate { get; private set; }
-
-    // ── Audit ─────────────────────────────────────────────
-    public DateTime CreatedAt { get; private set; }
-    public DateTime? UpdatedAt { get; private set; }
-
+    
     private BankCommission()
     {
     } // EF Core
@@ -27,21 +21,10 @@ public sealed class BankCommission : AggregateRoot
     {
         var commission = new BankCommission
         {
-            Id = BankCommissionId.New(),
             BankId = bankId,
             Criteria = criteria,
-            Rate = rate,
-            CreatedAt = DateTime.UtcNow
+            Rate = rate
         };
-
-        commission.RaiseDomainEvent(new BankCommissionDefined(
-            Guid.NewGuid(), DateTime.UtcNow,
-            commission.Id.Value,
-            bankId,
-            criteria.CardBrand.ToString(),
-            criteria.CardType.ToString(),
-            criteria.TransactionRegion.ToString(),
-            rate.Value));
 
         return commission;
     }
@@ -51,10 +34,5 @@ public sealed class BankCommission : AggregateRoot
     {
         var old = Rate;
         Rate = newRate;
-        UpdatedAt = DateTime.UtcNow;
-
-        RaiseDomainEvent(new BankCommissionUpdated(
-            Guid.NewGuid(), DateTime.UtcNow,
-            Id.Value, old.Value, newRate.Value));
     }
 }

@@ -1,66 +1,79 @@
-using FluentValidation;
-using Wolverine.Attributes;
+using Common.Utils.Helpers;
+using PaymentGatewayApi.Auths;
+using PaymentGatewayApi.Modules.IAM.Roles;
 
 namespace PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
 
-public static class NewCustomer
+public static class Login
 {
-    [CacheResult("Customer")]
-    public class NewCustomerCommand
+    public class LoginCommand
     {
-        public string Name { get; set; }
-        public string Email { get; set; }
+        public required string Email { get; set; }
+        public required string Password { get; set; }
     }
 
-    public class NewCustomerResponse
+    public class LoginCommandResponse
     {
-        public Guid Id { get; set; }
-    }
-
-    public class NewCustomerCommandValidator : AbstractValidator<NewCustomerCommand>
-    {
-        public NewCustomerCommandValidator()
-        {
-            RuleFor(x => x.Name).NotEmpty().Must(x => x.Length is >= 6 and <= 32)
-                .WithErrorCode(CommonResourceConstants.COMMON_MESSAGE_VALUE_MIN_LENGHT_ERROR);
-
-            RuleFor(x => x.Email).NotEmpty()
-                .WithErrorCode(CommonResourceConstants.COMMON_MESSAGE_VALUE_MIN_LENGHT_ERROR);
-        }
+        public string? Token { get; set; }
     }
 
     [Transactional]
-    public class NewCustomerHandler
+    public class LoginHandler
     {
-        public async Task<FeatureObjectResultModel<NewCustomerResponse>> Handle(
-            NewCustomerCommand cmd,
-            VenueContext db,
+        public async Task<FeatureObjectResultModel<LoginCommandResponse>> Handle(
+            LoginCommand cmd,
+            IamContext db,
+            IJwtHelper jwtHelper,
+            ICache cache,
             CancellationToken ct)
         {
-            var name = CustomerName.FromPersistence(cmd.Name);
-            var email = Email.FromPersistence(cmd.Email);
+            var user = await db.Set<User>()
+                .Include(x => x.Roles)
+                .FirstOrDefaultAsync(x => x.Email.Value == cmd.Email, ct);
 
-            var customerExists = await db.Set<Customer>()
-                .AnyAsync(s => s.Name == name && s.Email == email, ct);
-
-            if (customerExists)
-                return FeatureObjectResultModel<NewCustomerResponse>.Error(new MessageItem
+            if (user is null)
+            {
+                return FeatureObjectResultModel<LoginCommandResponse>.Error(new MessageItem
                 {
-                    Table = nameof(Customer),
-                    Property = nameof(Customer.Name),
+                    //TODO: Buraya geleceğim
+                    Table = nameof(User),
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_DUPLICATE
                 });
+            }
 
-            var customerResult = Customer.Create(cmd.Name, cmd.Email);
-
-            if (!customerResult.IsSuccess)
-                return FeatureObjectResultModel<NewCustomerResponse>.Error(customerResult.Messages);
-
-            await db.Set<Customer>().AddAsync(customerResult.Data!, ct);
-
-            return FeatureObjectResultModel<NewCustomerResponse>.Ok(new NewCustomerResponse
+            if (!user.Password.Verify(cmd.Password))
             {
-                Id = customerResult.Data!.Id
+                return FeatureObjectResultModel<LoginCommandResponse>.Error(new MessageItem
+                {
+                    //TODO: Buraya geleceğim
+                    Table = nameof(User),
+                    Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_DUPLICATE
+                });
+            }
+
+            var roleIds = user.Roles.Select(r => r.RoleId).ToList();
+            var permissions = await db.Set<Role>()
+                .Where(x => roleIds.Contains(x.Id))
+                .SelectMany(x => x.Permissions)
+                .Select(x => new PermissionCache
+                {
+                    Resource = x.Resource, 
+                    PermissionType = x.PermissionType
+                })
+                .ToListAsync(ct);
+
+            var claimInfo = new UserClaimInfo(user.FullName.FirstName, user.FullName.LastName, user.Email.Value);
+            var accessToken = jwtHelper.Create(claimInfo);
+
+            await cache.Set($"user:{user.Id}", new UserSessionCache
+            {
+                UserId = user.Id,
+                Permissions = permissions
+            });
+
+            return FeatureObjectResultModel<LoginCommandResponse>.Ok(new LoginCommandResponse
+            {
+                Token = accessToken.Token
             });
         }
     }

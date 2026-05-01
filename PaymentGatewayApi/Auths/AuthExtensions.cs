@@ -1,6 +1,4 @@
-using Common.Auths;
-
-namespace VenueTalk.Auths;
+namespace PaymentGatewayApi.Auths;
 
 public static class AuthExtensions
 {
@@ -8,14 +6,20 @@ public static class AuthExtensions
     {
         serviceCollection.AddTransient<ICurrentUser>(provider =>
         {
-            //get from jwt
-            return new CurrentUser
+            var httpContext = provider.GetRequiredService<IHttpContextAccessor>().HttpContext;
+            var authHeader = httpContext?.Request.Headers.Authorization.FirstOrDefault();
+
+            if (string.IsNullOrEmpty(authHeader))
+                return new CurrentUser();
+
+            try
             {
-                Id = Guid.NewGuid(),
-                Name = "Hasan D.",
-                Email = "hasandemiriz@msn.com",
-                Phone = "544 999 99 99"
-            };
+                return CurrentUser.Load(authHeader);
+            }
+            catch
+            {
+                return new CurrentUser();
+            }
         });
     }
 }

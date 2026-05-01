@@ -1,0 +1,17 @@
+@inject NavigationManager Navigation
+@inject PaymentGatewayPortal.Auth.PortalAuthStateProvider AuthProvider
+
+<nav>
+    <a href="/">Ana Sayfa</a>
+    <a href="/merchants">Merchant'lar</a>
+    <a href="/commissions">Komisyonlar</a>
+    <button @onclick="SignOut">Çıkış</button>
+</nav>
+
+@code {
+    private async Task SignOut()
+    {
+        await AuthProvider.SignOutAsync();
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

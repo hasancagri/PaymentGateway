@@ -1,176 +1,137 @@
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Enums;
-using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Events;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.ValueObjects;
 
 namespace PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions;
 
 public sealed class PaymentTransaction : AggregateRoot
 {
-    // ── Identity ──────────────────────────────────────────
-    public TransactionId     Id            { get; private set; }
-    public Guid              MerchantId    { get; private set; } // Cross-BC reference
-    public OrderId           OrderId       { get; private set; }
-    public TransactionType   Type          { get; private set; }
-    public TransactionStatus Status        { get; private set; }
-
-    // ── Financial ─────────────────────────────────────────
-    public Money           Amount         { get; private set; }
+    public Guid MerchantId { get; private set; }
+    public OrderId OrderId { get; private set; }
+    public TransactionType Type { get; private set; }
+    public TransactionStatus Status { get; private set; }
+    public Money Amount { get; private set; }
     public CommissionInfo? CommissionInfo { get; private set; }
-
-    // ── Card ──────────────────────────────────────────────
     public CardInfo CardInfo { get; private set; }
-
-    // ── Routing ───────────────────────────────────────────
     public BankRoutingInfo? RoutingInfo { get; private set; }
-
-    // ── Bank Response ─────────────────────────────────────
-    public string? BankResponseCode  { get; private set; }
-    public string? BankMessage       { get; private set; }
+    public string? BankResponseCode { get; private set; }
+    public string? BankMessage { get; private set; }
     public string? BankTransactionId { get; private set; }
+    public bool IsSettled { get; private set; }
+    public DateTime? SettledAt { get; private set; }
+    public Guid? SettlementId { get; private set; }
 
-    // ── Settlement ────────────────────────────────────────
-    public bool      IsSettled    { get; private set; }
-    public DateTime? SettledAt    { get; private set; }
-    public Guid?     SettlementId { get; private set; } // Cross-BC reference
-
-    // ── Audit ─────────────────────────────────────────────
-    public DateTime  CreatedAt { get; private set; }
-    public DateTime? UpdatedAt { get; private set; }
-
-    private PaymentTransaction() { } // EF Core
-
-    // ── Factory ───────────────────────────────────────────
-    public static PaymentTransaction Initiate(
-        Guid            merchantId,
-        OrderId         orderId,
-        TransactionType type,
-        Money           amount,
-        CardInfo        cardInfo)
+    private PaymentTransaction()
     {
-        var transaction = new PaymentTransaction
+    }
+
+    public static ResultDomain<PaymentTransaction> Initiate(
+        Guid merchantId, string orderId, TransactionType type,
+        decimal amount, string currency,
+        string encryptedCardNumber, string cardHolderName,
+        string expiryMonth, string expiryYear, string cardHolderIp)
+    {
+        var orderIdResult = OrderId.Create(orderId);
+        var moneyResult = Money.Create(amount, currency);
+        var cardResult = CardInfo.Create(encryptedCardNumber, cardHolderName, expiryMonth, expiryYear, cardHolderIp);
+
+        var errors = new List<MessageItem>();
+        if (!orderIdResult.IsSuccess) errors.AddRange(orderIdResult.Messages!);
+        if (!moneyResult.IsSuccess) errors.AddRange(moneyResult.Messages!);
+        if (!cardResult.IsSuccess) errors.AddRange(cardResult.Messages!);
+        if (errors.Count > 0) return ResultDomain<PaymentTransaction>.Error(errors);
+
+        return ResultDomain<PaymentTransaction>.Ok(new PaymentTransaction
         {
-            Id         = TransactionId.New(),
             MerchantId = merchantId,
-            OrderId    = orderId,
-            Type       = type,
-            Status     = TransactionStatus.Pending,
-            Amount     = amount,
-            CardInfo   = cardInfo,
-            CreatedAt  = DateTime.UtcNow
-        };
-
-        transaction.RaiseDomainEvent(new PaymentInitiated(
-            Guid.NewGuid(), DateTime.UtcNow,
-            transaction.Id.Value,
-            merchantId,
-            orderId.Value,
-            amount.Amount,
-            amount.Currency));
-
-        return transaction;
+            OrderId = orderIdResult.Data!,
+            Type = type,
+            Status = TransactionStatus.Pending,
+            Amount = moneyResult.Data!,
+            CardInfo = cardResult.Data!,
+        });
     }
 
-    // ── Bank Routing ──────────────────────────────────────
-    public void AssignBank(BankRoutingInfo routingInfo)
+    public ResultDomain AssignBank(Guid selectedBankId, string merchantCode, string terminalCode)
     {
-        EnsureStatus(TransactionStatus.Pending, "assign bank");
-        RoutingInfo = routingInfo;
-        Touch();
+        var statusCheck = EnsureStatus(TransactionStatus.Pending, "assign bank");
+        if (!statusCheck.IsSuccess) return statusCheck;
 
-        RaiseDomainEvent(new BankSelected(
-            Guid.NewGuid(), DateTime.UtcNow,
-            Id.Value, routingInfo.SelectedBankId));
+        var routingResult = BankRoutingInfo.Create(selectedBankId, merchantCode, terminalCode);
+        if (!routingResult.IsSuccess) return ResultDomain.Error(routingResult.Messages!);
+
+        RoutingInfo = routingResult.Data!;
+        return ResultDomain.Ok();
     }
 
-    // ── Commission ────────────────────────────────────────
-    public void ApplyCommission(CommissionInfo commissionInfo)
+    public ResultDomain ApplyCommission(decimal bankRate, decimal merchantRate)
     {
-        EnsureStatus(TransactionStatus.Pending, "apply commission");
-        CommissionInfo = commissionInfo;
-        Touch();
+        var statusCheck = EnsureStatus(TransactionStatus.Pending, "apply commission");
+        if (!statusCheck.IsSuccess) return statusCheck;
+
+        var commissionResult = CommissionInfo.Create(Amount.Amount, bankRate, merchantRate);
+        if (!commissionResult.IsSuccess) return ResultDomain.Error(commissionResult.Messages!);
+
+        CommissionInfo = commissionResult.Data!;
+        return ResultDomain.Ok();
     }
 
-    // ── Terminal States ───────────────────────────────────
-    public void Approve(
-        string bankTransactionId,
-        string bankResponseCode,
-        string bankMessage)
+    public ResultDomain Approve(string bankTransactionId, string bankResponseCode, string bankMessage)
     {
-        EnsureStatus(TransactionStatus.Pending, "approve");
+        var statusCheck = EnsureStatus(TransactionStatus.Pending, "approve");
+        if (!statusCheck.IsSuccess) return statusCheck;
 
         if (CommissionInfo is null)
-            throw new DomainException("Commission must be applied before approving.");
+            return ResultDomain.Error(new MessageItem { Code = "Transaction.CommissionRequired" });
 
-        Status            = TransactionStatus.Approved;
+        Status = TransactionStatus.Approved;
         BankTransactionId = bankTransactionId;
-        BankResponseCode  = bankResponseCode;
-        BankMessage       = bankMessage;
-        Touch();
-
-        RaiseDomainEvent(new PaymentApproved(
-            Guid.NewGuid(), DateTime.UtcNow,
-            Id.Value,
-            MerchantId,
-            OrderId.Value,
-            Amount.Amount,
-            Amount.Currency,
-            CommissionInfo.MerchantAmount,
-            CommissionInfo.BankAmount,
-            CommissionInfo.NetAmount));
-    }
-
-    public void Decline(string bankResponseCode, string bankMessage)
-    {
-        EnsureStatus(TransactionStatus.Pending, "decline");
-
-        Status           = TransactionStatus.Declined;
         BankResponseCode = bankResponseCode;
-        BankMessage      = bankMessage;
-        Touch();
-
-        RaiseDomainEvent(new PaymentDeclined(
-            Guid.NewGuid(), DateTime.UtcNow,
-            Id.Value, OrderId.Value, bankResponseCode, bankMessage));
+        BankMessage = bankMessage;
+        return ResultDomain.Ok();
     }
 
-    public void Fail(string reason)
+    public ResultDomain Decline(string bankResponseCode, string bankMessage)
+    {
+        var statusCheck = EnsureStatus(TransactionStatus.Pending, "decline");
+        if (!statusCheck.IsSuccess) return statusCheck;
+
+        Status = TransactionStatus.Declined;
+        BankResponseCode = bankResponseCode;
+        BankMessage = bankMessage;
+        return ResultDomain.Ok();
+    }
+
+    public ResultDomain Fail(string reason)
     {
         if (Status != TransactionStatus.Pending)
-            throw new DomainException("Only pending transactions can be marked as failed.");
+            return ResultDomain.Error(new MessageItem
+                { Code = "Transaction.CannotFail", Params = [Status.ToString()] });
 
         Status = TransactionStatus.Failed;
-        Touch();
-
-        RaiseDomainEvent(new PaymentFailed(
-            Guid.NewGuid(), DateTime.UtcNow,
-            Id.Value, reason));
+        return ResultDomain.Ok();
     }
 
-    // ── Settlement ────────────────────────────────────────
-    public void MarkAsSettled(Guid settlementId)
+    public ResultDomain MarkAsSettled(Guid settlementId)
     {
         if (Status != TransactionStatus.Approved)
-            throw new DomainException("Only approved transactions can be settled.");
+            return ResultDomain.Error(new MessageItem { Code = "Transaction.NotApproved" });
         if (IsSettled)
-            throw new DomainException("Transaction is already settled.");
+            return ResultDomain.Error(new MessageItem { Code = "Transaction.AlreadySettled" });
 
-        IsSettled    = true;
-        SettledAt    = DateTime.UtcNow;
+        IsSettled = true;
+        SettledAt = DateTime.UtcNow;
         SettlementId = settlementId;
-        Touch();
-
-        RaiseDomainEvent(new TransactionSettled(
-            Guid.NewGuid(), DateTime.UtcNow,
-            Id.Value, MerchantId, settlementId));
+        return ResultDomain.Ok();
     }
 
-    // ── Helpers ───────────────────────────────────────────
-    private void EnsureStatus(TransactionStatus expected, string operation)
+    private ResultDomain EnsureStatus(TransactionStatus expected, string operation)
     {
         if (Status != expected)
-            throw new DomainException(
-                $"Cannot {operation}: transaction is in '{Status}' state, expected '{expected}'.");
+            return ResultDomain.Error(new MessageItem
+            {
+                Code = "Transaction.InvalidState",
+                Params = [operation, Status.ToString(), expected.ToString()]
+            });
+        return ResultDomain.Ok();
     }
-
-    private void Touch() => UpdatedAt = DateTime.UtcNow;
 }
