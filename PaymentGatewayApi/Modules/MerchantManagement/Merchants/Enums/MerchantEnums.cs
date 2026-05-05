@@ -13,9 +13,3 @@ public enum ApiKeyStatus
     Revoked = 2,
     Expired = 3
 }
-
-public enum BankAccountType
-{
-    Primary   = 1,
-    Secondary = 2
-}

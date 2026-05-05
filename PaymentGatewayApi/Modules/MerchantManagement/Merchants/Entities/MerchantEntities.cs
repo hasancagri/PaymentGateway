@@ -43,7 +43,6 @@ public sealed class MerchantBankAccount : BaseModel
     public string SwiftCode { get; private set; }
     public string BankName { get; private set; }
     public Currency Currency { get; private set; }
-    public BankAccountType Type { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
     private MerchantBankAccount()
@@ -51,7 +50,7 @@ public sealed class MerchantBankAccount : BaseModel
     }
 
     internal static ResultDomain<MerchantBankAccount> Create(
-        string iban, string swiftCode, string bankName, Currency currency, BankAccountType type)
+        string iban, string swiftCode, string bankName, Currency currency)
     {
         var errors = new List<MessageItem>();
         if (string.IsNullOrWhiteSpace(iban))
@@ -67,27 +66,10 @@ public sealed class MerchantBankAccount : BaseModel
             SwiftCode = swiftCode.Trim().ToUpperInvariant(),
             BankName = bankName.Trim(),
             Currency = currency,
-            Type = type,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         });
     }
 
     internal void Deactivate() => IsActive = false;
-}
-
-public sealed class MerchantCurrency : BaseModel
-{
-    public Currency Currency { get; private set; }
-    public DateTime AddedAt { get; private set; }
-
-    private MerchantCurrency()
-    {
-    }
-
-    internal static MerchantCurrency Create(Currency currency) => new()
-    {
-        Currency = currency,
-        AddedAt = DateTime.UtcNow
-    };
 }

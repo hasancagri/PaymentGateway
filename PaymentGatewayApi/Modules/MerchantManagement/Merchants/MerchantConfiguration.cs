@@ -27,6 +27,9 @@ public class MerchantConfiguration
 
         model.Property(p => p.Mcc)
             .HasConversion(v => v.Value, v => Mcc.FromPersistence(v));
+
+        model.Property(p => p.WebhookUrl)
+            .HasConversion(v => v.Value, v => WebhookUrl.FromPersistence(v));
     }
 
     public override string GetSchemaName() => SchemaConstants.MERCHANT_MANAGEMENT_SCHEMA_NAME;
@@ -65,22 +68,6 @@ public class MerchantBankAccountConfiguration
     public override string GetSchemaName() => SchemaConstants.MERCHANT_MANAGEMENT_SCHEMA_NAME;
 
     public override string GetTableName() => nameof(MerchantBankAccount);
-}
-
-public class MerchantCurrencyConfiguration
-    : BaseConfiguration<MerchantCurrency>, IEntityConfiguration<MerchantManagementContext>
-{
-    public override void Map(EntityTypeBuilder<MerchantCurrency> model)
-    {
-        base.Map(model);
-
-        model.Property(p => p.Currency)
-            .HasConversion(v => v.Code, v => Currency.FromPersistence(v));
-    }
-
-    public override string GetSchemaName() => SchemaConstants.MERCHANT_MANAGEMENT_SCHEMA_NAME;
-
-    public override string GetTableName() => nameof(MerchantCurrency);
 }
 
 

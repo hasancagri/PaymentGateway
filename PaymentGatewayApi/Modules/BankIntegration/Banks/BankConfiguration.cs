@@ -8,15 +8,23 @@ public class BankConfiguration
     public override void Map(EntityTypeBuilder<Bank> model)
     {
         base.Map(model);
+
         model.Property(p => p.Name)
             .HasConversion(
                 text => text.Value,
                 value => BankName.FromPersistence(value));
-        
+
         model.Property(p => p.Priority)
             .HasConversion(
                 text => text.Value,
                 value => BankPriority.FromPersistence(value));
+
+        model.Property(p => p.ApiUrl)
+            .HasConversion(
+                v => v.Value,
+                v => BankApiUrl.FromPersistence(v))
+            .HasColumnName("ApiUrl");
+
     }
 
     public override string GetSchemaName()

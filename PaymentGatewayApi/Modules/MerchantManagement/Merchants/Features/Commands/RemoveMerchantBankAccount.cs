@@ -1,6 +1,3 @@
-using PaymentGatewayApi.Modules.MerchantManagement.Merchants.Entities;
-using Wolverine.Attributes;
-
 namespace PaymentGatewayApi.Modules.MerchantManagement.Merchants.Features.Commands;
 
 public static class RemoveMerchantBankAccount

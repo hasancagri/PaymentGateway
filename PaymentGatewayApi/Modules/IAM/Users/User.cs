@@ -90,4 +90,20 @@ public sealed class User : AggregateRoot
         _roles.Remove(role);
         return ResultDomain.Ok();
     }
+
+    public ResultDomain AssignMerchant(Guid merchantId)
+    {
+        if (MerchantId is not null)
+            return ResultDomain.Error(new MessageItem { Code = "User.AlreadyAssignedToMerchant" });
+        MerchantId = merchantId;
+        return ResultDomain.Ok();
+    }
+
+    public ResultDomain RemoveFromMerchant()
+    {
+        if (MerchantId is null)
+            return ResultDomain.Error(new MessageItem { Code = "User.NotAssignedToMerchant" });
+        MerchantId = null;
+        return ResultDomain.Ok();
+    }
 }

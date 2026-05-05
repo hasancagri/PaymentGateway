@@ -1,5 +1,4 @@
 using PaymentGatewayApi.Modules.IAM.Roles.Entities;
-using PaymentGatewayApi.Modules.IAM.Roles.Enums;
 using PaymentGatewayApi.Modules.IAM.Roles.ValueObjects;
 
 namespace PaymentGatewayApi.Modules.IAM.Roles;
@@ -9,8 +8,8 @@ public sealed class Role : AggregateRoot
     public RoleName Name { get; private set; }
     public bool IsSystem { get; private set; }
 
-    private readonly List<RolePermission> _permissions = [];
-    public IReadOnlyCollection<RolePermission> Permissions => _permissions.AsReadOnly();
+    private readonly List<PagePermission> _permissions = [];
+    public IReadOnlyCollection<PagePermission> Permissions => _permissions.AsReadOnly();
 
     private Role()
     {
@@ -24,25 +23,31 @@ public sealed class Role : AggregateRoot
         return ResultDomain<Role>.Ok(new Role { Name = nameResult.Data!, IsSystem = isSystem });
     }
 
-    public ResultDomain AddPermission(string resource, PermissionType permissionType)
+    public ResultDomain AddPermission(string pageRoute, string action)
     {
-        if (_permissions.Any(p => p.Resource == resource && p.PermissionType == permissionType))
-            return ResultDomain.Error(new MessageItem { Code = "RolePermission.AlreadyExists" });
+        var page = _permissions.FirstOrDefault(p => p.PageRoute == pageRoute);
+        if (page is null)
+        {
+            page = PagePermission.Create(pageRoute);
+            _permissions.Add(page);
+        }
 
-        _permissions.Add(RolePermission.Create(resource, permissionType));
-        return ResultDomain.Ok();
+        return page.AddAction(action);
     }
 
     public ResultDomain RemovePermission(Guid permissionId)
     {
         var permission = _permissions.SingleOrDefault(p => p.Id == permissionId);
         if (permission is null)
-            return ResultDomain.Error(new MessageItem { Code = "RolePermission.NotFound" });
+            return ResultDomain.Error(new MessageItem { Code = "PagePermission.NotFound" });
 
         _permissions.Remove(permission);
         return ResultDomain.Ok();
     }
 
-    public bool HasPermission(string resource, PermissionType permissionType) =>
-        _permissions.Any(p => p.Resource == resource && p.PermissionType == permissionType);
+    public bool HasPermission(string pageRoute, string action)
+    {
+        var page = _permissions.FirstOrDefault(p => p.PageRoute == pageRoute);
+        return page?.HasAction(action) ?? false;
+    }
 }

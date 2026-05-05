@@ -5,49 +5,58 @@ namespace PaymentGatewayApi.Modules.BankIntegration.Banks;
 
 public sealed class Bank : AggregateRoot
 {
-    public BankName     Name     { get; private set; }
+    public BankName Name { get; private set; }
     public BankPriority Priority { get; private set; }
-    public BankStatus   Status   { get; private set; }
+    public BankStatus Status { get; private set; }
+    public BankApiUrl ApiUrl { get; private set; }
 
     private readonly List<string> _supportedCurrencies = [];
     public IReadOnlyCollection<string> SupportedCurrencies => _supportedCurrencies.AsReadOnly();
 
-    private Bank() { }
-
-    public static ResultDomain<Bank> Configure(string name, int priority)
+    private Bank()
     {
-        var nameResult     = BankName.Create(name);
+    }
+
+    public static ResultDomain<Bank> Configure(string name, int priority, string apiUrl)
+    {
+        var nameResult = BankName.Create(name);
         var priorityResult = BankPriority.Create(priority);
+        var apiUrlResult = BankApiUrl.Create(apiUrl);
 
         var errors = new List<MessageItem>();
-        if (!nameResult.IsSuccess)     errors.AddRange(nameResult.Messages!);
+        if (!nameResult.IsSuccess) errors.AddRange(nameResult.Messages!);
         if (!priorityResult.IsSuccess) errors.AddRange(priorityResult.Messages!);
+        if (!apiUrlResult.IsSuccess) errors.AddRange(apiUrlResult.Messages!);
         if (errors.Count > 0) return ResultDomain<Bank>.Error(errors);
 
         return ResultDomain<Bank>.Ok(new Bank
         {
-            Name     = nameResult.Data!,
+            Name = nameResult.Data!,
             Priority = priorityResult.Data!,
-            Status   = BankStatus.Active,
+            ApiUrl = apiUrlResult.Data!,
+            Status = BankStatus.Active,
         });
     }
 
-    public ResultDomain Update(string name, int priority)
+    public ResultDomain Update(string name, int priority, string apiUrl)
     {
-        var nameResult     = BankName.Create(name);
+        var nameResult = BankName.Create(name);
         var priorityResult = BankPriority.Create(priority);
+        var apiUrlResult = BankApiUrl.Create(apiUrl);
 
         var errors = new List<MessageItem>();
-        if (!nameResult.IsSuccess)     errors.AddRange(nameResult.Messages!);
+        if (!nameResult.IsSuccess) errors.AddRange(nameResult.Messages!);
         if (!priorityResult.IsSuccess) errors.AddRange(priorityResult.Messages!);
+        if (!apiUrlResult.IsSuccess) errors.AddRange(apiUrlResult.Messages!);
         if (errors.Count > 0) return ResultDomain.Error(errors);
 
-        Name     = nameResult.Data!;
+        Name = nameResult.Data!;
         Priority = priorityResult.Data!;
+        ApiUrl = apiUrlResult.Data!;
         return ResultDomain.Ok();
     }
 
-    public void Activate()   => Status = BankStatus.Active;
+    public void Activate() => Status = BankStatus.Active;
     public void Deactivate() => Status = BankStatus.Passive;
 
     public ResultDomain AddSupportedCurrency(string currencyCode)

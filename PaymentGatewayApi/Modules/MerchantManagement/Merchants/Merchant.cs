@@ -6,21 +6,20 @@ namespace PaymentGatewayApi.Modules.MerchantManagement.Merchants;
 
 public sealed class Merchant : AggregateRoot
 {
+    private const int MaxActiveApiKeys = 2;
     public MerchantName Name { get; private set; }
     public MerchantStatus Status { get; private set; }
     public ContactInfo ContactInfo { get; private set; }
     public MerchantAddress Address { get; private set; }
     public Mcc Mcc { get; private set; }
+    public WebhookUrl WebhookUrl { get; private set; }
 
     private readonly List<ApiKey> _apiKeys = [];
     private readonly List<MerchantBankAccount> _bankAccounts = [];
-    private readonly List<MerchantCurrency> _currencies = [];
 
     public IReadOnlyCollection<ApiKey> ApiKeys => _apiKeys.AsReadOnly();
     public IReadOnlyCollection<MerchantBankAccount> BankAccounts => _bankAccounts.AsReadOnly();
-    public IReadOnlyCollection<MerchantCurrency> Currencies => _currencies.AsReadOnly();
 
-    private const int MaxActiveApiKeys = 2;
 
     private Merchant()
     {
@@ -28,18 +27,20 @@ public sealed class Merchant : AggregateRoot
 
     public static ResultDomain<Merchant> Create(
         string name, string email, string phone,
-        string country, string city, string mcc)
+        string country, string city, string mcc, string webhookUrl)
     {
         var nameResult = MerchantName.Create(name);
         var contactResult = ContactInfo.Create(email, phone);
         var addressResult = MerchantAddress.Create(country, city);
         var mccResult = Mcc.Create(mcc);
+        var webhookUrlResult = WebhookUrl.Create(webhookUrl);
 
         var errors = new List<MessageItem>();
         if (!nameResult.IsSuccess) errors.AddRange(nameResult.Messages!);
         if (!contactResult.IsSuccess) errors.AddRange(contactResult.Messages!);
         if (!addressResult.IsSuccess) errors.AddRange(addressResult.Messages!);
         if (!mccResult.IsSuccess) errors.AddRange(mccResult.Messages!);
+        if (!webhookUrlResult.IsSuccess) errors.AddRange(webhookUrlResult.Messages!);
         if (errors.Count > 0) return ResultDomain<Merchant>.Error(errors);
 
         return ResultDomain<Merchant>.Ok(new Merchant
@@ -48,30 +49,34 @@ public sealed class Merchant : AggregateRoot
             ContactInfo = contactResult.Data!,
             Address = addressResult.Data!,
             Mcc = mccResult.Data!,
+            WebhookUrl = webhookUrlResult.Data!,
             Status = MerchantStatus.Active,
         });
     }
 
     public ResultDomain Update(
         string name, string email, string phone,
-        string country, string city, string mcc)
+        string country, string city, string mcc, string webhookUrl)
     {
         var nameResult = MerchantName.Create(name);
         var contactResult = ContactInfo.Create(email, phone);
         var addressResult = MerchantAddress.Create(country, city);
         var mccResult = Mcc.Create(mcc);
+        var webhookUrlResult = WebhookUrl.Create(webhookUrl);
 
         var errors = new List<MessageItem>();
         if (!nameResult.IsSuccess) errors.AddRange(nameResult.Messages!);
         if (!contactResult.IsSuccess) errors.AddRange(contactResult.Messages!);
         if (!addressResult.IsSuccess) errors.AddRange(addressResult.Messages!);
         if (!mccResult.IsSuccess) errors.AddRange(mccResult.Messages!);
+        if (!webhookUrlResult.IsSuccess) errors.AddRange(webhookUrlResult.Messages!);
         if (errors.Count > 0) return ResultDomain.Error(errors);
 
         Name = nameResult.Data!;
         ContactInfo = contactResult.Data!;
         Address = addressResult.Data!;
         Mcc = mccResult.Data!;
+        WebhookUrl = webhookUrlResult.Data!;
         return ResultDomain.Ok();
     }
 
@@ -120,17 +125,14 @@ public sealed class Merchant : AggregateRoot
             return ResultDomain.Error(new MessageItem { Code = "ApiKey.NotFound", Params = [apiKeyId.ToString()] });
         return key.Revoke();
     }
-
-    public bool VerifyApiKey(string candidate) =>
-        _apiKeys.Any(k => k.IsActive() && k.KeyValue.Verify(candidate));
-
+    
     public ResultDomain AddBankAccount(
-        string iban, string swiftCode, string bankName, Currency currency, BankAccountType type)
+        string iban, string swiftCode, string bankName, Currency currency)
     {
         if (_bankAccounts.Any(b => b.Iban == iban.Trim().ToUpperInvariant() && b.IsActive))
             return ResultDomain.Error(new MessageItem { Code = "MerchantBankAccount.IbanDuplicate" });
 
-        var result = MerchantBankAccount.Create(iban, swiftCode, bankName, currency, type);
+        var result = MerchantBankAccount.Create(iban, swiftCode, bankName, currency);
         if (!result.IsSuccess) return ResultDomain.Error(result.Messages!);
 
         _bankAccounts.Add(result.Data!);
@@ -143,28 +145,6 @@ public sealed class Merchant : AggregateRoot
         if (account is null)
             return ResultDomain.Error(new MessageItem { Code = "MerchantBankAccount.NotFound" });
         account.Deactivate();
-        return ResultDomain.Ok();
-    }
-
-    public ResultDomain AddCurrency(Currency currency)
-    {
-        if (_currencies.Any(c => c.Currency == currency))
-            return ResultDomain.Error(new MessageItem
-                { Code = "MerchantCurrency.AlreadySupported", Params = [currency.Code] });
-        _currencies.Add(MerchantCurrency.Create(currency));
-        return ResultDomain.Ok();
-    }
-
-    public ResultDomain RemoveCurrency(Currency currency)
-    {
-        var entry = _currencies.SingleOrDefault(c => c.Currency == currency);
-        if (entry is null)
-            return ResultDomain.Error(new MessageItem
-                { Code = "MerchantCurrency.NotSupported", Params = [currency.Code] });
-        if (_bankAccounts.Any(b => b.IsActive && b.Currency == currency))
-            return ResultDomain.Error(new MessageItem
-                { Code = "MerchantCurrency.UsedByBankAccount", Params = [currency.Code] });
-        _currencies.Remove(entry);
         return ResultDomain.Ok();
     }
 }

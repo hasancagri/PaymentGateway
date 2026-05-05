@@ -130,3 +130,26 @@ public sealed record ApiKeyValue
     private static string HashKey(string key) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
 }
+
+public sealed record WebhookUrl
+{
+    public string Value { get; }
+    private WebhookUrl(string value) => Value = value;
+
+    public static ResultDomain<WebhookUrl> Create(string value)
+    {
+        var errors = new List<MessageItem>();
+        if (string.IsNullOrWhiteSpace(value))
+            errors.Add(new MessageItem { Code = "WebhookUrl.Empty" });
+        else if (value.Length > 500)
+            errors.Add(new MessageItem { Code = "WebhookUrl.TooLong" });
+        else if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
+                 (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            errors.Add(new MessageItem { Code = "WebhookUrl.InvalidUrl" });
+        if (errors.Count > 0) return ResultDomain<WebhookUrl>.Error(errors);
+        return ResultDomain<WebhookUrl>.Ok(new WebhookUrl(value.Trim()));
+    }
+
+    public static WebhookUrl FromPersistence(string value) => new(value);
+    public override string ToString() => Value;
+}

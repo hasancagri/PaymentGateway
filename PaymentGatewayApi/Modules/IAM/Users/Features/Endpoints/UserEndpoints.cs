@@ -5,19 +5,6 @@ namespace PaymentGatewayApi.Modules.IAM.Users.Features.Endpoints;
 
 public static class UserEndpoints
 {
-    public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
-    {
-        var group = app.MapGroup("/auth");
-
-        group.MapPost("/login", async ([FromBody] Login.LoginCommand cmd, IMessageBus bus) =>
-        {
-            var result = await bus.InvokeAsync<FeatureObjectResultModel<Login.LoginCommandResponse>>(cmd);
-            return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-        });
-
-        return app;
-    }
-
     public static IEndpointRouteBuilder MapUserEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/users");
@@ -80,6 +67,30 @@ public static class UserEndpoints
         {
             var result = await bus.InvokeAsync<FeatureObjectResultModel<RevokeUserRole.RevokeUserRoleCommandResponse>>(
                 new RevokeUserRole.RevokeUserRoleCommand { UserId = id, RoleId = roleId });
+            return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
+        });
+
+        group.MapPost("/{id:guid}/merchant",
+            async ([FromBody] AssignUserMerchant.AssignUserMerchantCommand cmd, IMessageBus bus) =>
+            {
+                var result =
+                    await bus.InvokeAsync<FeatureObjectResultModel<AssignUserMerchant.AssignUserMerchantCommandResponse>>(cmd);
+                return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
+            });
+
+        group.MapPost("/{id:guid}/merchant-admin",
+            async ([FromBody] AssignMerchantAdmin.AssignMerchantAdminCommand cmd, IMessageBus bus) =>
+            {
+                var result =
+                    await bus.InvokeAsync<FeatureObjectResultModel<AssignMerchantAdmin.AssignMerchantAdminCommandResponse>>(cmd);
+                return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
+            });
+
+        group.MapDelete("/{id:guid}/merchant", async (Guid id, IMessageBus bus) =>
+        {
+            var result =
+                await bus.InvokeAsync<FeatureObjectResultModel<RemoveUserFromMerchant.RemoveUserFromMerchantCommandResponse>>(
+                    new RemoveUserFromMerchant.RemoveUserFromMerchantCommand { UserId = id });
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
         });
 

@@ -1,12 +1,18 @@
+using Marten;
+using Marten.Events.Projections;
+using Marten.Schema;
 using PaymentGatewayApi.Auths;
 using PaymentGatewayApi.Modules.BankIntegration.Banks.Features.Endpoints;
 using PaymentGatewayApi.Modules.BankIntegration.BinRecords.Features.Endpoints;
+using PaymentGatewayApi.Modules.BankIntegration.MerchantBanks.Features.Endpoints;
 using PaymentGatewayApi.Modules.CommissionManagement.BankCommissions.Features.Endpoints;
 using PaymentGatewayApi.Modules.CommissionManagement.MerchantCommissions.Features.Endpoints;
 using PaymentGatewayApi.Modules.IAM.Roles.Features.Endpoints;
 using PaymentGatewayApi.Modules.IAM.Users.Features.Endpoints;
 using PaymentGatewayApi.Modules.MerchantManagement.Merchants.Features.Endpoints;
+using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Features.Endpoints;
+using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Middleware;
 using PaymentGatewayApi.Modules.Settlement.MerchantBalances.Features.Endpoints;
 using PaymentGatewayApi.Modules.Settlement.Settlements.Features.Endpoints;
 using Wolverine.RabbitMQ;
@@ -38,8 +44,19 @@ builder.Services.AddDbContextWithWolverineIntegration<BankIntegrationContext>(x 
 builder.Services.AddDbContextWithWolverineIntegration<CommissionManagementContext>(x => x.UseNpgsql(defaultDb));
 builder.Services.AddDbContextWithWolverineIntegration<IamContext>(x => x.UseNpgsql(defaultDb));
 builder.Services.AddDbContextWithWolverineIntegration<MerchantManagementContext>(x => x.UseNpgsql(defaultDb));
-builder.Services.AddDbContextWithWolverineIntegration<PaymentProcessingContext>(x => x.UseNpgsql(defaultDb));
 builder.Services.AddDbContextWithWolverineIntegration<SettlementContext>(x => x.UseNpgsql(defaultDb));
+
+// Marten - Event Sourcing for PaymentProcessing
+var martenConnectionString = builder.Configuration.GetConnectionString("defaultDb");
+builder.Services.AddMarten(opts =>
+{
+    opts.Connection(martenConnectionString!);
+    opts.Projections.Snapshot<PaymentTransaction>(SnapshotLifecycle.Inline);
+    opts.Schema.For<PaymentTransaction>()
+        .UniqueIndex(UniqueIndexType.Computed, t => t.MerchantId, t => t.OrderId);
+})
+.IntegrateWithWolverine()
+.ApplyAllDatabaseChangesOnStartup();
 
 // Caching
 builder.Services.AddCachingServices();
@@ -53,19 +70,19 @@ builder.Services.AddAllDependencies();
 
 // Wolverine
 var rabbitMqConnectionString = builder.Configuration.GetConnectionString("rabbitmq");
-var postgresConnectionString = builder.Configuration.GetConnectionString("defaultDb");
 
 builder.Host.UseWolverine(opts =>
 {
-    if (!string.IsNullOrEmpty(postgresConnectionString))
-        opts.PersistMessagesWithPostgresql(postgresConnectionString);
-
     opts.UseEntityFrameworkCoreTransactions();
     opts.Policies.UseDurableLocalQueues();
 
     opts.Policies.AddMiddleware(typeof(CacheInvalidationMiddleware),
         chain => chain.MessageType.GetCustomAttribute<CacheResultAttribute>() != null
                  && chain.MessageType.Name.EndsWith("Command"));
+
+    //RequiresMerchantAttribute attribute'u kullanan class içerisinde kullanılabilir 
+    opts.Policies.AddMiddleware(typeof(MerchantMiddleware),
+        chain => chain.MessageType.GetCustomAttribute<RequiresMerchantAttribute>() != null);
 
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
 
@@ -89,6 +106,16 @@ builder.Services.AddSwaggerGen(c =>
 // Http
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("webhook", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
+// gRPC Bank Clients
+builder.Services.AddGrpcClient<PaymentGateway.BankContracts.BankPaymentService.BankPaymentServiceClient>("garanti", o =>
+{
+    o.Address = new Uri("https+http://garanti-service");
+}).AddServiceDiscovery();
 
 // Cors
 builder.Services.AddCors();
@@ -114,6 +141,7 @@ app.UseCors(policyBuilder => policyBuilder
     .AllowAnyHeader());
 
 UpdateDatabase(app);
+DataSeeder.Seed(app);
 
 // Swagger
 app.UseSwagger();
@@ -129,6 +157,7 @@ api.MapAuthEndpoints();
 api.MapUserEndpoints();
 api.MapRoleEndpoints();
 api.MapBankEndpoints();
+api.MapMerchantBankEndpoints();
 api.MapBinRecordEndpoints();
 api.MapBankCommissionEndpoints();
 api.MapMerchantCommissionEndpoints();
@@ -151,7 +180,6 @@ static void UpdateDatabase(IApplicationBuilder app)
         sp.GetRequiredService<CommissionManagementContext>(),
         sp.GetRequiredService<IamContext>(),
         sp.GetRequiredService<MerchantManagementContext>(),
-        sp.GetRequiredService<PaymentProcessingContext>(),
         sp.GetRequiredService<SettlementContext>(),
     };
 

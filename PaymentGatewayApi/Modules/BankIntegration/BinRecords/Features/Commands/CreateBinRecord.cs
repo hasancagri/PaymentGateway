@@ -1,5 +1,4 @@
 using PaymentGatewayApi.Modules.BankIntegration.BinRecords.ValueObjects;
-using Wolverine.Attributes;
 
 namespace PaymentGatewayApi.Modules.BankIntegration.BinRecords.Features.Commands;
 

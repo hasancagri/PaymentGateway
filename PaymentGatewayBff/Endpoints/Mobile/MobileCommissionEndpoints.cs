@@ -1,7 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using PaymentGatewayBff.Clients;
-using PaymentGatewayBff.Infrastructure;
-using PaymentGatewayBff.Models.Commission;
 
 namespace PaymentGatewayBff.Endpoints.Mobile;
 

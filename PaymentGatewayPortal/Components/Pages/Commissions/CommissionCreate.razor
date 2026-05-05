@@ -1,6 +1,5 @@
 @page "/merchants/{MerchantId:guid}/commissions/create"
 @using Microsoft.AspNetCore.Authorization
-@rendermode InteractiveServer
 @attribute [Authorize]
 @inject PaymentGatewayPortal.Clients.CommissionBffClient CommissionClient
 @inject NavigationManager Navigation

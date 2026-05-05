@@ -1,7 +1,4 @@
-using PaymentGatewayApi.Modules.MerchantManagement.Merchants.Entities;
-using PaymentGatewayApi.Modules.MerchantManagement.Merchants.Enums;
 using PaymentGatewayApi.Modules.MerchantManagement.Merchants.ValueObjects;
-using Wolverine.Attributes;
 
 namespace PaymentGatewayApi.Modules.MerchantManagement.Merchants.Features.Commands;
 
@@ -14,7 +11,6 @@ public static class AddMerchantBankAccount
         public required string SwiftCode { get; set; }
         public required string BankName { get; set; }
         public required string Currency { get; set; }
-        public required BankAccountType Type { get; set; }
     }
     
     public class AddMerchantBankAccountCommandResponse
@@ -44,7 +40,7 @@ public static class AddMerchantBankAccount
             if (!currencyResult.IsSuccess)
                 return FeatureObjectResultModel<AddMerchantBankAccountCommandResponse>.Error(currencyResult.Messages!);
 
-            var result = merchant.AddBankAccount(cmd.Iban, cmd.SwiftCode, cmd.BankName, currencyResult.Data!, cmd.Type);
+            var result = merchant.AddBankAccount(cmd.Iban, cmd.SwiftCode, cmd.BankName, currencyResult.Data!);
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<AddMerchantBankAccountCommandResponse>.Error(result.Messages!);
 

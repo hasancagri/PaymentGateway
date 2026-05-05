@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+option csharp_namespace = "PaymentGateway.BankContracts";
+
+package bankpayment;
+
+service BankPaymentService {
+    rpc Auth (AuthRequest) returns (AuthResponse);
+}
+
+message AuthRequest {
+    string card_no = 1;
+    string expiry_month = 2;
+    string expiry_year = 3;
+    string cvv2 = 4;
+    string amount = 5;
+    string currency = 6;
+    string card_holder_name = 7;
+    string card_holder_ip = 8;
+    int32 installment_count = 9;
+    string merchant_id = 10;
+    string order_id = 11;
+}
+
+message AuthResponse {
+    bool is_approved = 1;
+    string result_code = 2;
+    string message = 3;
+    string bank_transaction_id = 4;
+    map<string, string> additional_data = 5;
+}

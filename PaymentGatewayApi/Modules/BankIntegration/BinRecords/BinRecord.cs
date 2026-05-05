@@ -1,4 +1,3 @@
-using PaymentGatewayApi.Modules.BankIntegration.BinRecords.Events;
 using PaymentGatewayApi.Modules.BankIntegration.BinRecords.ValueObjects;
 
 namespace PaymentGatewayApi.Modules.BankIntegration.BinRecords;
@@ -9,7 +8,7 @@ public sealed class BinRecord : AggregateRoot
     public BinRange BinRange { get; private set; }
     public BinCardInfo CardInfo { get; private set; }
 
-    
+
     private BinRecord()
     {
     } // EF Core

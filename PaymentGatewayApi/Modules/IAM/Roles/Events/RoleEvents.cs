@@ -11,8 +11,8 @@ public sealed record RolePermissionAdded(
     Guid EventId,
     DateTime OccurredOn,
     Guid RoleId,
-    string Resource,
-    string PermissionType
+    string PageRoute,
+    string Action
 );
 
 public sealed record RolePermissionRemoved(

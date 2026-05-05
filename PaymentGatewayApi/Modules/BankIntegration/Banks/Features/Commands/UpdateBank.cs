@@ -1,6 +1,3 @@
-using PaymentGatewayApi.Modules.BankIntegration.Banks.ValueObjects;
-using Wolverine.Attributes;
-
 namespace PaymentGatewayApi.Modules.BankIntegration.Banks.Features.Commands;
 
 public static class UpdateBank
@@ -10,6 +7,7 @@ public static class UpdateBank
         public required Guid BankId { get; set; }
         public required string Name { get; set; }
         public required int Priority { get; set; }
+        public required string ApiUrl { get; set; }
     }
     
     public class UpdateBankCommandResponse
@@ -32,7 +30,7 @@ public static class UpdateBank
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
 
-            var result = bank.Update(cmd.Name, cmd.Priority);
+            var result = bank.Update(cmd.Name, cmd.Priority, cmd.ApiUrl);
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<UpdateBankCommandResponse>.Error(result.Messages!);
 

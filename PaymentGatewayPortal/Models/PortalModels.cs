@@ -29,7 +29,15 @@ public class MerchantDetail
 }
 
 public record CreateMerchantRequest(string Name, string Email, string Phone, string Country, string City, string Mcc);
-public record UpdateMerchantRequest(Guid Id, string Name, string Email, string Phone, string Country, string City, string Mcc);
+
+public record UpdateMerchantRequest(
+    Guid Id,
+    string Name,
+    string Email,
+    string Phone,
+    string Country,
+    string City,
+    string Mcc);
 
 public class MerchantCommissionListItem
 {

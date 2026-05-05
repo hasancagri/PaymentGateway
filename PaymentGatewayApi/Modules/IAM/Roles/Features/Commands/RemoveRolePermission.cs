@@ -1,6 +1,3 @@
-using PaymentGatewayApi.Modules.IAM.Roles.Entities;
-using Wolverine.Attributes;
-
 namespace PaymentGatewayApi.Modules.IAM.Roles.Features.Commands;
 
 public static class RemoveRolePermission

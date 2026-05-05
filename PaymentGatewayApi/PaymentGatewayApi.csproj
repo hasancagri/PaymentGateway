@@ -22,6 +22,9 @@
         <PackageReference Include="WolverineFx.EntityFrameworkCore" Version="5.32.1" />
         <PackageReference Include="WolverineFx.Postgresql" Version="5.32.1" />
         <PackageReference Include="WolverineFx.RabbitMQ" Version="5.32.1" />
+        <PackageReference Include="Marten" Version="8.32.0" />
+        <PackageReference Include="WolverineFx.Marten" Version="5.32.1" />
+        <PackageReference Include="Grpc.Net.ClientFactory" Version="2.67.0" />
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
           <PrivateAssets>all</PrivateAssets>
@@ -34,7 +37,8 @@
       <Folder Include="Modules\CommissionManagement\" />
       <Folder Include="Modules\IAM\" />
       <Folder Include="Modules\MerchantManagement\" />
-      <Folder Include="Modules\PaymentProcessing\" />
+      <Folder Include="Modules\PaymentProcessing\PaymentTransactions\Features\Endpoints\" />
+      <Folder Include="Modules\PaymentProcessing\PaymentTransactions\Features\Queries\" />
       <Folder Include="Modules\Settlement\" />
       <Folder Include="Modules\Settlement\Settlements\Features\Queries\" />
     </ItemGroup>
@@ -42,6 +46,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Common\Common.csproj" />
       <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
+      <ProjectReference Include="..\PaymentGateway.BankContracts\PaymentGateway.BankContracts.csproj" />
     </ItemGroup>
 
 </Project>

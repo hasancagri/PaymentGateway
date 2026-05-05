@@ -19,6 +19,7 @@ public static class GetMerchantById
         public string Country { get; set; }
         public string City { get; set; }
         public string Mcc { get; set; }
+        public string WebhookUrl { get; set; }
     }
 
     public class GetMerchantByIdHandler
@@ -45,7 +46,8 @@ public static class GetMerchantById
                 Phone = merchant.ContactInfo.Phone,
                 Country = merchant.Address.Country,
                 City = merchant.Address.City,
-                Mcc = merchant.Mcc.Value
+                Mcc = merchant.Mcc.Value,
+                WebhookUrl = merchant.WebhookUrl.Value
             });
         }
     }

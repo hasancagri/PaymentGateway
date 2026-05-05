@@ -1,15 +1,13 @@
-using PaymentGatewayApi.Modules.IAM.Roles.Enums;
-
 namespace PaymentGatewayApi.Auths;
 
 public record UserSessionCache
 {
     public Guid UserId { get; init; }
-    public List<PermissionCache> Permissions { get; init; } = [];
+    public List<PageAccess> Pages { get; init; } = [];
 }
 
-public record PermissionCache
+public record PageAccess
 {
-    public required string Resource { get; init; }
-    public PermissionType PermissionType { get; init; }
+    public required string Route { get; init; }
+    public List<string> Actions { get; init; } = [];
 }

@@ -3,10 +3,14 @@ namespace PaymentGatewayApi.Modules.IAM.Users.ValueObjects;
 public sealed record FullName
 {
     public string FirstName { get; }
-    public string LastName  { get; }
+    public string LastName { get; }
 
     [JsonConstructor]
-    private FullName(string firstName, string lastName) { FirstName = firstName; LastName = lastName; }
+    private FullName(string firstName, string lastName)
+    {
+        FirstName = firstName;
+        LastName = lastName;
+    }
 
     public static ResultDomain<FullName> Create(string firstName, string lastName)
     {

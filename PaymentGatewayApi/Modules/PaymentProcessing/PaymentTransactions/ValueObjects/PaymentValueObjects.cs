@@ -23,10 +23,10 @@ public sealed record OrderId
 public sealed record CardInfo
 {
     public string EncryptedCardNumber { get; }
-    public string CardHolderName      { get; }
-    public string ExpiryMonth         { get; }
-    public string ExpiryYear          { get; }
-    public string CardHolderIp        { get; }
+    public string CardHolderName { get; }
+    public string ExpiryMonth { get; }
+    public string ExpiryYear { get; }
+    public string CardHolderIp { get; }
 
     [JsonConstructor]
     private CardInfo(
@@ -34,10 +34,10 @@ public sealed record CardInfo
         string expiryMonth, string expiryYear, string cardHolderIp)
     {
         EncryptedCardNumber = encryptedCardNumber;
-        CardHolderName      = cardHolderName;
-        ExpiryMonth         = expiryMonth;
-        ExpiryYear          = expiryYear;
-        CardHolderIp        = cardHolderIp;
+        CardHolderName = cardHolderName;
+        ExpiryMonth = expiryMonth;
+        ExpiryYear = expiryYear;
+        CardHolderIp = cardHolderIp;
     }
 
     public static ResultDomain<CardInfo> Create(
@@ -64,22 +64,22 @@ public sealed record CardInfo
 
 public sealed record CommissionInfo
 {
-    public decimal BankRate       { get; }
-    public decimal MerchantRate   { get; }
-    public decimal BankAmount     { get; }
+    public decimal BankRate { get; }
+    public decimal MerchantRate { get; }
+    public decimal BankAmount { get; }
     public decimal MerchantAmount { get; }
-    public decimal NetAmount      { get; }
+    public decimal NetAmount { get; }
 
     [JsonConstructor]
     private CommissionInfo(
         decimal bankRate, decimal merchantRate,
         decimal bankAmount, decimal merchantAmount, decimal netAmount)
     {
-        BankRate       = bankRate;
-        MerchantRate   = merchantRate;
-        BankAmount     = bankAmount;
+        BankRate = bankRate;
+        MerchantRate = merchantRate;
+        BankAmount = bankAmount;
         MerchantAmount = merchantAmount;
-        NetAmount      = netAmount;
+        NetAmount = netAmount;
     }
 
     public static ResultDomain<CommissionInfo> Create(decimal grossAmount, decimal bankRate, decimal merchantRate)
@@ -91,39 +91,52 @@ public sealed record CommissionInfo
             errors.Add(new MessageItem { Code = "CommissionInfo.MerchantRateBelowBankRate" });
         if (errors.Count > 0) return ResultDomain<CommissionInfo>.Error(errors);
 
-        var bankAmount     = Math.Round(grossAmount * bankRate / 100, 2);
+        var bankAmount = Math.Round(grossAmount * bankRate / 100, 2);
         var merchantAmount = Math.Round(grossAmount * merchantRate / 100, 2);
-        var netAmount      = Math.Round(grossAmount - merchantAmount, 2);
-        return ResultDomain<CommissionInfo>.Ok(new CommissionInfo(bankRate, merchantRate, bankAmount, merchantAmount, netAmount));
+        var netAmount = Math.Round(grossAmount - merchantAmount, 2);
+        return ResultDomain<CommissionInfo>.Ok(new CommissionInfo(bankRate, merchantRate, bankAmount, merchantAmount,
+            netAmount));
     }
 }
 
 public sealed record BankRoutingInfo
 {
-    public Guid   SelectedBankId { get; }
-    public string MerchantCode   { get; }
-    public string TerminalCode   { get; }
+    public Guid SelectedBankId { get; }
 
     [JsonConstructor]
-    private BankRoutingInfo(Guid selectedBankId, string merchantCode, string terminalCode)
+    private BankRoutingInfo(Guid selectedBankId)
     {
         SelectedBankId = selectedBankId;
-        MerchantCode   = merchantCode;
-        TerminalCode   = terminalCode;
     }
 
-    public static ResultDomain<BankRoutingInfo> Create(Guid selectedBankId, string merchantCode, string terminalCode)
+    public static ResultDomain<BankRoutingInfo> Create(Guid selectedBankId)
     {
-        var errors = new List<MessageItem>();
         if (selectedBankId == Guid.Empty)
-            errors.Add(new MessageItem { Code = "BankRoutingInfo.BankIdEmpty" });
-        if (string.IsNullOrWhiteSpace(merchantCode))
-            errors.Add(new MessageItem { Code = "BankRoutingInfo.MerchantCodeEmpty" });
-        if (string.IsNullOrWhiteSpace(terminalCode))
-            errors.Add(new MessageItem { Code = "BankRoutingInfo.TerminalCodeEmpty" });
-        if (errors.Count > 0) return ResultDomain<BankRoutingInfo>.Error(errors);
+            return ResultDomain<BankRoutingInfo>.Error(
+                new MessageItem { Code = "BankRoutingInfo.BankIdEmpty" });
 
-        return ResultDomain<BankRoutingInfo>.Ok(
-            new BankRoutingInfo(selectedBankId, merchantCode.Trim(), terminalCode.Trim()));
+        return ResultDomain<BankRoutingInfo>.Ok(new BankRoutingInfo(selectedBankId));
     }
+}
+
+public sealed record BankResponse
+{
+    public bool IsApproved { get; }
+    public string ResultCode { get; }
+    public string? Message { get; }
+    public IReadOnlyDictionary<string, string>? AdditionalData { get; }
+
+    [JsonConstructor]
+    private BankResponse(bool isApproved, string resultCode, string? message,
+        IReadOnlyDictionary<string, string>? additionalData)
+    {
+        IsApproved = isApproved;
+        ResultCode = resultCode;
+        Message = message;
+        AdditionalData = additionalData;
+    }
+
+    public static BankResponse Create(bool isApproved, string resultCode, string? message,
+        Dictionary<string, string>? additionalData = null)
+        => new(isApproved, resultCode, message, additionalData);
 }

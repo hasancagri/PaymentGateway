@@ -44,5 +44,4 @@ public class BankIntegrationContextFactory : DesignTimeDbContextFactory<BankInte
 public class CommissionManagementContextFactory : DesignTimeDbContextFactory<CommissionManagementContext> { }
 public class IamContextFactory : DesignTimeDbContextFactory<IamContext> { }
 public class MerchantManagementContextFactory : DesignTimeDbContextFactory<MerchantManagementContext> { }
-public class PaymentProcessingContextFactory : DesignTimeDbContextFactory<PaymentProcessingContext> { }
 public class SettlementContextFactory : DesignTimeDbContextFactory<SettlementContext> { }

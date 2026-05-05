@@ -26,3 +26,8 @@ global using PaymentGatewayApi.Utils.Constants;
 global using Common.Utils.Constants;
 global using System.Text.Json.Serialization;
 global using Wolverine.Attributes;
+global using PaymentGatewayApi.Authorization;
+global using Grpc.Core;
+global using Wolverine.Marten;
+global using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Events;
+

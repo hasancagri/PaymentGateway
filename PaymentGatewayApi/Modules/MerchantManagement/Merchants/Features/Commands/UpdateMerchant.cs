@@ -14,6 +14,7 @@ public static class UpdateMerchant
         public required string Country { get; set; }
         public required string City { get; set; }
         public required string Mcc { get; set; }
+        public required string WebhookUrl { get; set; }
     }
     
     public class UpdateMerchantCommandResponse  
@@ -36,7 +37,7 @@ public static class UpdateMerchant
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
 
-            var updateResult = merchant.Update(cmd.Name, cmd.Email, cmd.Phone, cmd.Country, cmd.City, cmd.Mcc);
+            var updateResult = merchant.Update(cmd.Name, cmd.Email, cmd.Phone, cmd.Country, cmd.City, cmd.Mcc, cmd.WebhookUrl);
             if (!updateResult.IsSuccess)
                 return FeatureObjectResultModel<UpdateMerchantCommandResponse>.Error(updateResult.Messages!);
 

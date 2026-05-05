@@ -1,5 +1,3 @@
-using PaymentGatewayApi.Modules.IAM.Roles.Enums;
-
 namespace PaymentGatewayApi.Modules.IAM.Roles.Features.Queries;
 
 public static class GetRoleById
@@ -14,14 +12,14 @@ public static class GetRoleById
         public Guid Id { get; set; }
         public string Name { get; set; }
         public bool IsSystem { get; set; }
-        public List<PermissionItem> Permissions { get; set; } = [];
+        public List<PagePermissionItem> Permissions { get; set; } = [];
     }
 
-    public class PermissionItem
+    public class PagePermissionItem
     {
         public Guid Id { get; set; }
-        public string Resource { get; set; }
-        public PermissionType PermissionType { get; set; }
+        public string PageRoute { get; set; }
+        public List<string> Actions { get; set; } = [];
     }
 
     public class GetRoleByIdHandler
@@ -33,6 +31,7 @@ public static class GetRoleById
         {
             var role = await db.Set<Role>()
                 .Include(x => x.Permissions)
+                .ThenInclude(x => x.Actions)
                 .FirstOrDefaultAsync(x => x.Id == query.RoleId, ct);
 
             if (role is null)
@@ -47,11 +46,11 @@ public static class GetRoleById
                 Id = role.Id,
                 Name = role.Name.Value,
                 IsSystem = role.IsSystem,
-                Permissions = role.Permissions.Select(p => new PermissionItem
+                Permissions = role.Permissions.Select(p => new PagePermissionItem
                 {
                     Id = p.Id,
-                    Resource = p.Resource,
-                    PermissionType = p.PermissionType
+                    PageRoute = p.PageRoute,
+                    Actions = p.Actions.Select(a => a.Action).ToList()
                 }).ToList()
             });
         }

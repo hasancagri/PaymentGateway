@@ -30,3 +30,21 @@ public sealed record BankPriority
 
     public static BankPriority FromPersistence(int value) => new(value);
 }
+
+public sealed record BankApiUrl
+{
+    public string Value { get; }
+    private BankApiUrl(string value) => Value = value;
+
+    public static ResultDomain<BankApiUrl> Create(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return ResultDomain<BankApiUrl>.Error(new MessageItem { Code = "BankApiUrl.Empty" });
+        if (!Uri.TryCreate(value, UriKind.Absolute, out _))
+            return ResultDomain<BankApiUrl>.Error(new MessageItem { Code = "BankApiUrl.Invalid" });
+        return ResultDomain<BankApiUrl>.Ok(new BankApiUrl(value.Trim()));
+    }
+
+    public static BankApiUrl FromPersistence(string value) => new(value);
+    public override string ToString() => Value;
+}

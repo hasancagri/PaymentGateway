@@ -17,13 +17,19 @@ var postgres = builder
 
 var defaultDb = postgres.AddDatabase("defaultDb");
 
+var garanti = builder.AddProject<Projects.GarantiService>("garanti")
+    .WithReference(defaultDb)
+    .WaitFor(defaultDb);
+
 var api = builder.AddProject<Projects.PaymentGatewayApi>("payment-gateway-api")
     .WithReference(rabbitmq)
     .WithReference(redis)
     .WithReference(defaultDb)
+    .WithReference(garanti)
     .WaitFor(rabbitmq)
     .WaitFor(redis)
-    .WaitFor(defaultDb);
+    .WaitFor(defaultDb)
+    .WaitFor(garanti);
 
 var bff = builder.AddProject<Projects.PaymentGatewayBff>("payment-gateway-bff")
     .WithReference(api)

@@ -1,5 +1,3 @@
-using PaymentGatewayBff.Clients;
-
 namespace PaymentGatewayBff.Endpoints.Web;
 
 public static class WebAuthEndpoints

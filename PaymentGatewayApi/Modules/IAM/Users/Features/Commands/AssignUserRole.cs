@@ -1,7 +1,5 @@
-using Common.Caching;
 using PaymentGatewayApi.Auths;
 using PaymentGatewayApi.Modules.IAM.Roles;
-using Wolverine.Attributes;
 
 namespace PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
 
@@ -42,13 +40,22 @@ public static class AssignUserRole
                 return FeatureObjectResultModel<AssignUserRoleCommandResponse>.Error(result.Messages!);
 
             var roleIds = user.Roles.Select(r => r.RoleId).ToList();
-            var permissions = await db.Set<Role>()
+            var pagePermissions = await db.Set<Role>()
                 .Where(x => roleIds.Contains(x.Id))
                 .SelectMany(x => x.Permissions)
-                .Select(x => new PermissionCache { Resource = x.Resource, PermissionType = x.PermissionType })
+                .Include(x => x.Actions)
                 .ToListAsync(ct);
 
-            await cache.Set($"user:{cmd.UserId}", new UserSessionCache { UserId = cmd.UserId, Permissions = permissions });
+            var pages = pagePermissions
+                .GroupBy(p => p.PageRoute)
+                .Select(g => new PageAccess
+                {
+                    Route = g.Key,
+                    Actions = g.SelectMany(p => p.Actions.Select(a => a.Action)).Distinct().ToList()
+                })
+                .ToList();
+
+            await cache.Set($"user:{cmd.UserId}", new UserSessionCache { UserId = cmd.UserId, Pages = pages });
             return FeatureObjectResultModel<AssignUserRoleCommandResponse>.Ok(new AssignUserRoleCommandResponse());
         }
     }

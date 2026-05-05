@@ -1,4 +1,3 @@
-using PaymentGatewayApi.Authorization;
 using PaymentGatewayApi.Modules.MerchantManagement.Merchants.Features.Commands;
 using PaymentGatewayApi.Modules.MerchantManagement.Merchants.Features.Queries;
 
@@ -7,7 +6,6 @@ namespace PaymentGatewayApi.Modules.MerchantManagement.Merchants.Features.Endpoi
 public static class MerchantEndpoints
 {
     private record ReasonRequest(string Reason);
-    private record CurrencyRequest(string Currency);
 
     public static IEndpointRouteBuilder MapMerchantEndpoints(this IEndpointRouteBuilder app)
     {
@@ -18,7 +16,7 @@ public static class MerchantEndpoints
         {
             var result = await bus.InvokeAsync<FeatureObjectResultModel<CreateMerchant.CreateMerchantResponse>>(cmd);
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-        }).WithMetadata(new JwtPermissionMetadata("merchants:create"));
+        }).WithMetadata(new JwtPermissionMetadata(MerchantPermissionConstants.Page, MerchantPermissionConstants.Create));
 
         group.MapGet("/", async (IMessageBus bus) =>
         {
@@ -26,7 +24,7 @@ public static class MerchantEndpoints
                 await bus.InvokeAsync<FeatureObjectResultModel<List<GetAllMerchants.MerchantListItem>>>(
                     new GetAllMerchants.GetAllMerchantsQuery());
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-        }).WithMetadata(new JwtPermissionMetadata("merchants:read"));
+        }).WithMetadata(new JwtPermissionMetadata(MerchantPermissionConstants.Page, MerchantPermissionConstants.Read));
 
         group.MapGet("/{id:guid}", async (Guid id, IMessageBus bus) =>
         {
@@ -34,14 +32,14 @@ public static class MerchantEndpoints
                 await bus.InvokeAsync<FeatureObjectResultModel<GetMerchantById.GetMerchantByIdResponse>>(
                     new GetMerchantById.GetMerchantByIdQuery { MerchantId = id });
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-        }).WithMetadata(new JwtPermissionMetadata("merchants:read"));
+        }).WithMetadata(new JwtPermissionMetadata(MerchantPermissionConstants.Page, MerchantPermissionConstants.Read));
 
-        group.MapPut("/{id:guid}", async ([FromBody] UpdateMerchant.UpdateMerchantCommand cmd, IMessageBus bus) =>
+        group.MapPut("/{id:guid}", async (Guid id, [FromBody] UpdateMerchant.UpdateMerchantCommand cmd, IMessageBus bus) =>
         {
-            var result =
-                await bus.InvokeAsync<FeatureObjectResultModel<UpdateMerchant.UpdateMerchantCommandResponse>>(cmd);
+            cmd.MerchantId = id;
+            var result = await bus.InvokeAsync<FeatureObjectResultModel<UpdateMerchant.UpdateMerchantCommandResponse>>(cmd);
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-        }).WithMetadata(new JwtPermissionMetadata("merchants:update"));
+        }).WithMetadata(new JwtPermissionMetadata(MerchantPermissionConstants.Page, MerchantPermissionConstants.Update));
 
         group.MapPost("/{id:guid}/activate", async (Guid id, [FromBody] ReasonRequest req, IMessageBus bus) =>
         {
@@ -49,7 +47,7 @@ public static class MerchantEndpoints
                 await bus.InvokeAsync<FeatureObjectResultModel<ActivateMerchant.ActivateMerchantCommandResponse>>(
                     new ActivateMerchant.ActivateMerchantCommand { MerchantId = id, Reason = req.Reason });
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-        }).WithMetadata(new JwtPermissionMetadata("merchants:activate"));
+        }).WithMetadata(new JwtPermissionMetadata(MerchantPermissionConstants.Page, MerchantPermissionConstants.Activate));
 
         group.MapPost("/{id:guid}/deactivate", async (Guid id, [FromBody] ReasonRequest req, IMessageBus bus) =>
         {
@@ -57,7 +55,7 @@ public static class MerchantEndpoints
                 await bus.InvokeAsync<FeatureObjectResultModel<DeactivateMerchant.DeactivateMerchantCommandResponse>>(
                     new DeactivateMerchant.DeactivateMerchantCommand { MerchantId = id, Reason = req.Reason });
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-        }).WithMetadata(new JwtPermissionMetadata("merchants:deactivate"));
+        }).WithMetadata(new JwtPermissionMetadata(MerchantPermissionConstants.Page, MerchantPermissionConstants.Deactivate));
 
         group.MapPost("/{id:guid}/suspend", async (Guid id, [FromBody] ReasonRequest req, IMessageBus bus) =>
         {
@@ -65,7 +63,7 @@ public static class MerchantEndpoints
                 await bus.InvokeAsync<FeatureObjectResultModel<SuspendMerchant.SuspendMerchantCommandResponse>>(
                     new SuspendMerchant.SuspendMerchantCommand { MerchantId = id, Reason = req.Reason });
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-        }).WithMetadata(new JwtPermissionMetadata("merchants:suspend"));
+        }).WithMetadata(new JwtPermissionMetadata(MerchantPermissionConstants.Page, MerchantPermissionConstants.Suspend));
 
         group.MapPost("/{id:guid}/bank-accounts",
             async ([FromBody] AddMerchantBankAccount.AddMerchantBankAccountCommand cmd, IMessageBus bus) =>
@@ -75,7 +73,7 @@ public static class MerchantEndpoints
                         .InvokeAsync<FeatureObjectResultModel<
                             AddMerchantBankAccount.AddMerchantBankAccountCommandResponse>>(cmd);
                 return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-            }).WithMetadata(new JwtPermissionMetadata("merchants:bank-accounts:add"));
+            }).WithMetadata(new JwtPermissionMetadata(MerchantPermissionConstants.Page, MerchantPermissionConstants.BankAccountsAdd));
 
         group.MapDelete("/{id:guid}/bank-accounts/{bankAccountId:guid}",
             async (Guid id, Guid bankAccountId, IMessageBus bus) =>
@@ -87,28 +85,7 @@ public static class MerchantEndpoints
                             new RemoveMerchantBankAccount.RemoveMerchantBankAccountCommand
                                 { MerchantId = id, BankAccountId = bankAccountId });
                 return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-            }).WithMetadata(new JwtPermissionMetadata("merchants:bank-accounts:remove"));
-
-        group.MapPost("/{id:guid}/currencies",
-            async ([FromBody] AddMerchantCurrency.AddMerchantCurrencyCommand cmd, IMessageBus bus) =>
-            {
-                var result =
-                    await bus
-                        .InvokeAsync<FeatureObjectResultModel<AddMerchantCurrency.AddMerchantCurrencyCommandResponse>>(
-                            cmd);
-                return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-            }).WithMetadata(new JwtPermissionMetadata("merchants:currencies:add"));
-
-        group.MapDelete("/{id:guid}/currencies", async (Guid id, [FromBody] CurrencyRequest req, IMessageBus bus) =>
-        {
-            var result =
-                await bus
-                    .InvokeAsync<
-                        FeatureObjectResultModel<RemoveMerchantCurrency.RemoveMerchantCurrencyCommandResponse>>(
-                        new RemoveMerchantCurrency.RemoveMerchantCurrencyCommand
-                            { MerchantId = id, Currency = req.Currency });
-            return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-        }).WithMetadata(new JwtPermissionMetadata("merchants:currencies:remove"));
+            }).WithMetadata(new JwtPermissionMetadata(MerchantPermissionConstants.Page, MerchantPermissionConstants.BankAccountsRemove));
 
         group.MapPost("/{id:guid}/api-keys", async (Guid id, IMessageBus bus) =>
         {
@@ -116,14 +93,14 @@ public static class MerchantEndpoints
                 await bus.InvokeAsync<FeatureObjectResultModel<GenerateApiKey.GenerateApiKeyResponse>>(
                     new GenerateApiKey.GenerateApiKeyCommand { MerchantId = id });
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-        }).WithMetadata(new JwtPermissionMetadata("merchants:api-keys:generate"));
+        }).WithMetadata(new JwtPermissionMetadata(MerchantPermissionConstants.Page, MerchantPermissionConstants.ApiKeysGenerate));
 
         group.MapDelete("/{id:guid}/api-keys/{apiKeyId:guid}", async (Guid id, Guid apiKeyId, IMessageBus bus) =>
         {
             var result = await bus.InvokeAsync<FeatureObjectResultModel<RevokeApiKey.RevokeApiKeyCommandResponse>>(
                 new RevokeApiKey.RevokeApiKeyCommand { MerchantId = id, ApiKeyId = apiKeyId });
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-        }).WithMetadata(new JwtPermissionMetadata("merchants:api-keys:revoke"));
+        }).WithMetadata(new JwtPermissionMetadata(MerchantPermissionConstants.Page, MerchantPermissionConstants.ApiKeysRevoke));
 
         return app;
     }

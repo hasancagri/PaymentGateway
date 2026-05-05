@@ -1,6 +1,5 @@
 using PaymentGatewayApi.Modules.CommissionManagement.BankCommissions.Enums;
 using PaymentGatewayApi.Modules.CommissionManagement.BankCommissions.ValueObjects;
-using Wolverine.Attributes;
 
 namespace PaymentGatewayApi.Modules.CommissionManagement.BankCommissions.Features.Commands;
 

@@ -1,6 +1,3 @@
-using System.Net.Http.Json;
-using PaymentGatewayPortal.Models;
-
 namespace PaymentGatewayPortal.Clients;
 
 public class MerchantBffClient(HttpClient httpClient)

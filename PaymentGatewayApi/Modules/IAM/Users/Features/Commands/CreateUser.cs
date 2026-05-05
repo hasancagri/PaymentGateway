@@ -1,6 +1,3 @@
-using PaymentGatewayApi.Modules.IAM.Users.ValueObjects;
-using Wolverine.Attributes;
-
 namespace PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
 
 public static class CreateUser
@@ -11,7 +8,6 @@ public static class CreateUser
         public required string Password { get; set; }
         public required string FirstName { get; set; }
         public required string LastName { get; set; }
-        public Guid? MerchantId { get; set; }
     }
 
     public class CreateUserResponse
@@ -27,12 +23,18 @@ public static class CreateUser
             IamContext db,
             CancellationToken ct)
         {
-            var userResult = User.Create(cmd.Email, cmd.Password, cmd.FirstName, cmd.LastName, cmd.MerchantId);
+            var emailExists = await db.Set<User>().AnyAsync(x => x.Email.Value == cmd.Email, ct);
+            if (emailExists)
+                return FeatureObjectResultModel<CreateUserResponse>.Error(new MessageItem
+                {
+                    Table = nameof(User),
+                    Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_DUPLICATE
+                });
+
+            var userResult = User.Create(cmd.Email, cmd.Password, cmd.FirstName, cmd.LastName);
             if (!userResult.IsSuccess)
-            {
                 return FeatureObjectResultModel<CreateUserResponse>.Error(userResult.Messages!);
-            }
-            
+
             await db.Set<User>().AddAsync(userResult.Data!, ct);
             return FeatureObjectResultModel<CreateUserResponse>.Ok(new CreateUserResponse
             {

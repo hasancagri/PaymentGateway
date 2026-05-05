@@ -1,8 +1,7 @@
 using System.Text.Json;
-using Common.Caching;
 using StackExchange.Redis;
 
-namespace Common;
+namespace Common.Caching.Redis;
 
 public class RedisCache : ICache
 {

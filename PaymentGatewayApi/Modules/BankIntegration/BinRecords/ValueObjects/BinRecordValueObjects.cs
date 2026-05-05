@@ -3,10 +3,14 @@ namespace PaymentGatewayApi.Modules.BankIntegration.BinRecords.ValueObjects;
 public sealed record BinRange
 {
     public string Start { get; }
-    public string End   { get; }
+    public string End { get; }
 
     [JsonConstructor]
-    private BinRange(string start, string end) { Start = start; End = end; }
+    private BinRange(string start, string end)
+    {
+        Start = start;
+        End = end;
+    }
 
     public static ResultDomain<BinRange> Create(string start, string end)
     {
@@ -25,23 +29,23 @@ public sealed record BinRange
 
     public bool Contains(string bin) =>
         string.Compare(bin, Start, StringComparison.Ordinal) >= 0 &&
-        string.Compare(bin, End,   StringComparison.Ordinal) <= 0;
+        string.Compare(bin, End, StringComparison.Ordinal) <= 0;
 }
 
 public sealed record BinCardInfo
 {
-    public string CardBrand      { get; }
-    public string CardType       { get; }
+    public string CardBrand { get; }
+    public string CardType { get; }
     public string IssuingCountry { get; }
-    public string Region         { get; }
+    public string Region { get; }
 
     [JsonConstructor]
     private BinCardInfo(string cardBrand, string cardType, string issuingCountry, string region)
     {
-        CardBrand      = cardBrand;
-        CardType       = cardType;
+        CardBrand = cardBrand;
+        CardType = cardType;
         IssuingCountry = issuingCountry;
-        Region         = region;
+        Region = region;
     }
 
     public static ResultDomain<BinCardInfo> Create(

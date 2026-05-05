@@ -1,5 +1,4 @@
 @page "/merchants/{MerchantId:guid}/commissions"
-@rendermode InteractiveServer
 @attribute [Authorize]
 @inject PaymentGatewayPortal.Clients.CommissionBffClient CommissionClient
 @inject NavigationManager Navigation

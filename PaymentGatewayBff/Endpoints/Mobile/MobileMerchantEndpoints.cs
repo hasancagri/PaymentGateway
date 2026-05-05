@@ -1,5 +1,3 @@
-using PaymentGatewayBff.Clients;
-using PaymentGatewayBff.Infrastructure;
 using PaymentGatewayBff.Models.Merchant;
 
 namespace PaymentGatewayBff.Endpoints.Mobile;

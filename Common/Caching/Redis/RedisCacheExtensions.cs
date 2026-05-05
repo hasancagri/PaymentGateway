@@ -1,4 +1,5 @@
 using Common.Caching;
+using Common.Caching.Redis;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Common;

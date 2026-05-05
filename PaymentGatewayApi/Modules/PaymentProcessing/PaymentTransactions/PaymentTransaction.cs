@@ -1,137 +1,73 @@
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Enums;
-using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.ValueObjects;
 
 namespace PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions;
 
-public sealed class PaymentTransaction : AggregateRoot
+public class PaymentTransaction
 {
-    public Guid MerchantId { get; private set; }
-    public OrderId OrderId { get; private set; }
-    public TransactionType Type { get; private set; }
-    public TransactionStatus Status { get; private set; }
-    public Money Amount { get; private set; }
-    public CommissionInfo? CommissionInfo { get; private set; }
-    public CardInfo CardInfo { get; private set; }
-    public BankRoutingInfo? RoutingInfo { get; private set; }
-    public string? BankResponseCode { get; private set; }
-    public string? BankMessage { get; private set; }
-    public string? BankTransactionId { get; private set; }
-    public bool IsSettled { get; private set; }
-    public DateTime? SettledAt { get; private set; }
-    public Guid? SettlementId { get; private set; }
+    public Guid Id { get; set; }
+    public Guid MerchantId { get; set; }
+    public string OrderId { get; set; } = null!;
+    public TransactionType Type { get; set; }
+    public TransactionStatus Status { get; set; }
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = null!;
+    public string EncryptedCardNumber { get; set; } = null!;
+    public string CardHolderName { get; set; } = null!;
+    public string ExpiryMonth { get; set; } = null!;
+    public string ExpiryYear { get; set; } = null!;
+    public string CardHolderIp { get; set; } = null!;
+    public Guid SelectedBankId { get; set; }
+    public decimal BankRate { get; set; }
+    public decimal MerchantRate { get; set; }
+    public decimal BankCommissionAmount { get; set; }
+    public decimal MerchantCommissionAmount { get; set; }
+    public decimal NetAmount { get; set; }
+    public string? BankTransactionId { get; set; }
+    public string? BankResultCode { get; set; }
+    public string? BankMessage { get; set; }
+    public int InstallmentCount { get; set; }
 
-    private PaymentTransaction()
+    public void Apply(PaymentInitiated e)
     {
+        Id = e.TransactionId;
+        MerchantId = e.MerchantId;
+        OrderId = e.OrderId;
+        Type = TransactionType.Auth;
+        Status = TransactionStatus.Pending;
+        Amount = e.Amount;
+        Currency = e.Currency;
+        EncryptedCardNumber = e.EncryptedCardNumber;
+        CardHolderName = e.CardHolderName;
+        ExpiryMonth = e.ExpiryMonth;
+        ExpiryYear = e.ExpiryYear;
+        CardHolderIp = e.CardHolderIp;
+        SelectedBankId = e.SelectedBankId;
+        BankRate = e.BankRate;
+        MerchantRate = e.MerchantRate;
+        InstallmentCount = e.InstallmentCount;
     }
 
-    public static ResultDomain<PaymentTransaction> Initiate(
-        Guid merchantId, string orderId, TransactionType type,
-        decimal amount, string currency,
-        string encryptedCardNumber, string cardHolderName,
-        string expiryMonth, string expiryYear, string cardHolderIp)
+    public void Apply(PaymentApproved e)
     {
-        var orderIdResult = OrderId.Create(orderId);
-        var moneyResult = Money.Create(amount, currency);
-        var cardResult = CardInfo.Create(encryptedCardNumber, cardHolderName, expiryMonth, expiryYear, cardHolderIp);
-
-        var errors = new List<MessageItem>();
-        if (!orderIdResult.IsSuccess) errors.AddRange(orderIdResult.Messages!);
-        if (!moneyResult.IsSuccess) errors.AddRange(moneyResult.Messages!);
-        if (!cardResult.IsSuccess) errors.AddRange(cardResult.Messages!);
-        if (errors.Count > 0) return ResultDomain<PaymentTransaction>.Error(errors);
-
-        return ResultDomain<PaymentTransaction>.Ok(new PaymentTransaction
-        {
-            MerchantId = merchantId,
-            OrderId = orderIdResult.Data!,
-            Type = type,
-            Status = TransactionStatus.Pending,
-            Amount = moneyResult.Data!,
-            CardInfo = cardResult.Data!,
-        });
-    }
-
-    public ResultDomain AssignBank(Guid selectedBankId, string merchantCode, string terminalCode)
-    {
-        var statusCheck = EnsureStatus(TransactionStatus.Pending, "assign bank");
-        if (!statusCheck.IsSuccess) return statusCheck;
-
-        var routingResult = BankRoutingInfo.Create(selectedBankId, merchantCode, terminalCode);
-        if (!routingResult.IsSuccess) return ResultDomain.Error(routingResult.Messages!);
-
-        RoutingInfo = routingResult.Data!;
-        return ResultDomain.Ok();
-    }
-
-    public ResultDomain ApplyCommission(decimal bankRate, decimal merchantRate)
-    {
-        var statusCheck = EnsureStatus(TransactionStatus.Pending, "apply commission");
-        if (!statusCheck.IsSuccess) return statusCheck;
-
-        var commissionResult = CommissionInfo.Create(Amount.Amount, bankRate, merchantRate);
-        if (!commissionResult.IsSuccess) return ResultDomain.Error(commissionResult.Messages!);
-
-        CommissionInfo = commissionResult.Data!;
-        return ResultDomain.Ok();
-    }
-
-    public ResultDomain Approve(string bankTransactionId, string bankResponseCode, string bankMessage)
-    {
-        var statusCheck = EnsureStatus(TransactionStatus.Pending, "approve");
-        if (!statusCheck.IsSuccess) return statusCheck;
-
-        if (CommissionInfo is null)
-            return ResultDomain.Error(new MessageItem { Code = "Transaction.CommissionRequired" });
-
         Status = TransactionStatus.Approved;
-        BankTransactionId = bankTransactionId;
-        BankResponseCode = bankResponseCode;
-        BankMessage = bankMessage;
-        return ResultDomain.Ok();
+        BankCommissionAmount = e.BankCommissionAmount;
+        MerchantCommissionAmount = e.MerchantCommissionAmount;
+        NetAmount = e.NetAmount;
+        BankTransactionId = e.BankTransactionId;
+        BankResultCode = e.ResultCode;
     }
 
-    public ResultDomain Decline(string bankResponseCode, string bankMessage)
+    public void Apply(PaymentDeclined e)
     {
-        var statusCheck = EnsureStatus(TransactionStatus.Pending, "decline");
-        if (!statusCheck.IsSuccess) return statusCheck;
-
         Status = TransactionStatus.Declined;
-        BankResponseCode = bankResponseCode;
-        BankMessage = bankMessage;
-        return ResultDomain.Ok();
+        BankResultCode = e.BankResponseCode;
+        BankMessage = e.BankMessage;
     }
 
-    public ResultDomain Fail(string reason)
+    public void Apply(PaymentFailed e)
     {
-        if (Status != TransactionStatus.Pending)
-            return ResultDomain.Error(new MessageItem
-                { Code = "Transaction.CannotFail", Params = [Status.ToString()] });
-
         Status = TransactionStatus.Failed;
-        return ResultDomain.Ok();
-    }
-
-    public ResultDomain MarkAsSettled(Guid settlementId)
-    {
-        if (Status != TransactionStatus.Approved)
-            return ResultDomain.Error(new MessageItem { Code = "Transaction.NotApproved" });
-        if (IsSettled)
-            return ResultDomain.Error(new MessageItem { Code = "Transaction.AlreadySettled" });
-
-        IsSettled = true;
-        SettledAt = DateTime.UtcNow;
-        SettlementId = settlementId;
-        return ResultDomain.Ok();
-    }
-
-    private ResultDomain EnsureStatus(TransactionStatus expected, string operation)
-    {
-        if (Status != expected)
-            return ResultDomain.Error(new MessageItem
-            {
-                Code = "Transaction.InvalidState",
-                Params = [operation, Status.ToString(), expected.ToString()]
-            });
-        return ResultDomain.Ok();
+        BankResultCode = "99";
+        BankMessage = e.Reason;
     }
 }

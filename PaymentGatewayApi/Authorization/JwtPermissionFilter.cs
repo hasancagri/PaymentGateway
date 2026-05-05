@@ -19,10 +19,11 @@ public sealed class JwtPermissionFilter(ICurrentUser currentUser, ICache cache)
         if (session is null)
             return Results.Unauthorized();
 
-        //TODO: Burası değişebilir
-        var hasPermission = session.Permissions.Any(p => p.Resource == metadata.Permission);
+        var page = session.Pages.FirstOrDefault(p => p.Route == metadata.Page);
+        if (page is null)
+            return Results.Forbid();
 
-        return hasPermission
+        return page.Actions.Contains(metadata.Action)
             ? await next(context)
             : Results.Forbid();
     }

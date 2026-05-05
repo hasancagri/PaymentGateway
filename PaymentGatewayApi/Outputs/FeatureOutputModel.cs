@@ -1,6 +1,4 @@
-using Common;
 using Common.Results.BaseClasses;
-using Common.Utils.Constants;
 using PagedList.Core;
 
 namespace PaymentGatewayApi.Outputs;

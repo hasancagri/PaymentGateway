@@ -19,16 +19,32 @@ public class RoleConfiguration
     public override string GetTableName() => nameof(Role);
 }
 
-
-public class RolePermissionConfiguration
-    : BaseConfiguration<RolePermission>, IEntityConfiguration<IamContext>
+public class PagePermissionConfiguration
+    : BaseConfiguration<PagePermission>, IEntityConfiguration<IamContext>
 {
-    public override void Map(EntityTypeBuilder<RolePermission> model)
+    public override void Map(EntityTypeBuilder<PagePermission> model)
+    {
+        base.Map(model);
+
+        model.HasMany(p => p.Actions)
+            .WithOne()
+            .HasForeignKey(a => a.PagePermissionId);
+    }
+
+    public override string GetSchemaName() => SchemaConstants.IAM_SCHEMA_NAME;
+
+    public override string GetTableName() => nameof(PagePermission);
+}
+
+public class PageActionConfiguration
+    : BaseConfiguration<PageAction>, IEntityConfiguration<IamContext>
+{
+    public override void Map(EntityTypeBuilder<PageAction> model)
     {
         base.Map(model);
     }
 
     public override string GetSchemaName() => SchemaConstants.IAM_SCHEMA_NAME;
 
-    public override string GetTableName() => nameof(RolePermission);
+    public override string GetTableName() => nameof(PageAction);
 }
