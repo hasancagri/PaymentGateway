@@ -1,7 +1,6 @@
 using System.Globalization;
 using Marten;
 using PaymentGateway.BankContracts;
-using PaymentGatewayApi.Modules.CommissionManagement.BankCommissions.Enums;
 using PaymentGatewayApi.Modules.PaymentProcessing.BinRecords;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Enums;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Middleware;
@@ -83,23 +82,11 @@ public static class AuthPayment
                 return FeatureObjectResultModel<AuthPaymentResponse>.Error(
                     new MessageItem { Code = "BinRecord.NotFound" });
 
-            if (!TryMapCardBrand(binRecord.CardBrand, out var cardBrand))
-                return FeatureObjectResultModel<AuthPaymentResponse>.Error(
-                    new MessageItem { Code = "BinRecord.UnknownCardBrand" });
+            var profileResult = CardProfile.CreateFromBinRecord(binRecord);
+            if (!profileResult.IsSuccess)
+                return FeatureObjectResultModel<AuthPaymentResponse>.Error(profileResult.Messages!);
 
-            var cardProfile = new CardProfile
-            {
-                CardBrand = cardBrand,
-                CardType = binRecord.CardProductType switch
-                {
-                    "2" => CardType.Commercial,
-                    _   => CardType.Consumer
-                },
-                TransactionRegion = binRecord.BinCountry?.ToUpperInvariant() == "TR"
-                    ? TransactionRegion.Domestic
-                    : TransactionRegion.International,
-                IssuingMemberId = binRecord.MemberId
-            };
+            var cardProfile = profileResult.Data!;
 
             var encryptedCard = cardEncryption.Encrypt(cmd.CardNo);
             var route = await bankSelector.SelectBestAsync(merchant.MerchantId, cmd.Currency, cardProfile, ct);
@@ -204,23 +191,5 @@ public static class AuthPayment
                 new AuthPaymentResponse { TransactionId = transactionId });
         }
 
-        private static bool TryMapCardBrand(string raw, out CardBrand cardBrand)
-        {
-            switch (raw.ToUpperInvariant())
-            {
-                case "VISA":
-                    cardBrand = CardBrand.Visa; return true;
-                case "MASTERCARD":
-                case "MC":
-                    cardBrand = CardBrand.Mastercard; return true;
-                case "TROY":
-                    cardBrand = CardBrand.Troy; return true;
-                case "AMEX":
-                case "AMERICANEXPRESS":
-                    cardBrand = CardBrand.Amex; return true;
-                default:
-                    cardBrand = default; return false;
-            }
-        }
     }
 }
