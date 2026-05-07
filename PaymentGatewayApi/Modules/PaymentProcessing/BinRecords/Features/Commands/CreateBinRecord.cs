@@ -1,3 +1,4 @@
+using Marten;
 using PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.ValueObjects;
 
 namespace PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.Features.Commands;
@@ -37,7 +38,6 @@ public static class CreateBinRecord
 
             var record = BinRecord.Create(binRangeResult.Data!, cardInfoResult.Data!);
             session.Store(record);
-            await session.SaveChangesAsync(ct);
             return FeatureObjectResultModel<CreateBinRecordResponse>.Ok(new CreateBinRecordResponse { Id = record.Id });
         }
     }
