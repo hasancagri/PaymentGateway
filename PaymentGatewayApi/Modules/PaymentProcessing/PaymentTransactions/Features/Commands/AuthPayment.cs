@@ -75,8 +75,10 @@ public static class AuthPayment
                     new MessageItem { Code = "BinRecord.CardNumberTooShort" });
 
             var binAsLong = long.Parse(rawCard[..8]);
-            var binRecord = await bankDb.Set<BinRecord>()
-                .FirstOrDefaultAsync(b => b.BinEightStart <= binAsLong && binAsLong <= b.BinEightEnd, ct);
+            var binRecord = await EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                bankDb.Set<BinRecord>()
+                    .Where(b => b.BinEightStart <= binAsLong && binAsLong <= b.BinEightEnd),
+                ct);
 
             if (binRecord is null)
                 return FeatureObjectResultModel<AuthPaymentResponse>.Error(
