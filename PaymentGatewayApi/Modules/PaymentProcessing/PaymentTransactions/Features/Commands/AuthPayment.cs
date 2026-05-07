@@ -1,6 +1,8 @@
 using System.Globalization;
 using Marten;
 using PaymentGateway.BankContracts;
+using PaymentGatewayApi.Modules.BankIntegration.BinRecords;
+using PaymentGatewayApi.Modules.CommissionManagement.BankCommissions.Enums;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Enums;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Middleware;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Services.BankAdapters;
@@ -39,6 +41,7 @@ public static class AuthPayment
             MerchantIdentity merchant,
             IBankSelector bankSelector,
             BankRouter bankRouter,
+            BankIntegrationContext bankDb,
             IDocumentSession session,
             IMessageBus bus,
             CancellationToken ct)
@@ -65,8 +68,40 @@ public static class AuthPayment
                 };
             }
 
+            // BIN çözümleme
+            var rawCard = cmd.CardNo.Replace(" ", "");
+            if (rawCard.Length < 8)
+                return FeatureObjectResultModel<AuthPaymentResponse>.Error(
+                    new MessageItem { Code = "BinRecord.CardNumberTooShort" });
+
+            var binAsLong = long.Parse(rawCard[..8]);
+            var binRecord = await bankDb.Set<BinRecord>()
+                .FirstOrDefaultAsync(b => b.BinEightStart <= binAsLong && binAsLong <= b.BinEightEnd, ct);
+
+            if (binRecord is null)
+                return FeatureObjectResultModel<AuthPaymentResponse>.Error(
+                    new MessageItem { Code = "BinRecord.NotFound" });
+
+            if (!TryMapCardBrand(binRecord.CardBrand, out var cardBrand))
+                return FeatureObjectResultModel<AuthPaymentResponse>.Error(
+                    new MessageItem { Code = "BinRecord.UnknownCardBrand" });
+
+            var cardProfile = new CardProfile
+            {
+                CardBrand = cardBrand,
+                CardType = binRecord.CardProductType switch
+                {
+                    "2" => CardType.Commercial,
+                    _   => CardType.Consumer
+                },
+                TransactionRegion = binRecord.BinCountry?.ToUpperInvariant() == "TR"
+                    ? TransactionRegion.Domestic
+                    : TransactionRegion.International,
+                IssuingMemberId = binRecord.MemberId
+            };
+
             var encryptedCard = cardEncryption.Encrypt(cmd.CardNo);
-            var route = await bankSelector.SelectBestAsync(merchant.MerchantId, cmd.Currency, ct);
+            var route = await bankSelector.SelectBestAsync(merchant.MerchantId, cmd.Currency, cardProfile, ct);
             var transactionId = Guid.NewGuid();
 
             session.Events.StartStream<PaymentTransaction>(transactionId, new PaymentInitiated(
@@ -166,6 +201,25 @@ public static class AuthPayment
 
             return FeatureObjectResultModel<AuthPaymentResponse>.Ok(
                 new AuthPaymentResponse { TransactionId = transactionId });
+        }
+
+        private static bool TryMapCardBrand(string raw, out CardBrand cardBrand)
+        {
+            switch (raw.ToUpperInvariant())
+            {
+                case "VISA":
+                    cardBrand = CardBrand.Visa; return true;
+                case "MASTERCARD":
+                case "MC":
+                    cardBrand = CardBrand.Mastercard; return true;
+                case "TROY":
+                    cardBrand = CardBrand.Troy; return true;
+                case "AMEX":
+                case "AMERICANEXPRESS":
+                    cardBrand = CardBrand.Amex; return true;
+                default:
+                    cardBrand = default; return false;
+            }
         }
     }
 }
