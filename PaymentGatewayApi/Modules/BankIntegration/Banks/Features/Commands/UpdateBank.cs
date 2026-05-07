@@ -8,6 +8,7 @@ public static class UpdateBank
         public required string Name { get; set; }
         public required int Priority { get; set; }
         public required string ApiUrl { get; set; }
+        public string? IcaMemberId { get; set; }
     }
     
     public class UpdateBankCommandResponse
@@ -30,7 +31,7 @@ public static class UpdateBank
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
 
-            var result = bank.Update(cmd.Name, cmd.Priority, cmd.ApiUrl);
+            var result = bank.Update(cmd.Name, cmd.Priority, cmd.ApiUrl, cmd.IcaMemberId);
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<UpdateBankCommandResponse>.Error(result.Messages!);
 

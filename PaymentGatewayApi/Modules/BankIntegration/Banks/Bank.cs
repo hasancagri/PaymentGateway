@@ -9,6 +9,7 @@ public sealed class Bank : AggregateRoot
     public BankPriority Priority { get; private set; }
     public BankStatus Status { get; private set; }
     public BankApiUrl ApiUrl { get; private set; }
+    public string? IcaMemberId { get; private set; }
 
     private readonly List<string> _supportedCurrencies = [];
     public IReadOnlyCollection<string> SupportedCurrencies => _supportedCurrencies.AsReadOnly();
@@ -17,7 +18,7 @@ public sealed class Bank : AggregateRoot
     {
     }
 
-    public static ResultDomain<Bank> Configure(string name, int priority, string apiUrl)
+    public static ResultDomain<Bank> Configure(string name, int priority, string apiUrl, string? icaMemberId = null)
     {
         var nameResult = BankName.Create(name);
         var priorityResult = BankPriority.Create(priority);
@@ -35,10 +36,11 @@ public sealed class Bank : AggregateRoot
             Priority = priorityResult.Data!,
             ApiUrl = apiUrlResult.Data!,
             Status = BankStatus.Active,
+            IcaMemberId = icaMemberId?.Trim()
         });
     }
 
-    public ResultDomain Update(string name, int priority, string apiUrl)
+    public ResultDomain Update(string name, int priority, string apiUrl, string? icaMemberId = null)
     {
         var nameResult = BankName.Create(name);
         var priorityResult = BankPriority.Create(priority);
@@ -53,6 +55,7 @@ public sealed class Bank : AggregateRoot
         Name = nameResult.Data!;
         Priority = priorityResult.Data!;
         ApiUrl = apiUrlResult.Data!;
+        IcaMemberId = icaMemberId?.Trim();
         return ResultDomain.Ok();
     }
 
