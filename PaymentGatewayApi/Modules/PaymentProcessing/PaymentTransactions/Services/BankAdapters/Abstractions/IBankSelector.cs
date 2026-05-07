@@ -4,12 +4,13 @@ using PaymentGatewayApi.Modules.BankIntegration.MerchantBanks;
 using PaymentGatewayApi.Modules.BankIntegration.MerchantBanks.Enums;
 using PaymentGatewayApi.Modules.CommissionManagement.BankCommissions;
 using PaymentGatewayApi.Modules.CommissionManagement.MerchantCommissions;
+using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.ValueObjects;
 
 namespace PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Services.BankAdapters.Abstractions;
 
 public interface IBankSelector : IScopedDependency
 {
-    Task<BankRoute> SelectBestAsync(Guid merchantId, string currency, CancellationToken ct);
+    Task<BankRoute> SelectBestAsync(Guid merchantId, string currency, CardProfile cardProfile, CancellationToken ct);
 }
 
 public class BankSelector : IBankSelector
@@ -23,13 +24,21 @@ public class BankSelector : IBankSelector
         _commissionDb = commissionDb;
     }
 
-    public async Task<BankRoute> SelectBestAsync(Guid merchantId, string currency, CancellationToken ct)
+    public async Task<BankRoute> SelectBestAsync(
+        Guid merchantId, string currency, CardProfile cardProfile, CancellationToken ct)
     {
-        var activeBanks = await _bankDb.Set<Bank>()
-            .Where(b => b.Status == BankStatus.Active)
+        var merchantBanks = await _bankDb.Set<MerchantBank>()
+            .Where(mb => mb.MerchantId == merchantId && mb.Status == MerchantBankStatus.Active)
             .ToListAsync(ct);
 
-        var eligibleBanks = activeBanks
+        if (merchantBanks.Count == 0)
+            throw new InvalidOperationException($"No active merchant banks for merchant {merchantId}");
+
+        var merchantBankIds = merchantBanks.Select(mb => mb.BankId).ToList();
+
+        var eligibleBanks = (await _bankDb.Set<Bank>()
+            .Where(b => b.Status == BankStatus.Active && merchantBankIds.Contains(b.Id))
+            .ToListAsync(ct))
             .Where(b => b.SupportsCurrency(currency))
             .ToList();
 
@@ -38,41 +47,46 @@ public class BankSelector : IBankSelector
 
         var eligibleBankIds = eligibleBanks.Select(b => b.Id).ToList();
 
-        var bankCommissions = await _commissionDb.Set<BankCommission>()
+        var bankCommissions = (await _commissionDb.Set<BankCommission>()
             .Where(bc => eligibleBankIds.Contains(bc.BankId))
-            .ToListAsync(ct);
+            .ToListAsync(ct))
+            .Where(bc =>
+                bc.Criteria.CardBrand == cardProfile.CardBrand &&
+                bc.Criteria.CardType == cardProfile.CardType &&
+                bc.Criteria.TransactionRegion == cardProfile.TransactionRegion)
+            .ToList();
+
+        if (bankCommissions.Count == 0)
+            throw new InvalidOperationException(
+                $"No commission found for criteria: {cardProfile.CardBrand}/{cardProfile.CardType}/{cardProfile.TransactionRegion}");
+
+        var bankCommissionIds = bankCommissions.Select(bc => bc.Id).ToList();
 
         var merchantCommissions = await _commissionDb.Set<MerchantCommission>()
-            .Where(mc => mc.MerchantId == merchantId)
+            .Where(mc => mc.MerchantId == merchantId && bankCommissionIds.Contains(mc.BankCommissionId))
             .ToListAsync(ct);
 
-        var best = (
+        if (merchantCommissions.Count == 0)
+            throw new InvalidOperationException(
+                $"No merchant commission defined for merchant {merchantId} matching card criteria");
+
+        var candidates = (
             from mc in merchantCommissions
             join bc in bankCommissions on mc.BankCommissionId equals bc.Id
             join bank in eligibleBanks on bc.BankId equals bank.Id
-            orderby mc.Rate.Value
             select new { mc, bc, bank }
-        ).FirstOrDefault();
+        ).ToList();
 
-        if (best is null)
-            throw new InvalidOperationException(
-                $"No commission defined for merchant {merchantId} with currency {currency}");
-
-        var merchantBank = await _bankDb.Set<MerchantBank>()
-            .FirstOrDefaultAsync(mb =>
-                mb.MerchantId == merchantId &&
-                mb.BankId == best.bank.Id &&
-                mb.Status == MerchantBankStatus.Active, ct);
-
-        if (merchantBank is null)
-            throw new InvalidOperationException(
-                $"No active credentials for merchant {merchantId} at bank {best.bank.Name.Value}");
+        var selected = candidates.FirstOrDefault(c =>
+                !string.IsNullOrEmpty(cardProfile.IssuingMemberId) &&
+                c.bank.IcaMemberId == cardProfile.IssuingMemberId)
+            ?? candidates.OrderBy(c => c.mc.Rate.Value).First();
 
         return new BankRoute(
-            BankId: best.bank.Id,
-            BankName: best.bank.Name.Value,
-            BankRate: best.bc.Rate.Value,
-            MerchantRate: best.mc.Rate.Value
+            BankId: selected.bank.Id,
+            BankName: selected.bank.Name.Value,
+            BankRate: selected.bc.Rate.Value,
+            MerchantRate: selected.mc.Rate.Value
         );
     }
 }
