@@ -1,4 +1,4 @@
-namespace PaymentGatewayApi.Modules.BankIntegration.BinRecords.Events;
+namespace PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.Events;
 
 public sealed record BinRecordCreated(
     Guid EventId,

@@ -1,4 +1,4 @@
-namespace PaymentGatewayApi.Modules.BankIntegration.BinRecords.ValueObjects;
+namespace PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.ValueObjects;
 
 public sealed record BinRange
 {

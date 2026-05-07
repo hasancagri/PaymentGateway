@@ -44,10 +44,4 @@ public sealed class Role : AggregateRoot
         _permissions.Remove(permission);
         return ResultDomain.Ok();
     }
-
-    public bool HasPermission(string pageRoute, string action)
-    {
-        var page = _permissions.FirstOrDefault(p => p.PageRoute == pageRoute);
-        return page?.HasAction(action) ?? false;
-    }
 }

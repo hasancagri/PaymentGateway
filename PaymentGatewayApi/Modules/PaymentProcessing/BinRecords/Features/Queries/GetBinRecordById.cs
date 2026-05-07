@@ -1,4 +1,4 @@
-namespace PaymentGatewayApi.Modules.BankIntegration.BinRecords.Features.Queries;
+namespace PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.Features.Queries;
 
 public static class GetBinRecordById
 {
@@ -22,10 +22,10 @@ public static class GetBinRecordById
     {
         public async Task<FeatureObjectResultModel<GetBinRecordByIdResponse>> Handle(
             GetBinRecordByIdQuery query,
-            BankIntegrationContext db,
+            IQuerySession session,
             CancellationToken ct)
         {
-            var record = await db.Set<BinRecord>().FirstOrDefaultAsync(x => x.Id == query.BinRecordId, ct);
+            var record = await session.LoadAsync<BinRecord>(query.BinRecordId, ct);
             if (record is null)
                 return FeatureObjectResultModel<GetBinRecordByIdResponse>.Error(new MessageItem
                 {

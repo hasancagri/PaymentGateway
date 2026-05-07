@@ -1,7 +1,7 @@
-using PaymentGatewayApi.Modules.BankIntegration.BinRecords.Features.Commands;
-using PaymentGatewayApi.Modules.BankIntegration.BinRecords.Features.Queries;
+using PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.Features.Commands;
+using PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.Features.Queries;
 
-namespace PaymentGatewayApi.Modules.BankIntegration.BinRecords.Features.Endpoints;
+namespace PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.Features.Endpoints;
 
 public static class BinRecordEndpoints
 {

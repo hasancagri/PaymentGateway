@@ -1,6 +1,6 @@
-using PaymentGatewayApi.Modules.BankIntegration.BinRecords.ValueObjects;
+using PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.ValueObjects;
 
-namespace PaymentGatewayApi.Modules.BankIntegration.BinRecords.Features.Commands;
+namespace PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.Features.Commands;
 
 public static class CreateBinRecord
 {
@@ -19,12 +19,11 @@ public static class CreateBinRecord
         public Guid Id { get; set; }
     }
 
-    [Transactional]
     public class CreateBinRecordHandler
     {
         public async Task<FeatureObjectResultModel<CreateBinRecordResponse>> Handle(
             CreateBinRecordCommand cmd,
-            BankIntegrationContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
             var binRangeResult = BinRange.Create(cmd.BinStart, cmd.BinEnd);
@@ -37,7 +36,8 @@ public static class CreateBinRecord
                 return FeatureObjectResultModel<CreateBinRecordResponse>.Error(errors);
 
             var record = BinRecord.Create(binRangeResult.Data!, cardInfoResult.Data!);
-            await db.Set<BinRecord>().AddAsync(record, ct);
+            session.Store(record);
+            await session.SaveChangesAsync(ct);
             return FeatureObjectResultModel<CreateBinRecordResponse>.Ok(new CreateBinRecordResponse { Id = record.Id });
         }
     }

@@ -3,13 +3,14 @@ using Marten.Events.Projections;
 using Marten.Schema;
 using PaymentGatewayApi.Auths;
 using PaymentGatewayApi.Modules.BankIntegration.Banks.Features.Endpoints;
-using PaymentGatewayApi.Modules.BankIntegration.BinRecords.Features.Endpoints;
+using PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.Features.Endpoints;
 using PaymentGatewayApi.Modules.BankIntegration.MerchantBanks.Features.Endpoints;
 using PaymentGatewayApi.Modules.CommissionManagement.BankCommissions.Features.Endpoints;
 using PaymentGatewayApi.Modules.CommissionManagement.MerchantCommissions.Features.Endpoints;
 using PaymentGatewayApi.Modules.IAM.Roles.Features.Endpoints;
 using PaymentGatewayApi.Modules.IAM.Users.Features.Endpoints;
 using PaymentGatewayApi.Modules.MerchantManagement.Merchants.Features.Endpoints;
+using PaymentGatewayApi.Modules.PaymentProcessing.BinRecords;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Features.Endpoints;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Middleware;
@@ -49,14 +50,17 @@ builder.Services.AddDbContextWithWolverineIntegration<SettlementContext>(x => x.
 // Marten - Event Sourcing for PaymentProcessing
 var martenConnectionString = builder.Configuration.GetConnectionString("defaultDb");
 builder.Services.AddMarten(opts =>
-{
-    opts.Connection(martenConnectionString!);
-    opts.Projections.Snapshot<PaymentTransaction>(SnapshotLifecycle.Inline);
-    opts.Schema.For<PaymentTransaction>()
-        .UniqueIndex(UniqueIndexType.Computed, t => t.MerchantId, t => t.OrderId);
-})
-.IntegrateWithWolverine()
-.ApplyAllDatabaseChangesOnStartup();
+    {
+        opts.Connection(martenConnectionString!);
+        opts.Projections.Snapshot<PaymentTransaction>(SnapshotLifecycle.Inline);
+        opts.Schema.For<PaymentTransaction>()
+            .UniqueIndex(UniqueIndexType.Computed, t => t.MerchantId, t => t.OrderId);
+        opts.Schema.For<BinRecord>()
+            .Index(x => x.BinEightStart)
+            .Index(x => x.BinEightEnd);
+    })
+    .IntegrateWithWolverine()
+    .ApplyAllDatabaseChangesOnStartup();
 
 // Caching
 builder.Services.AddCachingServices();
@@ -106,16 +110,12 @@ builder.Services.AddSwaggerGen(c =>
 // Http
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
-builder.Services.AddHttpClient("webhook", client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(10);
-});
+builder.Services.AddHttpClient("webhook", client => { client.Timeout = TimeSpan.FromSeconds(10); });
 
 // gRPC Bank Clients
-builder.Services.AddGrpcClient<PaymentGateway.BankContracts.BankPaymentService.BankPaymentServiceClient>("garanti", o =>
-{
-    o.Address = new Uri("https+http://garanti-service");
-}).AddServiceDiscovery();
+builder.Services
+    .AddGrpcClient<PaymentGateway.BankContracts.BankPaymentService.BankPaymentServiceClient>("garanti",
+        o => { o.Address = new Uri("https+http://garanti-service"); }).AddServiceDiscovery();
 
 // Cors
 builder.Services.AddCors();

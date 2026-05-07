@@ -1,8 +1,8 @@
 using System.Globalization;
 using Marten;
 using PaymentGateway.BankContracts;
-using PaymentGatewayApi.Modules.BankIntegration.BinRecords;
 using PaymentGatewayApi.Modules.CommissionManagement.BankCommissions.Enums;
+using PaymentGatewayApi.Modules.PaymentProcessing.BinRecords;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Enums;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Middleware;
 using PaymentGatewayApi.Modules.PaymentProcessing.PaymentTransactions.Services.BankAdapters;
@@ -41,7 +41,6 @@ public static class AuthPayment
             MerchantIdentity merchant,
             IBankSelector bankSelector,
             BankRouter bankRouter,
-            BankIntegrationContext bankDb,
             IDocumentSession session,
             IMessageBus bus,
             CancellationToken ct)
@@ -75,8 +74,8 @@ public static class AuthPayment
                     new MessageItem { Code = "BinRecord.CardNumberTooShort" });
 
             var binAsLong = long.Parse(rawCard[..8]);
-            var binRecord = await EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
-                bankDb.Set<BinRecord>()
+            var binRecord = await Marten.QueryableExtensions.FirstOrDefaultAsync(
+                session.Query<BinRecord>()
                     .Where(b => b.BinEightStart <= binAsLong && binAsLong <= b.BinEightEnd),
                 ct);
 
