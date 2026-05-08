@@ -66,8 +66,9 @@ public static class MerchantEndpoints
         }).WithMetadata(new JwtPermissionMetadata(MerchantPermissionConstants.Page, MerchantPermissionConstants.Suspend));
 
         group.MapPost("/{id:guid}/bank-accounts",
-            async ([FromBody] AddMerchantBankAccount.AddMerchantBankAccountCommand cmd, IMessageBus bus) =>
+            async (Guid id, [FromBody] AddMerchantBankAccount.AddMerchantBankAccountCommand cmd, IMessageBus bus) =>
             {
+                cmd.MerchantId = id;
                 var result =
                     await bus
                         .InvokeAsync<FeatureObjectResultModel<

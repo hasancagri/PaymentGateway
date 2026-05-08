@@ -38,7 +38,7 @@ public class GlobalExceptionHandler : IExceptionHandler
                 break;
             case UnauthorizedAccessException unauthorizedAccessException:
                 _logger.LogError(unauthorizedAccessException, "Server Error: {Message}", unauthorizedAccessException.Message);
-                httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 apiResultModel = FeatureResultModel.Error(new MessageItem { Code = CommonResourceConstants.COMMON_MESSAGE_UNAUTHORIZED_ERROR });
                 break;
             default:
