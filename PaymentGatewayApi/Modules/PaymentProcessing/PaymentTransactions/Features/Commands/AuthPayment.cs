@@ -41,7 +41,6 @@ public static class AuthPayment
             IBankSelector bankSelector,
             BankRouter bankRouter,
             IDocumentSession session,
-            IMessageBus bus,
             CancellationToken ct)
         {
             var parsedOrderId = OrderId.Create(cmd.OrderId);
@@ -109,11 +108,6 @@ public static class AuthPayment
                 cmd.InstallmentCount
             ));
 
-            bool isApproved;
-            string resultCode;
-            string? bankMessage;
-            string? bankTransactionId;
-
             try
             {
                 var grpcResponse = await bankRouter.Route(route.BankName).AuthAsync(new AuthRequest
@@ -131,65 +125,51 @@ public static class AuthPayment
                     OrderId = cmd.OrderId
                 }, cancellationToken: ct);
 
-                isApproved = grpcResponse.IsApproved;
-                resultCode = grpcResponse.ResultCode;
-                bankMessage = string.IsNullOrEmpty(grpcResponse.Message) ? null : grpcResponse.Message;
-                bankTransactionId = string.IsNullOrEmpty(grpcResponse.BankTransactionId) ? null : grpcResponse.BankTransactionId;
-
                 if (grpcResponse.IsApproved)
                 {
-                    var bankAmount = Math.Round(cmd.Amount * route.BankRate / 100, 2);
-                    var merchantAmount = Math.Round(cmd.Amount * route.MerchantRate / 100, 2);
-                    var netAmount = Math.Round(cmd.Amount - merchantAmount, 2);
+                    var commissionResult = CommissionInfo.Create(cmd.Amount, route.BankRate, route.MerchantRate);
+                    if (!commissionResult.IsSuccess)
+                        return FeatureObjectResultModel<AuthPaymentResponse>.Error(commissionResult.Messages!);
 
+                    var commission = commissionResult.Data!;
                     session.Events.Append(transactionId, new PaymentApproved(
                         transactionId,
                         merchant.MerchantId,
                         cmd.OrderId,
                         cmd.Amount,
                         cmd.Currency,
-                        merchantAmount,
-                        bankAmount,
-                        netAmount,
-                        bankTransactionId,
-                        resultCode
+                        commission.MerchantAmount,
+                        commission.BankAmount,
+                        commission.NetAmount,
+                        string.IsNullOrEmpty(grpcResponse.BankTransactionId) ? null : grpcResponse.BankTransactionId,
+                        grpcResponse.ResultCode
                     ));
                 }
                 else
                 {
                     session.Events.Append(transactionId, new PaymentDeclined(
                         transactionId,
+                        merchant.MerchantId,
                         cmd.OrderId,
-                        resultCode,
-                        bankMessage
+                        grpcResponse.ResultCode,
+                        string.IsNullOrEmpty(grpcResponse.Message) ? null : grpcResponse.Message
                     ));
                 }
             }
             catch (RpcException ex)
             {
-                isApproved = false;
-                resultCode = "99";
-                bankMessage = ex.Status.Detail;
-                bankTransactionId = null;
-
-                session.Events.Append(transactionId, new PaymentFailed(transactionId, ex.Status.Detail));
+                session.Events.Append(transactionId, new PaymentFailed(
+                    transactionId,
+                    merchant.MerchantId,
+                    cmd.OrderId,
+                    ex.Status.Detail
+                ));
             }
-
-            await bus.PublishAsync(new WebhookQueued.WebhookQueuedMessage(
-                merchant.MerchantId,
-                transactionId,
-                cmd.OrderId,
-                isApproved,
-                resultCode,
-                bankMessage,
-                bankTransactionId
-            ));
 
             await session.SaveChangesAsync(ct);
 
             return FeatureObjectResultModel<AuthPaymentResponse>.Ok(
                 new AuthPaymentResponse { TransactionId = transactionId });
         }
-
     }
 }

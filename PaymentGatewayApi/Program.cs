@@ -59,7 +59,7 @@ builder.Services.AddMarten(opts =>
             .Index(x => x.BinEightStart)
             .Index(x => x.BinEightEnd);
     })
-    .IntegrateWithWolverine()
+    .IntegrateWithWolverine(x => x.UseFastEventForwarding = true)
     .ApplyAllDatabaseChangesOnStartup();
 
 // Caching

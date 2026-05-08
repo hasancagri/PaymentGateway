@@ -32,6 +32,7 @@ public sealed record PaymentApproved(
 
 public sealed record PaymentDeclined(
     Guid TransactionId,
+    Guid MerchantId,
     string OrderId,
     string BankResponseCode,
     string? BankMessage
@@ -39,5 +40,7 @@ public sealed record PaymentDeclined(
 
 public sealed record PaymentFailed(
     Guid TransactionId,
+    Guid MerchantId,
+    string OrderId,
     string Reason
 );

@@ -1,5 +1,4 @@
 using Marten;
-using PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.ValueObjects;
 
 namespace PaymentGatewayApi.Modules.PaymentProcessing.BinRecords.Features.Commands;
 
@@ -10,9 +9,9 @@ public static class CreateBinRecord
         public required string BinStart { get; set; }
         public required string BinEnd { get; set; }
         public required string CardBrand { get; set; }
-        public required string CardType { get; set; }
-        public required string IssuingCountry { get; set; }
-        public required string Region { get; set; }
+        public required string CardProductType { get; set; }
+        public required string BinCountry { get; set; }
+        public required string BinRegion { get; set; }
     }
 
     public class CreateBinRecordResponse
@@ -27,18 +26,17 @@ public static class CreateBinRecord
             IDocumentSession session,
             CancellationToken ct)
         {
-            var binRangeResult = BinRange.Create(cmd.BinStart, cmd.BinEnd);
-            var cardInfoResult = BinCardInfo.Create(cmd.CardBrand, cmd.CardType, cmd.IssuingCountry, cmd.Region);
+            var recordResult = BinRecord.Create(
+                cmd.BinStart, cmd.BinEnd,
+                cmd.CardBrand, cmd.CardProductType,
+                cmd.BinCountry, cmd.BinRegion);
 
-            var errors = new List<MessageItem>();
-            if (!binRangeResult.IsSuccess) errors.AddRange(binRangeResult.Messages!);
-            if (!cardInfoResult.IsSuccess) errors.AddRange(cardInfoResult.Messages!);
-            if (errors.Count > 0)
-                return FeatureObjectResultModel<CreateBinRecordResponse>.Error(errors);
+            if (!recordResult.IsSuccess)
+                return FeatureObjectResultModel<CreateBinRecordResponse>.Error(recordResult.Messages!);
 
-            var record = BinRecord.Create(binRangeResult.Data!, cardInfoResult.Data!);
-            session.Store(record);
-            return FeatureObjectResultModel<CreateBinRecordResponse>.Ok(new CreateBinRecordResponse { Id = record.Id });
+            session.Store(recordResult.Data!);
+            return FeatureObjectResultModel<CreateBinRecordResponse>.Ok(
+                new CreateBinRecordResponse { Id = recordResult.Data!.Id });
         }
     }
 }
