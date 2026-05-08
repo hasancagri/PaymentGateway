@@ -8,6 +8,7 @@ using PaymentProcessing.Api.Modules.PaymentProcessing.PaymentTransactions.Servic
 using PaymentProcessing.Api.Modules.PaymentProcessing.PaymentTransactions.Services.BankAdapters.Abstractions;
 using PaymentProcessing.Api.Modules.PaymentProcessing.PaymentTransactions.Services.Encryption;
 using PaymentProcessing.Api.Modules.PaymentProcessing.PaymentTransactions.ValueObjects;
+using SharedPaymentEvents = PaymentGateway.SharedContracts.PaymentEvents;
 
 namespace PaymentProcessing.Api.Modules.PaymentProcessing.PaymentTransactions.Features.Commands;
 
@@ -35,7 +36,7 @@ public static class AuthPayment
 
     public class AuthPaymentHandler(ICardEncryptionService cardEncryption)
     {
-        public async Task<FeatureObjectResultModel<AuthPaymentResponse>> Handle(
+        public async Task<(FeatureObjectResultModel<AuthPaymentResponse>, SharedPaymentEvents.PaymentApprovedIntegration?, SharedPaymentEvents.PaymentDeclinedIntegration?, SharedPaymentEvents.PaymentFailedIntegration?)> Handle(
             AuthPaymentCommand cmd,
             MerchantIdentity merchant,
             IBankSelector bankSelector,
@@ -45,7 +46,7 @@ public static class AuthPayment
         {
             var parsedOrderId = OrderId.Create(cmd.OrderId);
             if (!parsedOrderId.IsSuccess)
-                return FeatureObjectResultModel<AuthPaymentResponse>.Error(parsedOrderId.Messages!);
+                return (FeatureObjectResultModel<AuthPaymentResponse>.Error(parsedOrderId.Messages!), null, null, null);
 
             var existing = await Marten.QueryableExtensions.FirstOrDefaultAsync(
                 session.Query<PaymentTransaction>()
@@ -54,7 +55,7 @@ public static class AuthPayment
 
             if (existing is not null)
             {
-                return existing.Status switch
+                var existingResult = existing.Status switch
                 {
                     TransactionStatus.Pending => FeatureObjectResultModel<AuthPaymentResponse>.Error(
                         new MessageItem { Code = "Payment.InProgress" }),
@@ -63,13 +64,14 @@ public static class AuthPayment
                     _ => FeatureObjectResultModel<AuthPaymentResponse>.Ok(
                         new AuthPaymentResponse { TransactionId = existing.Id })
                 };
+                return (existingResult, null, null, null);
             }
 
             // BIN çözümleme
             var rawCard = cmd.CardNo.Replace(" ", "");
             if (rawCard.Length < 8)
-                return FeatureObjectResultModel<AuthPaymentResponse>.Error(
-                    new MessageItem { Code = "BinRecord.CardNumberTooShort" });
+                return (FeatureObjectResultModel<AuthPaymentResponse>.Error(
+                    new MessageItem { Code = "BinRecord.CardNumberTooShort" }), null, null, null);
 
             var binAsLong = long.Parse(rawCard[..8]);
             var binRecord = await Marten.QueryableExtensions.FirstOrDefaultAsync(
@@ -78,12 +80,12 @@ public static class AuthPayment
                 ct);
 
             if (binRecord is null)
-                return FeatureObjectResultModel<AuthPaymentResponse>.Error(
-                    new MessageItem { Code = "BinRecord.NotFound" });
+                return (FeatureObjectResultModel<AuthPaymentResponse>.Error(
+                    new MessageItem { Code = "BinRecord.NotFound" }), null, null, null);
 
             var profileResult = CardProfile.CreateFromBinRecord(binRecord);
             if (!profileResult.IsSuccess)
-                return FeatureObjectResultModel<AuthPaymentResponse>.Error(profileResult.Messages!);
+                return (FeatureObjectResultModel<AuthPaymentResponse>.Error(profileResult.Messages!), null, null, null);
 
             var cardProfile = profileResult.Data!;
 
@@ -108,6 +110,10 @@ public static class AuthPayment
                 cmd.InstallmentCount
             ));
 
+            SharedPaymentEvents.PaymentApprovedIntegration? approvedEvent = null;
+            SharedPaymentEvents.PaymentDeclinedIntegration? declinedEvent = null;
+            SharedPaymentEvents.PaymentFailedIntegration? failedEvent = null;
+
             try
             {
                 var grpcResponse = await bankRouter.Route(route.BankName).AuthAsync(new AuthRequest
@@ -129,7 +135,7 @@ public static class AuthPayment
                 {
                     var commissionResult = CommissionInfo.Create(cmd.Amount, route.BankRate, route.MerchantRate);
                     if (!commissionResult.IsSuccess)
-                        return FeatureObjectResultModel<AuthPaymentResponse>.Error(commissionResult.Messages!);
+                        return (FeatureObjectResultModel<AuthPaymentResponse>.Error(commissionResult.Messages!), null, null, null);
 
                     var commission = commissionResult.Data!;
                     session.Events.Append(transactionId, new PaymentApproved(
@@ -144,6 +150,15 @@ public static class AuthPayment
                         string.IsNullOrEmpty(grpcResponse.BankTransactionId) ? null : grpcResponse.BankTransactionId,
                         grpcResponse.ResultCode
                     ));
+
+                    approvedEvent = new SharedPaymentEvents.PaymentApprovedIntegration(
+                        transactionId,
+                        merchant.MerchantId,
+                        cmd.OrderId,
+                        cmd.Amount,
+                        cmd.Currency,
+                        commission.MerchantAmount,
+                        DateTime.UtcNow);
                 }
                 else
                 {
@@ -154,6 +169,13 @@ public static class AuthPayment
                         grpcResponse.ResultCode,
                         string.IsNullOrEmpty(grpcResponse.Message) ? null : grpcResponse.Message
                     ));
+
+                    declinedEvent = new SharedPaymentEvents.PaymentDeclinedIntegration(
+                        transactionId,
+                        merchant.MerchantId,
+                        cmd.OrderId,
+                        grpcResponse.ResultCode,
+                        DateTime.UtcNow);
                 }
             }
             catch (RpcException ex)
@@ -164,12 +186,20 @@ public static class AuthPayment
                     cmd.OrderId,
                     ex.Status.Detail
                 ));
+
+                failedEvent = new SharedPaymentEvents.PaymentFailedIntegration(
+                    transactionId,
+                    merchant.MerchantId,
+                    cmd.OrderId,
+                    ex.Status.Detail,
+                    DateTime.UtcNow);
             }
 
             await session.SaveChangesAsync(ct);
 
-            return FeatureObjectResultModel<AuthPaymentResponse>.Ok(
-                new AuthPaymentResponse { TransactionId = transactionId });
+            return (FeatureObjectResultModel<AuthPaymentResponse>.Ok(
+                new AuthPaymentResponse { TransactionId = transactionId }),
+                approvedEvent, declinedEvent, failedEvent);
         }
     }
 }
