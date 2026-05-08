@@ -1,19 +1,19 @@
-// TODO: Task 9 will refactor MerchantMiddleware to use local MerchantSummary Marten document
-// Cross-context references to MerchantManagementContext removed temporarily
-
 namespace PaymentProcessing.Api.Modules.PaymentProcessing.PaymentTransactions.Middleware;
 
 public class MerchantMiddleware
 {
-    public static Task<(HandlerContinuation, MerchantIdentity)> BeforeAsync(
-        IHttpContextAccessor httpContextAccessor,
-        CancellationToken ct)
+    public static (HandlerContinuation, MerchantIdentity) Before(
+        IHttpContextAccessor httpContextAccessor)
     {
-        var apiKey = httpContextAccessor.HttpContext?.Request.Headers["X-Api-Key"].FirstOrDefault();
-        if (string.IsNullOrEmpty(apiKey))
-            throw new UnauthorizedAccessException("API key is required.");
+        var user = httpContextAccessor.HttpContext?.User;
+        var merchantIdClaim = user?.FindFirst("merchant_id")?.Value;
+        var merchantNameClaim = user?.FindFirst("merchant_name")?.Value;
 
-        // TODO: Task 9 — look up merchant from local MerchantSummary Marten document
-        throw new NotImplementedException("MerchantMiddleware will be implemented in Task 9 using local MerchantSummary read model.");
+        if (string.IsNullOrEmpty(merchantIdClaim))
+            throw new UnauthorizedAccessException("Merchant context missing from token.");
+
+        return (HandlerContinuation.Continue, new MerchantIdentity(
+            Guid.Parse(merchantIdClaim),
+            merchantNameClaim ?? string.Empty));
     }
 }
