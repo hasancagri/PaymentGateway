@@ -1,4 +1,4 @@
-namespace PaymentGatewayApi.Modules.IAM.Roles.Features.Queries;
+namespace IAM.Api.Domains.Roles.Features.Queries;
 
 public static class GetRoleById
 {
@@ -26,13 +26,10 @@ public static class GetRoleById
     {
         public async Task<FeatureObjectResultModel<GetRoleByIdResponse>> Handle(
             GetRoleByIdQuery query,
-            IamContext db,
+            IQuerySession session,
             CancellationToken ct)
         {
-            var role = await db.Set<Role>()
-                .Include(x => x.Permissions)
-                .ThenInclude(x => x.Actions)
-                .FirstOrDefaultAsync(x => x.Id == query.RoleId, ct);
+            var role = await session.LoadAsync<Role>(query.RoleId, ct);
 
             if (role is null)
                 return FeatureObjectResultModel<GetRoleByIdResponse>.Error(new MessageItem

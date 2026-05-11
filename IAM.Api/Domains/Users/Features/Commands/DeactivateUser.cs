@@ -1,3 +1,5 @@
+using IAM.Api.Domains.Users;
+
 namespace PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
 
 public static class DeactivateUser
@@ -17,11 +19,11 @@ public static class DeactivateUser
     {
         public async Task<FeatureObjectResultModel<DeactivateUserCommandResponse>> Handle(
             DeactivateUserCommand cmd,
-            IamContext db,
+            IDocumentSession session,
             ICache cache,
             CancellationToken ct)
         {
-            var user = await db.Set<User>().FirstOrDefaultAsync(x => x.Id == cmd.UserId, ct);
+            var user = await session.LoadAsync<User>(cmd.UserId, ct);
             if (user is null)
                 return FeatureObjectResultModel<DeactivateUserCommandResponse>.Error(new MessageItem
                 {
@@ -33,6 +35,7 @@ public static class DeactivateUser
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<DeactivateUserCommandResponse>.Error(result.Messages!);
 
+            session.Store(user);
             await cache.Remove($"user:{cmd.UserId}");
             return FeatureObjectResultModel<DeactivateUserCommandResponse>.Ok(new DeactivateUserCommandResponse
             {

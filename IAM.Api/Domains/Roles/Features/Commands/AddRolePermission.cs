@@ -1,5 +1,6 @@
+using PaymentGatewayApi.Modules.IAM.Roles;
 
-namespace PaymentGatewayApi.Modules.IAM.Roles.Features.Commands;
+namespace IAM.Api.Domains.Roles.Features.Commands;
 
 public static class AddRolePermission
 {
@@ -19,12 +20,10 @@ public static class AddRolePermission
     {
         public async Task<FeatureObjectResultModel<AddRolePermissionCommandResponse>> Handle(
             AddRolePermissionCommand cmd,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var role = await db.Set<Role>()
-                .Include(x => x.Permissions)
-                .ThenInclude(x => x.Actions)
-                .FirstOrDefaultAsync(x => x.Id == cmd.RoleId, ct);
+            var role = await session.LoadAsync<Role>(cmd.RoleId, ct);
 
             if (role is null)
                 return FeatureObjectResultModel<AddRolePermissionCommandResponse>.Error(new MessageItem
@@ -37,6 +36,7 @@ public static class AddRolePermission
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<AddRolePermissionCommandResponse>.Error(result.Messages!);
 
+            session.Store(role);
             return FeatureObjectResultModel<AddRolePermissionCommandResponse>.Ok(new AddRolePermissionCommandResponse());
         }
     }

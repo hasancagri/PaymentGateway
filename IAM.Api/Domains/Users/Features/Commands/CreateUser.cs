@@ -1,3 +1,5 @@
+using IAM.Api.Domains.Users;
+
 namespace PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
 
 public static class CreateUser
@@ -20,10 +22,10 @@ public static class CreateUser
     {
         public async Task<FeatureObjectResultModel<CreateUserResponse>> Handle(
             CreateUserCommand cmd,
-            IamContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var emailExists = await db.Set<User>().AnyAsync(x => x.Email.Value == cmd.Email, ct);
+            var emailExists = await session.Query<User>().AnyAsync(x => x.Email.Value == cmd.Email, ct);
             if (emailExists)
                 return FeatureObjectResultModel<CreateUserResponse>.Error(new MessageItem
                 {
@@ -35,7 +37,7 @@ public static class CreateUser
             if (!userResult.IsSuccess)
                 return FeatureObjectResultModel<CreateUserResponse>.Error(userResult.Messages!);
 
-            await db.Set<User>().AddAsync(userResult.Data!, ct);
+            session.Store(userResult.Data!);
             return FeatureObjectResultModel<CreateUserResponse>.Ok(new CreateUserResponse
             {
                 Id = userResult.Data!.Id

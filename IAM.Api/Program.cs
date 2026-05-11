@@ -1,10 +1,9 @@
 using IAM.Api.Auths;
 using IAM.Api.Dependencies;
+using IAM.Api.Domains.Roles;
+using IAM.Api.Domains.Users;
 using IAM.Api.Exceptions;
-using Marten;
-using PaymentGatewayApi.Modules.IAM.Roles;
 using PaymentGatewayApi.Modules.IAM.Roles.Features.Endpoints;
-using PaymentGatewayApi.Modules.IAM.Users;
 using PaymentGatewayApi.Modules.IAM.Users.Features.Endpoints;
 using Wolverine.RabbitMQ;
 
@@ -33,7 +32,7 @@ var iamDb = builder.Configuration.GetConnectionString("defaultDb");
 builder.Services.AddMarten(opts =>
 {
     opts.Connection(iamDb!);
-    opts.UseNewtonsoftForSerialization(s =>
+    opts.UseNewtonsoftForSerialization(configure: s =>
     {
         s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
     });
@@ -92,10 +91,10 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("webhook", client => { client.Timeout = TimeSpan.FromSeconds(10); });
 
-// gRPC Bank Clients
-builder.Services
-    .AddGrpcClient<PaymentGateway.BankContracts.BankPaymentService.BankPaymentServiceClient>("garanti",
-        o => { o.Address = new Uri("https+http://garanti-service"); }).AddServiceDiscovery();
+// // gRPC Bank Clients
+// builder.Services
+//     .AddGrpcClient<PaymentGateway.BankContracts.BankPaymentService.BankPaymentServiceClient>("garanti",
+//         o => { o.Address = new Uri("https+http://garanti-service"); }).AddServiceDiscovery();
 
 // Cors
 builder.Services.AddCors();

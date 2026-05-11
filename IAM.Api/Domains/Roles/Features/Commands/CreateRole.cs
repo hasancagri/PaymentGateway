@@ -1,7 +1,6 @@
-using PaymentGatewayApi.Modules.IAM.Roles.ValueObjects;
-using Wolverine.Attributes;
+using PaymentGatewayApi.Modules.IAM.Roles;
 
-namespace PaymentGatewayApi.Modules.IAM.Roles.Features.Commands;
+namespace IAM.Api.Domains.Roles.Features.Commands;
 
 public static class CreateRole
 {
@@ -21,13 +20,14 @@ public static class CreateRole
     {
         public async Task<FeatureObjectResultModel<CreateRoleResponse>> Handle(
             CreateRoleCommand cmd,
+            IDocumentSession session,
             CancellationToken ct)
         {
             var roleResult = Role.Create(cmd.Name, cmd.IsSystem);
             if (!roleResult.IsSuccess)
                 return FeatureObjectResultModel<CreateRoleResponse>.Error(roleResult.Messages!);
 
-            await db.Set<Role>().AddAsync(roleResult.Data!, ct);
+            session.Store(roleResult.Data!);
             return FeatureObjectResultModel<CreateRoleResponse>.Ok(new CreateRoleResponse { Id = roleResult.Data!.Id });
         }
     }

@@ -1,7 +1,9 @@
-using PaymentGatewayApi.Auths;
+using IAM.Api.Auths;
+using IAM.Api.Domains.Roles;
 using PaymentGatewayApi.Modules.IAM.Roles;
+using PaymentGatewayApi.Modules.IAM.Users;
 
-namespace PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
+namespace IAM.Api.Domains.Users.Features.Commands;
 
 public static class AssignUserRole
 {
@@ -21,13 +23,11 @@ public static class AssignUserRole
     {
         public async Task<FeatureObjectResultModel<AssignUserRoleCommandResponse>> Handle(
             AssignUserRoleCommand cmd,
-            IamContext db,
+            IDocumentSession session,
             ICache cache,
             CancellationToken ct)
         {
-            var user = await db.Set<User>()
-                .Include(x => x.Roles)
-                .FirstOrDefaultAsync(x => x.Id == cmd.UserId, ct);
+            var user = await session.LoadAsync<User>(cmd.UserId, ct);
             if (user is null)
                 return FeatureObjectResultModel<AssignUserRoleCommandResponse>.Error(new MessageItem
                 {
@@ -39,14 +39,12 @@ public static class AssignUserRole
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<AssignUserRoleCommandResponse>.Error(result.Messages!);
 
-            var roleIds = user.Roles.Select(r => r.RoleId).ToList();
-            var pagePermissions = await db.Set<Role>()
-                .Where(x => roleIds.Contains(x.Id))
-                .SelectMany(x => x.Permissions)
-                .Include(x => x.Actions)
-                .ToListAsync(ct);
+            session.Store(user);
 
-            var pages = pagePermissions
+            var roleIds = user.Roles.Select(r => r.RoleId).ToList();
+            var roles = await session.Query<Role>().Where(x => roleIds.Contains(x.Id)).ToListAsync(ct);
+
+            var pages = roles.SelectMany(r => r.Permissions)
                 .GroupBy(p => p.PageRoute)
                 .Select(g => new PageAccess
                 {

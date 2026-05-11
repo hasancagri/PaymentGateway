@@ -1,6 +1,6 @@
-using PaymentGatewayApi.Modules.IAM.Users.Enums;
+using IAM.Api.Domains.Users.Enums;
 
-namespace PaymentGatewayApi.Modules.IAM.Users.Features.Queries;
+namespace IAM.Api.Domains.Users.Features.Queries;
 
 public static class GetAllUsers
 {
@@ -20,22 +20,20 @@ public static class GetAllUsers
     {
         public async Task<FeatureObjectResultModel<List<UserListItem>>> Handle(
             GetAllUsersQuery query,
-            IamContext db,
+            IQuerySession session,
             CancellationToken ct)
         {
-            var users = await db.Set<User>()
-                .Select(x => new UserListItem
-                {
-                    Id = x.Id,
-                    Email = x.Email.Value,
-                    FirstName = x.FullName.FirstName,
-                    LastName = x.FullName.LastName,
-                    Status = x.Status,
-                    MerchantId = x.MerchantId
-                })
-                .ToListAsync(ct);
+            var users = await session.Query<User>().ToListAsync(ct);
 
-            return FeatureObjectResultModel<List<UserListItem>>.Ok(users);
+            return FeatureObjectResultModel<List<UserListItem>>.Ok(users.Select(x => new UserListItem
+            {
+                Id = x.Id,
+                Email = x.Email.Value,
+                FirstName = x.FullName.FirstName,
+                LastName = x.FullName.LastName,
+                Status = x.Status,
+                MerchantId = x.MerchantId
+            }).ToList());
         }
     }
 }

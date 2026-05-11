@@ -1,6 +1,6 @@
-using Wolverine.Attributes;
+using PaymentGatewayApi.Modules.IAM.Users;
 
-namespace PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
+namespace IAM.Api.Domains.Users.Features.Commands;
 
 public static class ActivateUser
 {
@@ -19,10 +19,10 @@ public static class ActivateUser
     {
         public async Task<FeatureObjectResultModel<ActivateUserCommandResponse>> Handle(
             ActivateUserCommand cmd,
-            IamContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var user = await db.Set<User>().FirstOrDefaultAsync(x => x.Id == cmd.UserId, ct);
+            var user = await session.LoadAsync<User>(cmd.UserId, ct);
             if (user is null)
                 return FeatureObjectResultModel<ActivateUserCommandResponse>.Error(new MessageItem
                 {
@@ -31,6 +31,7 @@ public static class ActivateUser
                 });
 
             user.Activate();
+            session.Store(user);
             return FeatureObjectResultModel<ActivateUserCommandResponse>.Ok(new ActivateUserCommandResponse
             {
                 Id = user.Id

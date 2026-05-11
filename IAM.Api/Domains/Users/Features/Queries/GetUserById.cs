@@ -1,6 +1,6 @@
-using PaymentGatewayApi.Modules.IAM.Users.Enums;
+using IAM.Api.Domains.Users.Enums;
 
-namespace PaymentGatewayApi.Modules.IAM.Users.Features.Queries;
+namespace IAM.Api.Domains.Users.Features.Queries;
 
 public static class GetUserById
 {
@@ -24,12 +24,10 @@ public static class GetUserById
     {
         public async Task<FeatureObjectResultModel<GetUserByIdResponse>> Handle(
             GetUserByIdQuery query,
-            IamContext db,
+            IQuerySession session,
             CancellationToken ct)
         {
-            var user = await db.Set<User>()
-                .Include(x => x.Roles)
-                .FirstOrDefaultAsync(x => x.Id == query.UserId, ct);
+            var user = await session.LoadAsync<User>(query.UserId, ct);
 
             if (user is null)
                 return FeatureObjectResultModel<GetUserByIdResponse>.Error(new MessageItem

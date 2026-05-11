@@ -1,4 +1,6 @@
-namespace PaymentGatewayApi.Modules.IAM.Roles.Features.Commands;
+using PaymentGatewayApi.Modules.IAM.Roles;
+
+namespace IAM.Api.Domains.Roles.Features.Commands;
 
 public static class RemoveRolePermission
 {
@@ -7,7 +9,7 @@ public static class RemoveRolePermission
         public required Guid RoleId { get; set; }
         public required Guid PermissionId { get; set; }
     }
-    
+
     public class RemoveRolePermissionCommandResponse
     {
     }
@@ -17,12 +19,10 @@ public static class RemoveRolePermission
     {
         public async Task<FeatureObjectResultModel<RemoveRolePermissionCommandResponse>> Handle(
             RemoveRolePermissionCommand cmd,
-            IamContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var role = await db.Set<Role>()
-                .Include(x => x.Permissions)
-                .FirstOrDefaultAsync(x => x.Id == cmd.RoleId, ct);
+            var role = await session.LoadAsync<Role>(cmd.RoleId, ct);
 
             if (role is null)
                 return FeatureObjectResultModel<RemoveRolePermissionCommandResponse>.Error(new MessageItem
@@ -35,6 +35,7 @@ public static class RemoveRolePermission
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<RemoveRolePermissionCommandResponse>.Error(result.Messages!);
 
+            session.Store(role);
             return FeatureObjectResultModel<RemoveRolePermissionCommandResponse>.Ok(new RemoveRolePermissionCommandResponse());
         }
     }

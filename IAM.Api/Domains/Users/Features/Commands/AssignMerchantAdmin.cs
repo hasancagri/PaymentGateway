@@ -1,6 +1,6 @@
-using PaymentGatewayApi.Modules.IAM.Roles;
+using IAM.Api.Domains.Roles;
 
-namespace PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
+namespace IAM.Api.Domains.Users.Features.Commands;
 
 public static class AssignMerchantAdmin
 {
@@ -21,12 +21,10 @@ public static class AssignMerchantAdmin
     {
         public async Task<FeatureObjectResultModel<AssignMerchantAdminCommandResponse>> Handle(
             AssignMerchantAdminCommand cmd,
-            IamContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var user = await db.Set<User>()
-                .Include(x => x.Roles)
-                .FirstOrDefaultAsync(x => x.Id == cmd.UserId, ct);
+            var user = await session.LoadAsync<User>(cmd.UserId, ct);
             if (user is null)
                 return FeatureObjectResultModel<AssignMerchantAdminCommandResponse>.Error(new MessageItem
                 {
@@ -34,7 +32,7 @@ public static class AssignMerchantAdmin
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
 
-            var merchantAdminRole = await db.Set<Role>()
+            var merchantAdminRole = await session.Query<Role>()
                 .FirstOrDefaultAsync(r => r.Name.Value == MerchantAdminRoleName, ct);
             if (merchantAdminRole is null)
                 return FeatureObjectResultModel<AssignMerchantAdminCommandResponse>.Error(new MessageItem
@@ -51,6 +49,7 @@ public static class AssignMerchantAdmin
             if (!roleResult.IsSuccess)
                 return FeatureObjectResultModel<AssignMerchantAdminCommandResponse>.Error(roleResult.Messages!);
 
+            session.Store(user);
             return FeatureObjectResultModel<AssignMerchantAdminCommandResponse>.Ok(new AssignMerchantAdminCommandResponse());
         }
     }

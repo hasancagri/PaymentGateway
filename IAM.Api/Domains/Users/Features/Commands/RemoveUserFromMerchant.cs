@@ -1,3 +1,5 @@
+using IAM.Api.Domains.Users;
+
 namespace PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
 
 public static class RemoveUserFromMerchant
@@ -16,10 +18,10 @@ public static class RemoveUserFromMerchant
     {
         public async Task<FeatureObjectResultModel<RemoveUserFromMerchantCommandResponse>> Handle(
             RemoveUserFromMerchantCommand cmd,
-            IamContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var user = await db.Set<User>().FirstOrDefaultAsync(x => x.Id == cmd.UserId, ct);
+            var user = await session.LoadAsync<User>(cmd.UserId, ct);
             if (user is null)
                 return FeatureObjectResultModel<RemoveUserFromMerchantCommandResponse>.Error(new MessageItem
                 {
@@ -31,6 +33,7 @@ public static class RemoveUserFromMerchant
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<RemoveUserFromMerchantCommandResponse>.Error(result.Messages!);
 
+            session.Store(user);
             return FeatureObjectResultModel<RemoveUserFromMerchantCommandResponse>.Ok(new RemoveUserFromMerchantCommandResponse());
         }
     }

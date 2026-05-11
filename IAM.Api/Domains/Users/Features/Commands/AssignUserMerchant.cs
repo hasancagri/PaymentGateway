@@ -1,3 +1,5 @@
+using IAM.Api.Domains.Users;
+
 namespace PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
 
 public static class AssignUserMerchant
@@ -17,10 +19,10 @@ public static class AssignUserMerchant
     {
         public async Task<FeatureObjectResultModel<AssignUserMerchantCommandResponse>> Handle(
             AssignUserMerchantCommand cmd,
-            IamContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var user = await db.Set<User>().FirstOrDefaultAsync(x => x.Id == cmd.UserId, ct);
+            var user = await session.LoadAsync<User>(cmd.UserId, ct);
             if (user is null)
                 return FeatureObjectResultModel<AssignUserMerchantCommandResponse>.Error(new MessageItem
                 {
@@ -32,6 +34,7 @@ public static class AssignUserMerchant
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<AssignUserMerchantCommandResponse>.Error(result.Messages!);
 
+            session.Store(user);
             return FeatureObjectResultModel<AssignUserMerchantCommandResponse>.Ok(new AssignUserMerchantCommandResponse());
         }
     }
