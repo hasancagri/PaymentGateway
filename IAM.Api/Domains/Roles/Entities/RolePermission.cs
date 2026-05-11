@@ -1,0 +1,17 @@
+using PaymentGatewayApi.Modules.IAM.Roles.Enums;
+
+namespace PaymentGatewayApi.Modules.IAM.Roles.Entities;
+
+public sealed class RolePermission : BaseModel
+{
+    public string Resource { get; init; }
+    public PermissionType PermissionType { get; init; }
+
+    private RolePermission() { }
+
+    internal static RolePermission Create(string resource, PermissionType permissionType) => new()
+    {
+        Resource = resource.Trim(),
+        PermissionType = permissionType,
+    };
+}

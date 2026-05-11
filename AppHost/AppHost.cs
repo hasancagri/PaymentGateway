@@ -2,17 +2,18 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var rabbitmq = builder.AddRabbitMQ("rabbitmq").WithManagementPlugin().WithLifetime(ContainerLifetime.Persistent);
 var redis = builder.AddRedis("redis").WithLifetime(ContainerLifetime.Persistent);
-var postgres = builder.AddPostgres("postgres").WithPgAdmin().WithDataVolume().WithLifetime(ContainerLifetime.Persistent);
+var postgres = builder.AddPostgres("postgres").WithPgAdmin().WithDataVolume()
+    .WithLifetime(ContainerLifetime.Persistent);
 
 // Dedicated database per service (Database per Service pattern)
-var garantiDb       = postgres.AddDatabase("defaultDb");         // kept for GarantiService
-var merchantDb      = postgres.AddDatabase("merchantDb");
-var paymentDb       = postgres.AddDatabase("paymentDb");
-var bankIntDb       = postgres.AddDatabase("bankIntegrationDb");
-var commissionDb    = postgres.AddDatabase("commissionDb");
-var iamDb           = postgres.AddDatabase("iamDb");
-var settlementDb    = postgres.AddDatabase("settlementDb");
-var gatewayDb       = postgres.AddDatabase("gatewayDb");         // Wolverine outbox for ApiGateway
+var garantiDb = postgres.AddDatabase("defaultDb"); // kept for GarantiService
+var merchantDb = postgres.AddDatabase("merchantDb");
+var paymentDb = postgres.AddDatabase("paymentDb");
+var bankIntDb = postgres.AddDatabase("bankIntegrationDb");
+var commissionDb = postgres.AddDatabase("commissionDb");
+var iamDb = postgres.AddDatabase("iamDb");
+var settlementDb = postgres.AddDatabase("settlementDb");
+var gatewayDb = postgres.AddDatabase("gatewayDb"); // Wolverine outbox for ApiGateway
 
 // JWT secret shared across ApiGateway and all downstream services
 var jwtSecret = builder.AddParameter("jwt-secret", secret: true);
@@ -48,19 +49,13 @@ var paymentApi = builder.AddProject<Projects.PaymentProcessing_Api>("payment-pro
     .WaitFor(rabbitmq).WaitFor(paymentDb).WaitFor(garanti).WaitFor(bankIntApi).WaitFor(commissionApi);
 
 var iamApi = builder.AddProject<Projects.IAM_Api>("iam")
-    .WithReference(rabbitmq).WithReference(iamDb)
+    .WithReference(rabbitmq).WithReference(iamDb).WithReference(redis)
     .WithEnvironment("Jwt__SecretKey", jwtSecret)
-    .WaitFor(rabbitmq).WaitFor(iamDb);
+    .WaitFor(rabbitmq).WaitFor(iamDb).WaitFor(redis);
 
 var settlementApi = builder.AddProject<Projects.Settlement_Api>("settlement")
     .WithReference(rabbitmq).WithReference(settlementDb)
     .WithEnvironment("Jwt__SecretKey", jwtSecret)
     .WaitFor(rabbitmq).WaitFor(settlementDb);
-
-var bff = builder.AddProject<Projects.PaymentGatewayBff>("payment-gateway-bff")
-    .WithReference(gateway).WaitFor(gateway);
-
-builder.AddProject<Projects.PaymentGatewayPortal>("payment-gateway-portal")
-    .WithReference(bff).WaitFor(bff);
 
 builder.Build().Run();
