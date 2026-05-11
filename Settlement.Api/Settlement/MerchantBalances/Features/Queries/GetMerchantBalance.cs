@@ -19,10 +19,13 @@ public static class GetMerchantBalance
     {
         public async Task<FeatureObjectResultModel<GetMerchantBalanceResponse>> Handle(
             GetMerchantBalanceQuery query,
-            SettlementContext db,
+            IQuerySession session,
             CancellationToken ct)
         {
-            var balance = await db.Set<MerchantBalance>().FirstOrDefaultAsync(x => x.MerchantId == query.MerchantId, ct);
+            var balance = await session.Query<MerchantBalance>()
+                .Where(x => x.MerchantId == query.MerchantId)
+                .FirstOrDefaultAsync(ct);
+
             if (balance is null)
                 return FeatureObjectResultModel<GetMerchantBalanceResponse>.Error(new MessageItem
                 {

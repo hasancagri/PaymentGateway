@@ -10,3 +10,12 @@ public sealed record BankRouteSynced(
     decimal BankRate,
     decimal MerchantRate,
     DateTime OccurredOn);
+
+public sealed record MerchantBankSynced(
+    Guid MerchantId,
+    Guid BankId,
+    string BankName,
+    string? IcaMemberId,
+    IReadOnlyCollection<string> SupportedCurrencies,
+    bool IsActive,
+    DateTime OccurredOn);

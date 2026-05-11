@@ -1,4 +1,4 @@
-namespace BankIntegration.Api.Utils.Constants;
+namespace CommissionManagement.Api.Utils.Constants;
 
 public static class CommissionPermissionConstants
 {

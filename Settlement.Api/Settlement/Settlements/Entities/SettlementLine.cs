@@ -1,16 +1,15 @@
 
-namespace PaymentGatewayApi.Modules.Settlement.Settlements.Entities;
+namespace Settlement.Api.Settlement.Settlements.Entities;
 
 public sealed class SettlementLine : BaseModel
 {
-    public Guid TransactionId { get; private set; } // Cross-BC reference
-    public Money GrossAmount { get; private set; }
-    public Money CommissionAmount { get; private set; }
-    public Money NetAmount { get; private set; }
+    public Guid TransactionId { get; init; }
+    public Money GrossAmount { get; init; }
+    public Money CommissionAmount { get; init; }
+    public Money NetAmount { get; init; }
 
-    private SettlementLine()
-    {
-    } // EF Core
+    [Newtonsoft.Json.JsonConstructor]
+    private SettlementLine() { }
 
     internal static SettlementLine Create(
         Guid transactionId,

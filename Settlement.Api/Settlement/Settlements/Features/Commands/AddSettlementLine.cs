@@ -1,6 +1,4 @@
-using Wolverine.Attributes;
-
-namespace PaymentGatewayApi.Modules.Settlement.Settlements.Features.Commands;
+namespace Settlement.Api.Settlement.Settlements.Features.Commands;
 
 public static class AddSettlementLine
 {
@@ -13,7 +11,7 @@ public static class AddSettlementLine
         public required decimal NetAmount { get; set; }
         public required string Currency { get; set; }
     }
-    
+
     public class AddSettlementLineCommandResponse
     {
     }
@@ -23,14 +21,14 @@ public static class AddSettlementLine
     {
         public async Task<FeatureObjectResultModel<AddSettlementLineCommandResponse>> Handle(
             AddSettlementLineCommand cmd,
-            SettlementContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var settlement = await db.Set<Settlement>().FirstOrDefaultAsync(x => x.Id == cmd.SettlementId, ct);
+            var settlement = await session.LoadAsync<Settlements.Settlement>(cmd.SettlementId, ct);
             if (settlement is null)
                 return FeatureObjectResultModel<AddSettlementLineCommandResponse>.Error(new MessageItem
                 {
-                    Table = nameof(Settlement),
+                    Table = nameof(Settlements.Settlement),
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
 
@@ -49,6 +47,7 @@ public static class AddSettlementLine
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<AddSettlementLineCommandResponse>.Error(result.Messages!);
 
+            session.Store(settlement);
             return FeatureObjectResultModel<AddSettlementLineCommandResponse>.Ok(new AddSettlementLineCommandResponse());
         }
     }

@@ -1,5 +1,6 @@
 using PaymentGatewayApi.Modules.Settlement.MerchantBalances.Features.Commands;
 using PaymentGatewayApi.Modules.Settlement.MerchantBalances.Features.Queries;
+using Settlement.Api.Settlement.MerchantBalances.Features.Commands;
 
 namespace PaymentGatewayApi.Modules.Settlement.MerchantBalances.Features.Endpoints;
 

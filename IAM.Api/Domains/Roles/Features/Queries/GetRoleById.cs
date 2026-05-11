@@ -12,14 +12,6 @@ public static class GetRoleById
         public Guid Id { get; set; }
         public string Name { get; set; }
         public bool IsSystem { get; set; }
-        public List<PagePermissionItem> Permissions { get; set; } = [];
-    }
-
-    public class PagePermissionItem
-    {
-        public Guid Id { get; set; }
-        public string PageRoute { get; set; }
-        public List<string> Actions { get; set; } = [];
     }
 
     public class GetRoleByIdHandler
@@ -42,13 +34,7 @@ public static class GetRoleById
             {
                 Id = role.Id,
                 Name = role.Name.Value,
-                IsSystem = role.IsSystem,
-                Permissions = role.Permissions.Select(p => new PagePermissionItem
-                {
-                    Id = p.Id,
-                    PageRoute = p.PageRoute,
-                    Actions = p.Actions.Select(a => a.Action).ToList()
-                }).ToList()
+                IsSystem = role.IsSystem
             });
         }
     }

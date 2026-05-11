@@ -1,6 +1,4 @@
-using PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
-
-namespace PaymentGatewayApi.Modules.IAM.Users.Features.Endpoints;
+namespace IAM.Api.Domains.Users.Features.Endpoints;
 
 public static class AuthEndpoints
 {

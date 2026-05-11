@@ -1,6 +1,4 @@
-using Wolverine.Attributes;
-
-namespace PaymentGatewayApi.Modules.Settlement.Settlements.Features.Commands;
+namespace Settlement.Api.Settlement.Settlements.Features.Commands;
 
 public static class FailSettlement
 {
@@ -9,7 +7,7 @@ public static class FailSettlement
         public required Guid SettlementId { get; set; }
         public required string Reason { get; set; }
     }
-    
+
     public class FailSettlementCommandResponse
     {
     }
@@ -19,14 +17,14 @@ public static class FailSettlement
     {
         public async Task<FeatureObjectResultModel<FailSettlementCommandResponse>> Handle(
             FailSettlementCommand cmd,
-            SettlementContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var settlement = await db.Set<Settlement>().FirstOrDefaultAsync(x => x.Id == cmd.SettlementId, ct);
+            var settlement = await session.LoadAsync<Settlements.Settlement>(cmd.SettlementId, ct);
             if (settlement is null)
                 return FeatureObjectResultModel<FailSettlementCommandResponse>.Error(new MessageItem
                 {
-                    Table = nameof(Settlement),
+                    Table = nameof(Settlements.Settlement),
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
 
@@ -34,6 +32,7 @@ public static class FailSettlement
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<FailSettlementCommandResponse>.Error(result.Messages!);
 
+            session.Store(settlement);
             return FeatureObjectResultModel<FailSettlementCommandResponse>.Ok(new FailSettlementCommandResponse());
         }
     }

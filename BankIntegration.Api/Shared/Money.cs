@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace PaymentGatewayApi.Shared;
 
 public sealed record Money

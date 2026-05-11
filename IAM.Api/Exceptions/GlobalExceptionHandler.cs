@@ -1,7 +1,7 @@
 using Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 
-namespace PaymentGatewayApi.Exceptions;
+namespace IAM.Api.Exceptions;
 
 public class GlobalExceptionHandler : IExceptionHandler
 {

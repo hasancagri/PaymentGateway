@@ -1,4 +1,6 @@
-namespace MerchantManagement.Api.Auths;
+using Common.Auths;
+
+namespace BankIntegration.Api.Auths;
 
 public static class AuthExtensions
 {

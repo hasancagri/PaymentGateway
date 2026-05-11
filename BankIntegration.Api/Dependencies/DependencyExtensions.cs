@@ -1,4 +1,4 @@
-namespace PaymentGatewayApi.Dependencies;
+namespace BankIntegration.Api.Dependencies;
 
 public static class DependencyExtensions
 {

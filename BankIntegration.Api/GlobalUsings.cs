@@ -1,6 +1,13 @@
-namespace BankIntegration.Api;
-
-public class GlobalUsins
-{
-    
-}
+global using Common;
+global using Common.Domains;
+global using Common.Utils.Constants;
+global using Common.Dependencies.Models;
+global using BankIntegration.Api.Domains.Banks.ValueObjects;
+global using BankIntegration.Api.Domains.Banks;
+global using BankIntegration.Api.Domains.Banks.Enums;
+global using PaymentGateway.SharedContracts.BankIntegrationEvents;
+global using PaymentGatewayApi.Modules.BankIntegration.MerchantBanks;
+global using Marten;
+global using Wolverine;
+global using Wolverine.Attributes;
+global using Wolverine.Marten;

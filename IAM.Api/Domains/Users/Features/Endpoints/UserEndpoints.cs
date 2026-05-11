@@ -1,7 +1,4 @@
-using PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
-using PaymentGatewayApi.Modules.IAM.Users.Features.Queries;
-
-namespace PaymentGatewayApi.Modules.IAM.Users.Features.Endpoints;
+namespace IAM.Api.Domains.Users.Features.Endpoints;
 
 public static class UserEndpoints
 {
@@ -75,14 +72,6 @@ public static class UserEndpoints
             {
                 var result =
                     await bus.InvokeAsync<FeatureObjectResultModel<AssignUserMerchant.AssignUserMerchantCommandResponse>>(cmd);
-                return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
-            });
-
-        group.MapPost("/{id:guid}/merchant-admin",
-            async ([FromBody] AssignMerchantAdmin.AssignMerchantAdminCommand cmd, IMessageBus bus) =>
-            {
-                var result =
-                    await bus.InvokeAsync<FeatureObjectResultModel<AssignMerchantAdmin.AssignMerchantAdminCommandResponse>>(cmd);
                 return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
             });
 

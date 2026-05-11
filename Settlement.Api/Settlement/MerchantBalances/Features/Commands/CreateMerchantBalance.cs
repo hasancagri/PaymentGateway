@@ -1,5 +1,3 @@
-using Wolverine.Attributes;
-
 namespace PaymentGatewayApi.Modules.Settlement.MerchantBalances.Features.Commands;
 
 public static class CreateMerchantBalance
@@ -20,11 +18,11 @@ public static class CreateMerchantBalance
     {
         public async Task<FeatureObjectResultModel<CreateMerchantBalanceResponse>> Handle(
             CreateMerchantBalanceCommand cmd,
-            SettlementContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
             var balance = MerchantBalance.Create(cmd.MerchantId, cmd.Currency);
-            await db.Set<MerchantBalance>().AddAsync(balance, ct);
+            session.Store(balance);
             return FeatureObjectResultModel<CreateMerchantBalanceResponse>.Ok(new CreateMerchantBalanceResponse { Id = balance.Id });
         }
     }

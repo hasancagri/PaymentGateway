@@ -1,5 +1,3 @@
-using Wolverine.Attributes;
-
 namespace PaymentGatewayApi.Modules.Settlement.MerchantBalances.Features.Commands;
 
 public static class CreditMerchantBalance
@@ -12,7 +10,7 @@ public static class CreditMerchantBalance
         public required string Description { get; set; }
         public Guid? ReferenceId { get; set; }
     }
-    
+
     public class CreditMerchantBalanceCommandResponse
     {
     }
@@ -22,10 +20,13 @@ public static class CreditMerchantBalance
     {
         public async Task<FeatureObjectResultModel<CreditMerchantBalanceCommandResponse>> Handle(
             CreditMerchantBalanceCommand cmd,
-            SettlementContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var balance = await db.Set<MerchantBalance>().FirstOrDefaultAsync(x => x.MerchantId == cmd.MerchantId, ct);
+            var balance = await session.Query<MerchantBalance>()
+                .Where(x => x.MerchantId == cmd.MerchantId)
+                .FirstOrDefaultAsync(ct);
+
             if (balance is null)
                 return FeatureObjectResultModel<CreditMerchantBalanceCommandResponse>.Error(new MessageItem
                 {
@@ -41,6 +42,7 @@ public static class CreditMerchantBalance
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<CreditMerchantBalanceCommandResponse>.Error(result.Messages!);
 
+            session.Store(balance);
             return FeatureObjectResultModel<CreditMerchantBalanceCommandResponse>.Ok(new CreditMerchantBalanceCommandResponse());
         }
     }

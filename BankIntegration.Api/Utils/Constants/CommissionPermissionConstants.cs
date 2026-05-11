@@ -1,4 +1,4 @@
-namespace PaymentGatewayApi.Utils.Constants;
+namespace BankIntegration.Api.Utils.Constants;
 
 public static class CommissionPermissionConstants
 {

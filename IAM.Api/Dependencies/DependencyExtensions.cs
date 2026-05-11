@@ -1,4 +1,4 @@
-namespace PaymentGatewayApi.Dependencies;
+namespace IAM.Api.Dependencies;
 
 public static class DependencyExtensions
 {

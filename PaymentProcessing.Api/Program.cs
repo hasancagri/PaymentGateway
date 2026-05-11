@@ -1,12 +1,10 @@
 using Marten;
 using Marten.Events.Projections;
 using Marten.Schema;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using PaymentProcessing.Api.Modules.PaymentProcessing.Merchants;
-using PaymentProcessing.Api.Modules.PaymentProcessing.PaymentTransactions.Features.Endpoints;
-using PaymentProcessing.Api.Modules.PaymentProcessing.PaymentTransactions.Middleware;
-using PaymentProcessing.Api.Modules.PaymentProcessing.PaymentTransactions.ReadModels;
+using PaymentProcessing.Api.PaymentProcessing.PaymentTransactions.Features.Endpoints;
+using PaymentProcessing.Api.PaymentProcessing.PaymentTransactions.Middleware;
+using PaymentProcessing.Api.PaymentProcessing.PaymentTransactions.ReadModels;
+using PaymentProcessing.Api.PaymentProcessing.Merchants;
 using Wolverine.Marten;
 using Wolverine.RabbitMQ;
 using SharedPaymentEvents = PaymentGateway.SharedContracts.PaymentEvents;
@@ -22,40 +20,29 @@ builder.Services.AddHttpContextAccessor();
 
 var paymentDb = builder.Configuration.GetConnectionString("paymentDb")!;
 var rabbitMq = builder.Configuration.GetConnectionString("rabbitmq")!;
-var jwtSecret = builder.Configuration["Jwt__SecretKey"]!;
-
-// JWT validation — trusts tokens issued by ApiGateway
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(opts =>
-    {
-        opts.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-            ValidateIssuer = true,
-            ValidIssuer = "payment-gateway",
-            ValidateAudience = true,
-            ValidAudience = "payment-gateway-services",
-            ValidateLifetime = true
-        };
-    });
-builder.Services.AddAuthorization();
 
 builder.Services.AddMarten(opts =>
-{
-    opts.Connection(paymentDb);
-    opts.Projections.Snapshot<PaymentTransaction>(SnapshotLifecycle.Inline);
-    opts.Schema.For<PaymentTransaction>()
-        .UniqueIndex(UniqueIndexType.Computed, t => t.MerchantId, t => t.OrderId);
-    opts.Schema.For<BinRecord>()
-        .Index(b => b.BinEightStart)
-        .Index(b => b.BinEightEnd);
-    opts.Schema.For<MerchantSummary>();
-    opts.Schema.For<BankRouteSummary>()
-        .Index(r => r.MerchantId)
-        .Index(r => r.Currency);
-}).IntegrateWithWolverine(x => x.UseFastEventForwarding = true)
-  .ApplyAllDatabaseChangesOnStartup();
+    {
+        opts.Connection(paymentDb);
+        opts.UseNewtonsoftForSerialization(
+            nonPublicMembersStorage: NonPublicMembersStorage.NonPublicSetters,
+            configure: s =>
+            {
+                s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
+            });
+
+        opts.Projections.Snapshot<PaymentTransaction>(SnapshotLifecycle.Inline);
+        opts.Schema.For<PaymentTransaction>()
+            .UniqueIndex(UniqueIndexType.Computed, t => t.MerchantId, t => t.OrderId);
+        opts.Schema.For<BinRecord>()
+            .Index(b => b.BinEightStart)
+            .Index(b => b.BinEightEnd);
+        opts.Schema.For<MerchantSummary>();
+        opts.Schema.For<BankRouteSummary>()
+            .Index(r => r.MerchantId)
+            .Index(r => r.Currency);
+    }).IntegrateWithWolverine(x => x.UseFastEventForwarding = true)
+    .ApplyAllDatabaseChangesOnStartup();
 
 builder.Services
     .AddGrpcClient<BankPaymentService.BankPaymentServiceClient>("garanti",
@@ -98,8 +85,6 @@ builder.Host.UseWolverine(opts =>
 });
 
 var app = builder.Build();
-app.UseAuthentication();
-app.UseAuthorization();
 app.MapDefaultEndpoints();
 app.MapPaymentTransactionEndpoints();
 app.Run();

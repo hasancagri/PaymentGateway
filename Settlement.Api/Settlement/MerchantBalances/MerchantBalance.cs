@@ -1,19 +1,24 @@
-using PaymentGatewayApi.Modules.Settlement.MerchantBalances.Entities;
 using PaymentGatewayApi.Modules.Settlement.Settlements.Enums;
+using Settlement.Api.Settlement.MerchantBalances.Entities;
 
 namespace PaymentGatewayApi.Modules.Settlement.MerchantBalances;
 
 public sealed class MerchantBalance : AggregateRoot
 {
-    public Guid  MerchantId { get; private set; }
-    public Money Balance    { get; private set; }
+    public Guid MerchantId { get; init; }
 
-    private readonly List<BalanceMovement>   _movements   = [];
-    private readonly List<WithdrawalRequest> _withdrawals = [];
+    private Money _balance;
+    public Money Balance { get => _balance; init => _balance = value; }
+
+    [Newtonsoft.Json.JsonProperty]
+    private List<BalanceMovement> _movements = [];
+    [Newtonsoft.Json.JsonProperty]
+    private List<WithdrawalRequest> _withdrawals = [];
 
     public IReadOnlyCollection<BalanceMovement>   Movements   => _movements.AsReadOnly();
     public IReadOnlyCollection<WithdrawalRequest> Withdrawals => _withdrawals.AsReadOnly();
 
+    [Newtonsoft.Json.JsonConstructor]
     private MerchantBalance() { }
 
     public static MerchantBalance Create(Guid merchantId, string currency)
@@ -32,7 +37,7 @@ public sealed class MerchantBalance : AggregateRoot
         if (amount.Amount <= 0)
             return ResultDomain.Error(new MessageItem { Code = "MerchantBalance.InvalidCreditAmount" });
 
-        Balance = Balance.Add(amount).Data!;
+        _balance = _balance.Add(amount).Data!;
         _movements.Add(BalanceMovement.Create(BalanceMovementType.Credit, amount, description, referenceId));
         return ResultDomain.Ok();
     }
@@ -47,7 +52,7 @@ public sealed class MerchantBalance : AggregateRoot
         var subtractResult = Balance.Subtract(amount);
         if (!subtractResult.IsSuccess) return ResultDomain.Error(subtractResult.Messages!);
 
-        Balance = subtractResult.Data!;
+        _balance = subtractResult.Data!;
         _movements.Add(BalanceMovement.Create(BalanceMovementType.Debit, amount, description, referenceId));
         return ResultDomain.Ok();
     }

@@ -9,10 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\PaymentGatewayBff\PaymentGatewayBff.csproj" />
-      <ProjectReference Include="..\PaymentGatewayPortal\PaymentGatewayPortal.csproj" />
       <ProjectReference Include="..\Banks\GarantiService\GarantiService.csproj" />
-      <ProjectReference Include="..\ApiGateway\ApiGateway.csproj" />
       <ProjectReference Include="..\MerchantManagement.Api\MerchantManagement.Api.csproj" />
       <ProjectReference Include="..\PaymentProcessing.Api\PaymentProcessing.Api.csproj" />
       <ProjectReference Include="..\BankIntegration.Api\BankIntegration.Api.csproj" />

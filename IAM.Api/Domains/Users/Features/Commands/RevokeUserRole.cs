@@ -1,9 +1,4 @@
-using IAM.Api.Auths;
-using IAM.Api.Domains.Roles;
-using IAM.Api.Domains.Users;
-using PaymentGatewayApi.Modules.IAM.Roles;
-
-namespace PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
+namespace IAM.Api.Domains.Users.Features.Commands;
 
 public static class RevokeUserRole
 {
@@ -23,7 +18,6 @@ public static class RevokeUserRole
         public async Task<FeatureObjectResultModel<RevokeUserRoleCommandResponse>> Handle(
             RevokeUserRoleCommand cmd,
             IDocumentSession session,
-            ICache cache,
             CancellationToken ct)
         {
             var user = await session.LoadAsync<User>(cmd.UserId, ct);
@@ -40,23 +34,6 @@ public static class RevokeUserRole
                 return FeatureObjectResultModel<RevokeUserRoleCommandResponse>.Error(result.Messages!);
 
             session.Store(user);
-
-            var roleIds = user.Roles.Select(r => r.RoleId).ToList();
-            var roles = await session.Query<Role>().Where(x => roleIds.Contains(x.Id)).ToListAsync(ct);
-
-            var pages = roles.SelectMany(r => r.Permissions)
-                .GroupBy(p => p.PageRoute)
-                .Select(g => new PageAccess
-                {
-                    Route = g.Key,
-                    Actions = g.SelectMany(p => p.Actions.Select(a => a.Action)).Distinct().ToList()
-                })
-                .ToList();
-
-            await cache.Set($"user:{cmd.UserId}", new UserSessionCache
-            {
-                UserId = cmd.UserId, Pages = pages
-            });
             return FeatureObjectResultModel<RevokeUserRoleCommandResponse>.Ok(new RevokeUserRoleCommandResponse());
         }
     }

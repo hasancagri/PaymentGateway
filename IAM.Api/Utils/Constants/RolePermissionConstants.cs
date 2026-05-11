@@ -1,4 +1,4 @@
-namespace PaymentGatewayApi.Utils.Constants;
+namespace IAM.Api.Utils.Constants;
 
 public static class RolePermissionConstants
 {

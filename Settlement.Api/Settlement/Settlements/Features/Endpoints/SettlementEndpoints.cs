@@ -1,6 +1,6 @@
-using PaymentGatewayApi.Modules.Settlement.Settlements.Features.Commands;
+using Settlement.Api.Settlement.Settlements.Features.Commands;
 
-namespace PaymentGatewayApi.Modules.Settlement.Settlements.Features.Endpoints;
+namespace Settlement.Api.Settlement.Settlements.Features.Endpoints;
 
 public static class SettlementEndpoints
 {

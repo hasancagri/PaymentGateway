@@ -1,6 +1,21 @@
-namespace CommissionManagement.Api;
-
-public class GlobalUsings
-{
-    
-}
+global using CommissionManagement.Api.CommissionManagement.BankCommissions;
+global using Common;
+global using Common.Utils.Constants;
+global using PaymentGateway.SharedContracts.CommissionEvents;
+global using Marten;
+global using System.Reflection;
+global using Wolverine;
+global using Wolverine.Attributes;
+global using Wolverine.Marten;
+global using CommissionManagement.Api.Domains.BankCommissions.Enums;
+global using CommissionManagement.Api.Domains.BankCommissions.ValueObjects;
+global using CommissionManagement.Api.Authorization;
+global using CommissionManagement.Api.Domains.BankCommissions.Features.Commands;
+global using CommissionManagement.Api.Domains.BankCommissions.Features.Queries;
+global using Microsoft.AspNetCore.Mvc;
+global using System.Text.Json;
+global using CommissionManagement.Api.Auths;
+global using CommissionManagement.Api.Domains.BankCommissions.Features.Endpoints;
+global using CommissionManagement.Api.Domains.MerchantCommissions;
+global using CommissionManagement.Api.Domains.MerchantCommissions.Features.Endpoints;
+global using Wolverine.RabbitMQ;

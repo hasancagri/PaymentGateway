@@ -1,5 +1,3 @@
-using IAM.Api.Domains.Users.Enums;
-
 namespace IAM.Api.Domains.Users.Features.Queries;
 
 public static class GetUserById

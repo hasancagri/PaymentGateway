@@ -1,4 +1,5 @@
-﻿using Common.Results.BaseClasses;
+﻿using Common.Results;
+using Common.Results.BaseClasses;
 
 namespace Common
 {

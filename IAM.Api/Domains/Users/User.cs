@@ -1,29 +1,16 @@
-using IAM.Api.Domains.Users.Entities;
-using IAM.Api.Domains.Users.Enums;
-using IAM.Api.Domains.Users.ValueObjects;
-
-namespace PaymentGatewayApi.Modules.IAM.Users;
+namespace IAM.Api.Domains.Users;
 
 public sealed class User : AggregateRoot
 {
-    public Email Email { get; init; }
-    public FullName FullName { get; init; }
-
-    private PasswordHash _password = null!;
-    public PasswordHash Password { get => _password; init => _password = value; }
-
-    private UserStatus _status;
-    public UserStatus Status { get => _status; init => _status = value; }
-
-    private Guid? _merchantId;
-    public Guid? MerchantId { get => _merchantId; init => _merchantId = value; }
+    public Email Email { get; private set; } = null!;
+    public FullName FullName { get; private set; } = null!;
+    public PasswordHash Password { get; private set; } = null!;
+    public UserStatus Status { get; private set; }
+    public Guid? MerchantId { get; private set; }
 
     [Newtonsoft.Json.JsonProperty]
     private List<UserRole> _roles = [];
     public IReadOnlyCollection<UserRole> Roles => _roles.AsReadOnly();
-
-    private DateTime? _lastLoginAt;
-    public DateTime? LastLoginAt { get => _lastLoginAt; init => _lastLoginAt = value; }
 
     private User() { }
 
@@ -55,7 +42,6 @@ public sealed class User : AggregateRoot
         if (Status != UserStatus.Active) return false;
         if (!Password.Verify(plainPassword)) return false;
 
-        _lastLoginAt = DateTime.UtcNow;
         return true;
     }
 
@@ -63,17 +49,17 @@ public sealed class User : AggregateRoot
     {
         var result = PasswordHash.Create(newPlainPassword);
         if (!result.IsSuccess) return ResultDomain.Error(result.Messages!);
-        _password = result.Data!;
+        Password = result.Data!;
         return ResultDomain.Ok();
     }
 
-    public void Activate() => _status = UserStatus.Active;
+    public void Activate() => Status = UserStatus.Active;
 
     public ResultDomain Deactivate()
     {
-        if (_status == UserStatus.Passive)
+        if (Status == UserStatus.Passive)
             return ResultDomain.Error(new MessageItem { Code = "User.AlreadyPassive" });
-        _status = UserStatus.Passive;
+        Status = UserStatus.Passive;
         return ResultDomain.Ok();
     }
 
@@ -98,15 +84,15 @@ public sealed class User : AggregateRoot
     {
         if (MerchantId is not null)
             return ResultDomain.Error(new MessageItem { Code = "User.AlreadyAssignedToMerchant" });
-        _merchantId = merchantId;
+        MerchantId = merchantId;
         return ResultDomain.Ok();
     }
 
     public ResultDomain RemoveFromMerchant()
     {
-        if (_merchantId is null)
+        if (MerchantId is null)
             return ResultDomain.Error(new MessageItem { Code = "User.NotAssignedToMerchant" });
-        _merchantId = null;
+        MerchantId = null;
         return ResultDomain.Ok();
     }
 }

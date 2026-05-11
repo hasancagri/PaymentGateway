@@ -9,3 +9,5 @@ global using Common.Utils.Helpers;
 global using System.IdentityModel.Tokens.Jwt;
 global using System.Security.Claims;
 global using Common.Inputs.BaseClasses;
+global using Common.Caching;
+global using Microsoft.AspNetCore.Http;

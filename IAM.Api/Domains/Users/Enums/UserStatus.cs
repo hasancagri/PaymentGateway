@@ -1,8 +1,7 @@
-namespace PaymentGatewayApi.Modules.IAM.Users.Enums;
+namespace IAM.Api.Domains.Users.Enums;
 
 public enum UserStatus
 {
     Active  = 1,
-    Passive = 2,
-    Locked  = 3
+    Passive = 2
 }

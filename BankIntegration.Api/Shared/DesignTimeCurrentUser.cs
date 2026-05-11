@@ -1,4 +1,6 @@
-namespace PaymentGatewayApi.Shared;
+using Common.Auths;
+
+namespace BankIntegration.Api.Shared;
 
 internal class DesignTimeCurrentUser : ICurrentUser
 {

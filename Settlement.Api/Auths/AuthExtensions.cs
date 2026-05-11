@@ -1,4 +1,4 @@
-namespace PaymentGatewayApi.Auths;
+namespace Settlement.Api.Auths;
 
 public static class AuthExtensions
 {

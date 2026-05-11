@@ -1,6 +1,4 @@
-using IAM.Api.Domains.Users;
-
-namespace PaymentGatewayApi.Modules.IAM.Users.Features.Commands;
+namespace IAM.Api.Domains.Users.Features.Commands;
 
 public static class RemoveUserFromMerchant
 {

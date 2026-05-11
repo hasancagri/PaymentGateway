@@ -1,6 +1,4 @@
-using Wolverine.Attributes;
-
-namespace PaymentGatewayApi.Modules.Settlement.Settlements.Features.Commands;
+namespace Settlement.Api.Settlement.Settlements.Features.Commands;
 
 public static class CompleteSettlement
 {
@@ -8,8 +6,8 @@ public static class CompleteSettlement
     {
         public required Guid SettlementId { get; set; }
     }
-    
-    public class CompleteSettlementCommandResponse  
+
+    public class CompleteSettlementCommandResponse
     {
     }
 
@@ -18,17 +16,14 @@ public static class CompleteSettlement
     {
         public async Task<FeatureObjectResultModel<CompleteSettlementCommandResponse>> Handle(
             CompleteSettlementCommand cmd,
-            SettlementContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var settlement = await db.Set<Settlement>()
-                .Include(x => x.Lines)
-                .FirstOrDefaultAsync(x => x.Id == cmd.SettlementId, ct);
-
+            var settlement = await session.LoadAsync<Settlements.Settlement>(cmd.SettlementId, ct);
             if (settlement is null)
                 return FeatureObjectResultModel<CompleteSettlementCommandResponse>.Error(new MessageItem
                 {
-                    Table = nameof(Settlement),
+                    Table = nameof(Settlements.Settlement),
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
 
@@ -36,6 +31,7 @@ public static class CompleteSettlement
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<CompleteSettlementCommandResponse>.Error(result.Messages!);
 
+            session.Store(settlement);
             return FeatureObjectResultModel<CompleteSettlementCommandResponse>.Ok(new CompleteSettlementCommandResponse());
         }
     }

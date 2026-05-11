@@ -7,13 +7,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+    <PackageReference Include="Marten" Version="8.35.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Scrutor" Version="7.0.0" />
     <PackageReference Include="WolverineFx" Version="5.38.0" />
-    <PackageReference Include="WolverineFx.EntityFrameworkCore" Version="5.38.0" />
     <PackageReference Include="WolverineFx.Http" Version="5.38.0" />
+    <PackageReference Include="WolverineFx.Marten" Version="5.38.0" />
     <PackageReference Include="WolverineFx.Postgresql" Version="5.38.0" />
     <PackageReference Include="WolverineFx.RabbitMQ" Version="5.38.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Domains\" />
   </ItemGroup>
 
   <PropertyGroup>

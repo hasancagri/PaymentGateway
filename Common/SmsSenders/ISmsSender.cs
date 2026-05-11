@@ -1,4 +1,4 @@
-namespace Common;
+namespace Common.SmsSenders;
 
 public interface ISmsSender
 {

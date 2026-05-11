@@ -1,5 +1,3 @@
-using Wolverine.Attributes;
-
 namespace PaymentGatewayApi.Modules.Settlement.MerchantBalances.Features.Commands;
 
 public static class RejectWithdrawal
@@ -10,7 +8,7 @@ public static class RejectWithdrawal
         public required Guid WithdrawalId { get; set; }
         public required string Reason { get; set; }
     }
-    
+
     public class RejectWithdrawalCommandResponse
     {
     }
@@ -20,12 +18,12 @@ public static class RejectWithdrawal
     {
         public async Task<FeatureObjectResultModel<RejectWithdrawalCommandResponse>> Handle(
             RejectWithdrawalCommand cmd,
-            SettlementContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var balance = await db.Set<MerchantBalance>()
-                .Include(x => x.Withdrawals)
-                .FirstOrDefaultAsync(x => x.MerchantId == cmd.MerchantId, ct);
+            var balance = await session.Query<MerchantBalance>()
+                .Where(x => x.MerchantId == cmd.MerchantId)
+                .FirstOrDefaultAsync(ct);
 
             if (balance is null)
                 return FeatureObjectResultModel<RejectWithdrawalCommandResponse>.Error(new MessageItem
@@ -38,6 +36,7 @@ public static class RejectWithdrawal
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<RejectWithdrawalCommandResponse>.Error(result.Messages!);
 
+            session.Store(balance);
             return FeatureObjectResultModel<RejectWithdrawalCommandResponse>.Ok(new RejectWithdrawalCommandResponse());
         }
     }

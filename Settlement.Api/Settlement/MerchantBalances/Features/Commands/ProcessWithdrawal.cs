@@ -1,5 +1,3 @@
-using Wolverine.Attributes;
-
 namespace PaymentGatewayApi.Modules.Settlement.MerchantBalances.Features.Commands;
 
 public static class ProcessWithdrawal
@@ -9,7 +7,7 @@ public static class ProcessWithdrawal
         public required Guid MerchantId { get; set; }
         public required Guid WithdrawalId { get; set; }
     }
-    
+
     public class ProcessWithdrawalCommandResponse
     {
     }
@@ -19,12 +17,12 @@ public static class ProcessWithdrawal
     {
         public async Task<FeatureObjectResultModel<ProcessWithdrawalCommandResponse>> Handle(
             ProcessWithdrawalCommand cmd,
-            SettlementContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var balance = await db.Set<MerchantBalance>()
-                .Include(x => x.Withdrawals)
-                .FirstOrDefaultAsync(x => x.MerchantId == cmd.MerchantId, ct);
+            var balance = await session.Query<MerchantBalance>()
+                .Where(x => x.MerchantId == cmd.MerchantId)
+                .FirstOrDefaultAsync(ct);
 
             if (balance is null)
                 return FeatureObjectResultModel<ProcessWithdrawalCommandResponse>.Error(new MessageItem
@@ -37,6 +35,7 @@ public static class ProcessWithdrawal
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<ProcessWithdrawalCommandResponse>.Error(result.Messages!);
 
+            session.Store(balance);
             return FeatureObjectResultModel<ProcessWithdrawalCommandResponse>.Ok(new ProcessWithdrawalCommandResponse());
         }
     }

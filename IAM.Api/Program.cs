@@ -1,11 +1,6 @@
-using IAM.Api.Auths;
 using IAM.Api.Dependencies;
-using IAM.Api.Domains.Roles;
-using IAM.Api.Domains.Users;
+using IAM.Api.Domains.Users.Features.Endpoints;
 using IAM.Api.Exceptions;
-using PaymentGatewayApi.Modules.IAM.Roles.Features.Endpoints;
-using PaymentGatewayApi.Modules.IAM.Users.Features.Endpoints;
-using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,14 +23,16 @@ builder.Services.Configure<JsonOptions>(options =>
 builder.Services.AddGlobalExceptionHandler();
 
 // Marten document store — User ve Role JSON document olarak saklanır
-var iamDb = builder.Configuration.GetConnectionString("defaultDb");
+var iamDb = builder.Configuration.GetConnectionString("iamDb");
 builder.Services.AddMarten(opts =>
 {
     opts.Connection(iamDb!);
-    opts.UseNewtonsoftForSerialization(configure: s =>
-    {
-        s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
-    });
+    opts.UseNewtonsoftForSerialization(
+        nonPublicMembersStorage: NonPublicMembersStorage.NonPublicSetters,
+        configure: s =>
+        {
+            s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
+        });
     opts.Schema.For<User>().Index(u => u.Email.Value);
     opts.Schema.For<Role>();
 })
@@ -63,10 +60,6 @@ builder.Host.UseWolverine(opts =>
         chain => chain.MessageType.GetCustomAttribute<CacheResultAttribute>() != null
                  && chain.MessageType.Name.EndsWith("Command"));
 
-    //RequiresMerchantAttribute attribute'u kullanan class içerisinde kullanılabilir 
-    // opts.Policies.AddMiddleware(typeof(MerchantMiddleware),
-        // chain => chain.MessageType.GetCustomAttribute<RequiresMerchantAttribute>() != null);
-
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
 
     if (!string.IsNullOrEmpty(rabbitMqConnectionString))
@@ -89,12 +82,6 @@ builder.Services.AddSwaggerGen(c =>
 // Http
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
-builder.Services.AddHttpClient("webhook", client => { client.Timeout = TimeSpan.FromSeconds(10); });
-
-// // gRPC Bank Clients
-// builder.Services
-//     .AddGrpcClient<PaymentGateway.BankContracts.BankPaymentService.BankPaymentServiceClient>("garanti",
-//         o => { o.Address = new Uri("https+http://garanti-service"); }).AddServiceDiscovery();
 
 // Cors
 builder.Services.AddCors();

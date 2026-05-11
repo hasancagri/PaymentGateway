@@ -1,4 +1,4 @@
-namespace PaymentGatewayApi.Modules.IAM.Users.Entities;
+namespace IAM.Api.Domains.Users.Entities;
 
 public sealed class UserRole : BaseModel
 {

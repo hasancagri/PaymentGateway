@@ -1,5 +1,3 @@
-using PaymentGatewayApi.Modules.IAM.Users;
-
 namespace IAM.Api.Domains.Users.Features.Commands;
 
 public static class ActivateUser
@@ -24,11 +22,13 @@ public static class ActivateUser
         {
             var user = await session.LoadAsync<User>(cmd.UserId, ct);
             if (user is null)
+            {
                 return FeatureObjectResultModel<ActivateUserCommandResponse>.Error(new MessageItem
                 {
                     Table = nameof(User),
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
+            }
 
             user.Activate();
             session.Store(user);

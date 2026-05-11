@@ -1,5 +1,3 @@
-using Wolverine.Attributes;
-
 namespace PaymentGatewayApi.Modules.Settlement.MerchantBalances.Features.Commands;
 
 public static class DebitMerchantBalance
@@ -12,7 +10,7 @@ public static class DebitMerchantBalance
         public required string Description { get; set; }
         public Guid? ReferenceId { get; set; }
     }
-    
+
     public class DebitMerchantBalanceCommandResponse
     {
     }
@@ -22,10 +20,13 @@ public static class DebitMerchantBalance
     {
         public async Task<FeatureObjectResultModel<DebitMerchantBalanceCommandResponse>> Handle(
             DebitMerchantBalanceCommand cmd,
-            SettlementContext db,
+            IDocumentSession session,
             CancellationToken ct)
         {
-            var balance = await db.Set<MerchantBalance>().FirstOrDefaultAsync(x => x.MerchantId == cmd.MerchantId, ct);
+            var balance = await session.Query<MerchantBalance>()
+                .Where(x => x.MerchantId == cmd.MerchantId)
+                .FirstOrDefaultAsync(ct);
+
             if (balance is null)
                 return FeatureObjectResultModel<DebitMerchantBalanceCommandResponse>.Error(new MessageItem
                 {
@@ -41,6 +42,7 @@ public static class DebitMerchantBalance
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<DebitMerchantBalanceCommandResponse>.Error(result.Messages!);
 
+            session.Store(balance);
             return FeatureObjectResultModel<DebitMerchantBalanceCommandResponse>.Ok(new DebitMerchantBalanceCommandResponse());
         }
     }

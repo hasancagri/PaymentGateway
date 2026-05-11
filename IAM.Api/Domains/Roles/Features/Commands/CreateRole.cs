@@ -1,5 +1,3 @@
-using PaymentGatewayApi.Modules.IAM.Roles;
-
 namespace IAM.Api.Domains.Roles.Features.Commands;
 
 public static class CreateRole

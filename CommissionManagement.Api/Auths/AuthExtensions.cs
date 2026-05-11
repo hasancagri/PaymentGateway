@@ -1,6 +1,6 @@
 using Common.Auths;
 
-namespace BankIntegration.Api.Auths;
+namespace CommissionManagement.Api.Auths;
 
 public static class AuthExtensions
 {

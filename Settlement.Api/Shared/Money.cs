@@ -8,6 +8,7 @@ public sealed record Money
     public string  Currency { get; }
 
     [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     private Money(decimal amount, string currency)
     {
         Amount   = Math.Round(amount, 2);
