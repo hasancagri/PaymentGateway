@@ -1,11 +1,11 @@
-namespace PaymentGatewayApi.Modules.IAM.Users.ValueObjects;
+namespace IAM.Api.Domains.Users.ValueObjects;
 
 public sealed record FullName
 {
     public string FirstName { get; }
     public string LastName { get; }
 
-    [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
     private FullName(string firstName, string lastName)
     {
         FirstName = firstName;
@@ -22,6 +22,8 @@ public sealed record FullName
         if (errors.Count > 0) return ResultDomain<FullName>.Error(errors);
         return ResultDomain<FullName>.Ok(new FullName(firstName.Trim(), lastName.Trim()));
     }
+
+    public static FullName FromPersistence(string firstName, string lastName) => new(firstName, lastName);
 
     public string Display => $"{FirstName} {LastName}";
     public override string ToString() => Display;

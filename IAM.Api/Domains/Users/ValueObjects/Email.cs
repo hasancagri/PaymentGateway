@@ -1,8 +1,9 @@
-namespace PaymentGatewayApi.Modules.IAM.Users.ValueObjects;
+namespace IAM.Api.Domains.Users.ValueObjects;
 
 public sealed record Email
 {
     public string Value { get; }
+    [Newtonsoft.Json.JsonConstructor]
     private Email(string value) => Value = value;
 
     public static ResultDomain<Email> Create(string value)

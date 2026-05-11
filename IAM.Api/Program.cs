@@ -1,7 +1,6 @@
 using IAM.Api.Auths;
 using IAM.Api.Dependencies;
 using IAM.Api.Exceptions;
-using IAM.Api.Shared.Serialization;
 using Marten;
 using PaymentGatewayApi.Modules.IAM.Roles;
 using PaymentGatewayApi.Modules.IAM.Roles.Features.Endpoints;
@@ -37,10 +36,6 @@ builder.Services.AddMarten(opts =>
     opts.UseNewtonsoftForSerialization(s =>
     {
         s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
-        s.Converters.Add(new EmailConverter());
-        s.Converters.Add(new PasswordHashConverter());
-        s.Converters.Add(new FullNameConverter());
-        s.Converters.Add(new RoleNameConverter());
     });
     opts.Schema.For<User>().Index(u => u.Email.Value);
     opts.Schema.For<Role>();

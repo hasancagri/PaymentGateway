@@ -1,6 +1,6 @@
-using PaymentGatewayApi.Modules.IAM.Users.Entities;
-using PaymentGatewayApi.Modules.IAM.Users.Enums;
-using PaymentGatewayApi.Modules.IAM.Users.ValueObjects;
+using IAM.Api.Domains.Users.Entities;
+using IAM.Api.Domains.Users.Enums;
+using IAM.Api.Domains.Users.ValueObjects;
 
 namespace PaymentGatewayApi.Modules.IAM.Users;
 
@@ -18,7 +18,8 @@ public sealed class User : AggregateRoot
     private Guid? _merchantId;
     public Guid? MerchantId { get => _merchantId; init => _merchantId = value; }
 
-    private readonly List<UserRole> _roles = [];
+    [Newtonsoft.Json.JsonProperty]
+    private List<UserRole> _roles = [];
     public IReadOnlyCollection<UserRole> Roles => _roles.AsReadOnly();
 
     private DateTime? _lastLoginAt;

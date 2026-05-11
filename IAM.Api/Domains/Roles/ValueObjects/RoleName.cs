@@ -3,6 +3,7 @@ namespace PaymentGatewayApi.Modules.IAM.Roles.ValueObjects;
 public sealed record RoleName
 {
     public string Value { get; }
+    [Newtonsoft.Json.JsonConstructor]
     private RoleName(string value) => Value = value;
 
     public static ResultDomain<RoleName> Create(string value)

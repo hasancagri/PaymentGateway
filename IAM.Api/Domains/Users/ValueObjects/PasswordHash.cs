@@ -1,8 +1,9 @@
-namespace PaymentGatewayApi.Modules.IAM.Users.ValueObjects;
+namespace IAM.Api.Domains.Users.ValueObjects;
 
 public sealed record PasswordHash
 {
     public string Hash { get; }
+    [Newtonsoft.Json.JsonConstructor]
     private PasswordHash(string hash) => Hash = hash;
 
     public static ResultDomain<PasswordHash> Create(string plainPassword)

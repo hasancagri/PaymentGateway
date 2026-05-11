@@ -1,10 +1,11 @@
-namespace PaymentGatewayApi.Modules.IAM.Roles.Entities;
+namespace IAM.Api.Domains.Roles.Entities;
 
 public sealed class PagePermission : BaseModel
 {
     public string PageRoute { get; init; }
 
-    private readonly List<PageAction> _actions = [];
+    [Newtonsoft.Json.JsonProperty]
+    private List<PageAction> _actions = [];
     public IReadOnlyCollection<PageAction> Actions => _actions.AsReadOnly();
 
     private PagePermission()

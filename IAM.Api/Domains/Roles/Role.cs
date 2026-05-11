@@ -1,4 +1,4 @@
-using PaymentGatewayApi.Modules.IAM.Roles.Entities;
+using IAM.Api.Domains.Roles.Entities;
 using PaymentGatewayApi.Modules.IAM.Roles.ValueObjects;
 
 namespace PaymentGatewayApi.Modules.IAM.Roles;
@@ -8,7 +8,8 @@ public sealed class Role : AggregateRoot
     public RoleName Name { get; init; }
     public bool IsSystem { get; init; }
 
-    private readonly List<PagePermission> _permissions = [];
+    [Newtonsoft.Json.JsonProperty]
+    private List<PagePermission> _permissions = [];
     public IReadOnlyCollection<PagePermission> Permissions => _permissions.AsReadOnly();
 
     private Role()
