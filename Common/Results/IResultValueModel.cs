@@ -1,4 +1,4 @@
-﻿namespace Common
+﻿namespace Common.Results
 {
     public interface IResultValueModel<TValue> : IResultModel
     {

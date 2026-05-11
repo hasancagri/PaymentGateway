@@ -1,12 +1,20 @@
 <Solution>
-  <Project Path="AppHost/AppHost.csproj" />
-  <Project Path="Common/Common.csproj" />
-  <Project Path="PaymentGateway.BankContracts/PaymentGateway.BankContracts.csproj" />
-  <Project Path="PaymentGatewayApi/PaymentGatewayApi.csproj" />
-  <Project Path="PaymentGatewayBff/PaymentGatewayBff.csproj" />
-  <Project Path="PaymentGatewayPortal/PaymentGatewayPortal.csproj" />
-  <Project Path="ServiceDefaults/ServiceDefaults.csproj" />
-  <Folder Name="/Banks/">
-    <Project Path="Banks/GarantiService/GarantiService.csproj" />
+  <Folder Name="/AspireProjects/">
+    <Project Path="AppHost/AppHost.csproj" />
+    <Project Path="ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
+  <Folder Name="/Banking/">
+    <Project Path="Banks/GarantiService/GarantiService.csproj" />
+    <Project Path="PaymentGateway.BankContracts/PaymentGateway.BankContracts.csproj" />
+    <Project Path="PaymentGateway.SharedContracts/PaymentGateway.SharedContracts.csproj" />
+  </Folder>
+  <Folder Name="/Services/">
+    <Project Path="BankIntegration.Api/BankIntegration.Api.csproj" />
+    <Project Path="CommissionManagement.Api/CommissionManagement.Api.csproj" />
+    <Project Path="IAM.Api/IAM.Api.csproj" />
+    <Project Path="MerchantManagement.Api/MerchantManagement.Api.csproj" />
+    <Project Path="PaymentProcessing.Api/PaymentProcessing.Api.csproj" />
+    <Project Path="Settlement.Api/Settlement.Api.csproj" />
+  </Folder>
+  <Project Path="Common/Common.csproj" />
 </Solution>

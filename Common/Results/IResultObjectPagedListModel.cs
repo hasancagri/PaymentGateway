@@ -1,4 +1,6 @@
 ﻿
+using Common.Results;
+
 namespace Common
 {
     public interface IResultObjectPagedListModel<TData> : IResultObjectListModel<TData>, IResultPagedListModel

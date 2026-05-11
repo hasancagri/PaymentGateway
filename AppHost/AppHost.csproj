@@ -9,10 +9,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\PaymentGatewayApi\PaymentGatewayApi.csproj" />
-      <ProjectReference Include="..\PaymentGatewayBff\PaymentGatewayBff.csproj" />
-      <ProjectReference Include="..\PaymentGatewayPortal\PaymentGatewayPortal.csproj" />
       <ProjectReference Include="..\Banks\GarantiService\GarantiService.csproj" />
+      <ProjectReference Include="..\MerchantManagement.Api\MerchantManagement.Api.csproj" />
+      <ProjectReference Include="..\PaymentProcessing.Api\PaymentProcessing.Api.csproj" />
+      <ProjectReference Include="..\BankIntegration.Api\BankIntegration.Api.csproj" />
+      <ProjectReference Include="..\CommissionManagement.Api\CommissionManagement.Api.csproj" />
+      <ProjectReference Include="..\IAM.Api\IAM.Api.csproj" />
+      <ProjectReference Include="..\Settlement.Api\Settlement.Api.csproj" />
     </ItemGroup>
 
     <ItemGroup>
