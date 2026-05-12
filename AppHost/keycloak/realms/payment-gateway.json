@@ -1,0 +1,32 @@
+{
+  "realm": "payment-gateway",
+  "enabled": true,
+  "accessTokenLifespan": 3600,
+  "clients": [
+    {
+      "clientId": "payment-api",
+      "enabled": true,
+      "publicClient": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "secret": "payment-api-secret",
+      "defaultClientScopes": ["openid", "email", "profile"]
+    }
+  ],
+  "roles": {
+    "realm": [
+      { "name": "admin" },
+      { "name": "merchant_user" }
+    ]
+  },
+  "users": [
+    {
+      "username": "service-account-payment-api",
+      "enabled": true,
+      "serviceAccountClientId": "payment-api",
+      "clientRoles": {
+        "realm-management": ["manage-users"]
+      }
+    }
+  ]
+}
