@@ -1,10 +1,4 @@
-using System.Text.Json;
-using PaymentGatewayApi.Dependencies;
-using PaymentGatewayApi.Exceptions;
-using PaymentGatewayApi.Modules.Settlement.MerchantBalances.Features.Endpoints;
-using Settlement.Api.Auths;
-using Settlement.Api.Settlement.Settlements.Features.Endpoints;
-using Wolverine.RabbitMQ;
+
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
@@ -21,6 +15,7 @@ builder.Services.LoadCurrentUser();
 var settlementDb = builder.Configuration.GetConnectionString("settlementDb")!;
 builder.Services.AddMarten(opts =>
 {
+    opts.DatabaseSchemaName = SchemaConstants.SETTLEMENT_SCHEMA_NAME;
     opts.Connection(settlementDb);
     opts.UseNewtonsoftForSerialization(
         nonPublicMembersStorage: NonPublicMembersStorage.NonPublicSetters,

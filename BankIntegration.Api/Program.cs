@@ -4,8 +4,9 @@ using BankIntegration.Api.Auths;
 using BankIntegration.Api.Dependencies;
 using BankIntegration.Api.Domains.Banks.Features.Endpoints;
 using BankIntegration.Api.Domains.MerchantBanks.Features.Endpoints;
+using BankIntegration.Api.Exceptions;
 using Microsoft.AspNetCore.Mvc;
-using PaymentGatewayApi.Exceptions;
+using PaymentGateway.SharedContracts;
 using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,7 @@ builder.Services.LoadCurrentUser();
 var bankIntDb = builder.Configuration.GetConnectionString("bankIntegrationDb")!;
 builder.Services.AddMarten(opts =>
 {
+    opts.DatabaseSchemaName = SchemaConstants.BANK_INTEGRATION_SCHEMA_NAME;
     opts.Connection(bankIntDb);
     opts.UseNewtonsoftForSerialization(
         nonPublicMembersStorage: NonPublicMembersStorage.NonPublicSetters,

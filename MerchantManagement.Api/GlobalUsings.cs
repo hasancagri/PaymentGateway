@@ -1,3 +1,4 @@
+global using MerchantManagement.Api.Utils.Constants;
 global using System.Security.Cryptography;
 global using System.Text;
 global using Common.Domains;
@@ -20,3 +21,5 @@ global using MerchantManagement.Api.Domains.Merchants.ValueObjects;
 global using PaymentGateway.SharedContracts;
 global using MerchantManagement.Api.Domains.Merchants.Features.Commands;
 global using MerchantManagement.Api.Domains.Merchants.Features.Queries;
+global using Common.Exceptions;
+global using Microsoft.AspNetCore.Diagnostics;

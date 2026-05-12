@@ -1,3 +1,4 @@
+global using Settlement.Api.Utils.Constants;
 global using System.Reflection;
 global using Common;
 global using Common.Auths;
@@ -13,3 +14,10 @@ global using Settlement.Api.Settlement.Settlements.Entities;
 global using Wolverine;
 global using Wolverine.Attributes;
 global using Wolverine.Marten;
+global using System.Text.Json;
+global using PaymentGatewayApi.Dependencies;
+global using PaymentGatewayApi.Modules.Settlement.MerchantBalances.Features.Endpoints;
+global using Settlement.Api.Auths;
+global using Settlement.Api.Exceptions;
+global using Settlement.Api.Settlement.Settlements.Features.Endpoints;
+global using Wolverine.RabbitMQ;

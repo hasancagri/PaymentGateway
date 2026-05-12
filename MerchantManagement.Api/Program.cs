@@ -24,6 +24,7 @@ if (!string.IsNullOrEmpty(redisConn))
 var merchantDb = builder.Configuration.GetConnectionString("merchantDb")!;
 builder.Services.AddMarten(opts =>
 {
+    opts.DatabaseSchemaName = SchemaConstants.MERCHANT_MANAGEMENT_SCHEMA_NAME;
     opts.Connection(merchantDb);
     opts.UseNewtonsoftForSerialization(
         nonPublicMembersStorage: NonPublicMembersStorage.NonPublicSetters,

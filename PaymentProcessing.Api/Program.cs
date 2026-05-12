@@ -1,14 +1,3 @@
-using Marten;
-using Marten.Events.Projections;
-using Marten.Schema;
-using PaymentProcessing.Api.PaymentProcessing.PaymentTransactions.Features.Endpoints;
-using PaymentProcessing.Api.PaymentProcessing.PaymentTransactions.Middleware;
-using PaymentProcessing.Api.PaymentProcessing.PaymentTransactions.ReadModels;
-using PaymentProcessing.Api.PaymentProcessing.Merchants;
-using Wolverine.Marten;
-using Wolverine.RabbitMQ;
-using SharedPaymentEvents = PaymentGateway.SharedContracts.PaymentEvents;
-
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
@@ -23,6 +12,7 @@ var rabbitMq = builder.Configuration.GetConnectionString("rabbitmq")!;
 
 builder.Services.AddMarten(opts =>
     {
+        opts.DatabaseSchemaName = SchemaConstants.PAYMENT_SCHEMA_NAME;
         opts.Connection(paymentDb);
         opts.UseNewtonsoftForSerialization(
             nonPublicMembersStorage: NonPublicMembersStorage.NonPublicSetters,
@@ -73,11 +63,11 @@ builder.Host.UseWolverine(opts =>
         .ToQueue("payment-processing.bank-routes");
     opts.ListenToRabbitQueue("payment-processing.bank-routes");
 
-    opts.PublishMessage<SharedPaymentEvents.PaymentApprovedIntegration>()
+    opts.PublishMessage<PaymentApprovedIntegration>()
         .ToRabbitExchange("payment.approved");
-    opts.PublishMessage<SharedPaymentEvents.PaymentDeclinedIntegration>()
+    opts.PublishMessage<PaymentDeclinedIntegration>()
         .ToRabbitExchange("payment.declined");
-    opts.PublishMessage<SharedPaymentEvents.PaymentFailedIntegration>()
+    opts.PublishMessage<PaymentFailedIntegration>()
         .ToRabbitExchange("payment.failed");
 
     opts.Policies.AddMiddleware(typeof(MerchantMiddleware),

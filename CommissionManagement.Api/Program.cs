@@ -11,6 +11,7 @@ builder.Services.LoadCurrentUser();
 var commissionDb = builder.Configuration.GetConnectionString("commissionDb")!;
 builder.Services.AddMarten(opts =>
 {
+    opts.DatabaseSchemaName = SchemaConstants.COMMISSION_MANAGEMENT_SCHEMA_NAME;
     opts.Connection(commissionDb);
     opts.UseNewtonsoftForSerialization(
         nonPublicMembersStorage: NonPublicMembersStorage.NonPublicSetters,

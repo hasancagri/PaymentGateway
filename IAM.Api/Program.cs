@@ -26,6 +26,7 @@ builder.Services.AddGlobalExceptionHandler();
 var iamDb = builder.Configuration.GetConnectionString("iamDb");
 builder.Services.AddMarten(opts =>
 {
+    opts.DatabaseSchemaName = SchemaConstants.IAM_SCHEMA_NAME;
     opts.Connection(iamDb!);
     opts.UseNewtonsoftForSerialization(
         nonPublicMembersStorage: NonPublicMembersStorage.NonPublicSetters,

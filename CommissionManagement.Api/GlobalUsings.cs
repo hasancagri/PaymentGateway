@@ -1,7 +1,7 @@
 global using CommissionManagement.Api.CommissionManagement.BankCommissions;
+global using CommissionManagement.Api.Utils.Constants;
 global using Common;
 global using Common.Utils.Constants;
-global using PaymentGateway.SharedContracts.CommissionEvents;
 global using Marten;
 global using System.Reflection;
 global using Wolverine;
@@ -19,3 +19,8 @@ global using CommissionManagement.Api.Domains.BankCommissions.Features.Endpoints
 global using CommissionManagement.Api.Domains.MerchantCommissions;
 global using CommissionManagement.Api.Domains.MerchantCommissions.Features.Endpoints;
 global using Wolverine.RabbitMQ;
+global using Common.Auths;
+global using PaymentGateway.SharedContracts;
+global using Common.Domains;
+global using CommissionManagement.Api.Domains.MerchantCommissions.Features.Commands;
+global using CommissionManagement.Api.Domains.MerchantCommissions.Features.Queries;
