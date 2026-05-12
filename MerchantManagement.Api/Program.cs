@@ -2,7 +2,6 @@ using MerchantManagement.Api.Domains.Merchants;
 using MerchantManagement.Api.Domains.Merchants.Features.Endpoints;
 using MerchantManagement.Api.Exceptions;
 using Wolverine.Marten;
-using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
@@ -37,18 +36,10 @@ builder.Services.AddMarten(opts =>
 .IntegrateWithWolverine()
 .ApplyAllDatabaseChangesOnStartup();
 
-var rabbitMq = builder.Configuration.GetConnectionString("rabbitmq")!;
 builder.Host.UseWolverine(opts =>
 {
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
-    opts.UseRabbitMq(new Uri(rabbitMq)).AutoProvision();
-
-    opts.PublishMessage<MerchantCreated>().ToRabbitExchange("merchant.created");
-    opts.PublishMessage<MerchantUpdated>().ToRabbitExchange("merchant.updated");
-    opts.PublishMessage<MerchantStatusChanged>().ToRabbitExchange("merchant.status-changed");
-    opts.PublishMessage<ApiKeyGenerated>().ToRabbitExchange("merchant.api-key-generated");
-    opts.PublishMessage<ApiKeyRevoked>().ToRabbitExchange("merchant.api-key-revoked");
 });
 
 var app = builder.Build();

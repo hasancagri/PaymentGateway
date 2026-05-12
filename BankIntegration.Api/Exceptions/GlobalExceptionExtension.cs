@@ -1,4 +1,4 @@
-namespace PaymentGatewayApi.Exceptions;
+namespace BankIntegration.Api.Exceptions;
 
 public static class GlobalExceptionExtension
 {

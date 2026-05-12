@@ -16,7 +16,4 @@ public sealed record RoleName
         if (errors.Count > 0) return ResultDomain<RoleName>.Error(errors);
         return ResultDomain<RoleName>.Ok(new RoleName(value.Trim()));
     }
-
-    public static RoleName FromPersistence(string value) => new(value);
-    public override string ToString() => Value;
 }

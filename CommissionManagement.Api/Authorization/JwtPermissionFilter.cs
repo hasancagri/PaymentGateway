@@ -1,5 +1,3 @@
-using Common.Auths;
-
 namespace CommissionManagement.Api.Authorization;
 
 public sealed class JwtPermissionFilter(ICurrentUser currentUser) : IEndpointFilter

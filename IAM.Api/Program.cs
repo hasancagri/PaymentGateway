@@ -51,8 +51,6 @@ builder.Services.LoadCurrentUser();
 builder.Services.AddAllDependencies();
 
 // Wolverine
-var rabbitMqConnectionString = builder.Configuration.GetConnectionString("rabbitmq");
-
 builder.Host.UseWolverine(opts =>
 {
     opts.Policies.UseDurableLocalQueues();
@@ -62,12 +60,6 @@ builder.Host.UseWolverine(opts =>
                  && chain.MessageType.Name.EndsWith("Command"));
 
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
-
-    if (!string.IsNullOrEmpty(rabbitMqConnectionString))
-    {
-        opts.UseRabbitMq(new Uri(rabbitMqConnectionString))
-            .AutoProvision();
-    }
 });
 
 // Swagger

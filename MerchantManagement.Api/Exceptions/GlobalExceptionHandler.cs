@@ -1,6 +1,3 @@
-using Common.Exceptions;
-using Microsoft.AspNetCore.Diagnostics;
-
 namespace MerchantManagement.Api.Exceptions;
 
 public class GlobalExceptionHandler : IExceptionHandler

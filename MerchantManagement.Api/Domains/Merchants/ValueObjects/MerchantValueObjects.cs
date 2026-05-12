@@ -17,9 +17,6 @@ public sealed record MerchantName
         if (errors.Count > 0) return ResultDomain<MerchantName>.Error(errors);
         return ResultDomain<MerchantName>.Ok(new MerchantName(value.Trim()));
     }
-
-    public static MerchantName FromPersistence(string value) => new(value);
-    public override string ToString() => Value;
 }
 
 public sealed record ContactInfo
@@ -83,9 +80,6 @@ public sealed record Mcc
             return ResultDomain<Mcc>.Error(new MessageItem { Code = "Mcc.Invalid" });
         return ResultDomain<Mcc>.Ok(new Mcc(value));
     }
-
-    public static Mcc FromPersistence(string value) => new(value);
-    public override string ToString() => Value;
 }
 
 public sealed record Currency
@@ -107,9 +101,6 @@ public sealed record Currency
         if (errors.Count > 0) return ResultDomain<Currency>.Error(errors);
         return ResultDomain<Currency>.Ok(new Currency(code.ToUpperInvariant()));
     }
-
-    public static Currency FromPersistence(string code) => new(code);
-    public override string ToString() => Code;
 }
 
 public sealed record ApiKeyValue
@@ -158,7 +149,4 @@ public sealed record WebhookUrl
         if (errors.Count > 0) return ResultDomain<WebhookUrl>.Error(errors);
         return ResultDomain<WebhookUrl>.Ok(new WebhookUrl(value.Trim()));
     }
-
-    public static WebhookUrl FromPersistence(string value) => new(value);
-    public override string ToString() => Value;
 }

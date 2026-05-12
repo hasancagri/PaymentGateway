@@ -1,4 +1,4 @@
-namespace CommissionManagement.Api.Domains.BankCommissions.Enums;
+namespace PaymentGateway.SharedContracts;
 
 public enum CardBrand
 {

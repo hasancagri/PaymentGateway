@@ -22,9 +22,6 @@ public sealed record FullName
         if (errors.Count > 0) return ResultDomain<FullName>.Error(errors);
         return ResultDomain<FullName>.Ok(new FullName(firstName.Trim(), lastName.Trim()));
     }
-
-    public static FullName FromPersistence(string firstName, string lastName) => new(firstName, lastName);
-
+    
     public string Display => $"{FirstName} {LastName}";
-    public override string ToString() => Display;
 }

@@ -1,6 +1,4 @@
-using PaymentProcessing.Api.PaymentProcessing.PaymentTransactions.Enums;
-
-namespace PaymentProcessing.Api.PaymentProcessing.PaymentTransactions;
+namespace PaymentProcessing.Api.Domains.PaymentTransactions;
 
 public class PaymentTransaction
 {

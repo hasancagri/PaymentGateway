@@ -16,5 +16,4 @@ public sealed record SettlementPeriod
     }
 
     public bool Contains(DateOnly date) => date >= Start && date <= End;
-    public override string ToString() => $"{Start:yyyy-MM-dd} / {End:yyyy-MM-dd}";
 }

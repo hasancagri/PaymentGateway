@@ -37,16 +37,7 @@ public static class AssignMerchantBank
                 return FeatureObjectResultModel<AssignMerchantBankResponse>.Error(result.Messages!);
 
             session.Store(result.Data!);
-
-            await bus.PublishAsync(new MerchantBankSynced(
-                cmd.MerchantId,
-                bank.Id,
-                bank.Name.Value,
-                bank.IcaMemberId,
-                bank.SupportedCurrencies,
-                IsActive: true,
-                DateTime.UtcNow));
-
+            
             return FeatureObjectResultModel<AssignMerchantBankResponse>.Ok(
                 new AssignMerchantBankResponse { Id = result.Data!.Id });
         }

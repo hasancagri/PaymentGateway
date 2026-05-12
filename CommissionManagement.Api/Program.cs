@@ -1,3 +1,6 @@
+using CommissionManagement.Api.Domains.BankCommissions;
+using Wolverine.RabbitMQ;
+
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
@@ -32,10 +35,8 @@ builder.Host.UseWolverine(opts =>
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
     opts.UseRabbitMq(new Uri(rabbitMq)).AutoProvision();
 
-    opts.PublishMessage<BankCommissionSynced>().ToRabbitExchange("commission.bank-commission-synced");
-    opts.PublishMessage<BankCommissionRateUpdated>().ToRabbitExchange("commission.bank-commission-rate-updated");
-    opts.PublishMessage<MerchantCommissionSynced>().ToRabbitExchange("commission.merchant-commission-synced");
-    opts.PublishMessage<MerchantCommissionRateUpdated>().ToRabbitExchange("commission.merchant-commission-rate-updated");
+    opts.PublishMessage<BankCommissionUpdated>().ToRabbitExchange(ExchangeConstants.BankCommissionUpdated);
+    opts.PublishMessage<MerchantCommissionUpdated>().ToRabbitExchange(ExchangeConstants.MerchantCommissionUpdated);
 });
 
 var app = builder.Build();

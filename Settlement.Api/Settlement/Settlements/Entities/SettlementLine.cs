@@ -1,4 +1,6 @@
 
+using Settlement.Api.Shared;
+
 namespace Settlement.Api.Settlement.Settlements.Entities;
 
 public sealed class SettlementLine : BaseModel

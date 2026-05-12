@@ -1,4 +1,4 @@
-namespace PaymentProcessing.Api.PaymentProcessing.PaymentTransactions.Middleware;
+namespace PaymentProcessing.Api.Domains.PaymentTransactions.Middleware;
 
 public record MerchantIdentity(
     Guid MerchantId,

@@ -36,7 +36,15 @@ public static class UpdateBankCommissionRate
             commission.UpdateRate(rateResult.Data!);
             session.Store(commission);
 
-            await bus.PublishAsync(new BankCommissionRateUpdated(commission.Id, cmd.NewRate, DateTime.UtcNow));
+            await bus.PublishAsync(new BankCommissionUpdated(
+                commission.Id,
+                commission.BankId,
+                commission.Criteria.CardBrand,
+                commission.Criteria.CardType,
+                commission.Criteria.TransactionRegion,
+                commission.Rate.Value,
+                DateTime.UtcNow));
+
             return FeatureObjectResultModel<UpdateBankCommissionRateCommandResponse>.Ok(new UpdateBankCommissionRateCommandResponse());
         }
     }

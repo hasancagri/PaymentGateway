@@ -1,6 +1,7 @@
 using Common;
 using Common.Domains;
 using PaymentGatewayApi.Modules.Settlement.Settlements.Enums;
+using Settlement.Api.Shared;
 
 namespace Settlement.Api.Settlement.MerchantBalances.Entities;
 

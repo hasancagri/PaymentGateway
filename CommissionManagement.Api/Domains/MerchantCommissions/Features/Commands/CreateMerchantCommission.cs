@@ -1,3 +1,5 @@
+using CommissionManagement.Api.Domains.BankCommissions;
+
 namespace CommissionManagement.Api.Domains.MerchantCommissions.Features.Commands;
 
 public static class CreateMerchantCommission
@@ -50,14 +52,6 @@ public static class CreateMerchantCommission
                 return FeatureObjectResultModel<CreateMerchantCommissionResponse>.Error(defineResult.Messages!);
 
             session.Store(defineResult.Data!);
-
-            await bus.PublishAsync(new MerchantCommissionSynced(
-                defineResult.Data!.Id,
-                defineResult.Data.MerchantId,
-                defineResult.Data.BankCommissionId,
-                defineResult.Data.Rate.Value,
-                DateTime.UtcNow));
-
             return FeatureObjectResultModel<CreateMerchantCommissionResponse>.Ok(new CreateMerchantCommissionResponse { Id = defineResult.Data.Id });
         }
     }

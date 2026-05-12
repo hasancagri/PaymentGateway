@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace PaymentGatewayApi.Shared;
+namespace Settlement.Api.Shared;
 
 public sealed record Money
 {
@@ -16,9 +16,7 @@ public sealed record Money
     }
 
     public static Money Zero(string currency) => new(0, currency.ToUpperInvariant());
-
-    public static Money FromPersistence(decimal amount, string currency) => new(amount, currency);
-
+    
     public static ResultDomain<Money> Create(decimal amount, string currency)
     {
         var errors = new List<MessageItem>();
@@ -45,6 +43,4 @@ public sealed record Money
             return ResultDomain<Money>.Error(new MessageItem { Code = "Money.InsufficientAmount" });
         return ResultDomain<Money>.Ok(new Money(Amount - other.Amount, Currency));
     }
-
-    public override string ToString() => $"{Amount} {Currency}";
 }

@@ -1,7 +1,3 @@
-using BankIntegration.Api.Domains.Banks.Features.Commands;
-using BankIntegration.Api.Domains.Banks.Features.Queries;
-using Microsoft.AspNetCore.Mvc;
-
 namespace BankIntegration.Api.Domains.Banks.Features.Endpoints;
 
 public static class BankEndpoints

@@ -17,9 +17,7 @@ public sealed class Merchant : AggregateRoot
     [Newtonsoft.Json.JsonProperty] private List<MerchantBankAccount> _bankAccounts = [];
 
     public IReadOnlyCollection<ApiKey> ApiKeys => _apiKeys.AsReadOnly();
-    public IReadOnlyCollection<MerchantBankAccount> BankAccounts => _bankAccounts.AsReadOnly();
 
-    [Newtonsoft.Json.JsonConstructor]
     private Merchant()
     {
     }

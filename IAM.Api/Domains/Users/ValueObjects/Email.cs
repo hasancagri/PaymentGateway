@@ -12,7 +12,5 @@ public sealed record Email
             return ResultDomain<Email>.Error(new MessageItem { Code = "Email.Invalid" });
         return ResultDomain<Email>.Ok(new Email(value.Trim().ToLowerInvariant()));
     }
-
-    public static Email FromPersistence(string value) => new(value);
-    public override string ToString() => Value;
+    
 }

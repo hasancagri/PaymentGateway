@@ -1,7 +1,7 @@
 // TODO: Task 9 will refactor WebhookDispatcher to use local MerchantSummary Marten document
 // Cross-context references to MerchantManagementContext removed temporarily
 
-namespace PaymentProcessing.Api.PaymentProcessing.PaymentTransactions.Features.Dispatchers;
+namespace PaymentProcessing.Api.Domains.PaymentTransactions.Features.Dispatchers;
 
 public class WebhookDispatcher
 {

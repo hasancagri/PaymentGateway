@@ -8,7 +8,6 @@ builder.Services.AddAllDependencies();
 builder.Services.AddHttpContextAccessor();
 
 var paymentDb = builder.Configuration.GetConnectionString("paymentDb")!;
-var rabbitMq = builder.Configuration.GetConnectionString("rabbitmq")!;
 
 builder.Services.AddMarten(opts =>
     {
@@ -27,10 +26,8 @@ builder.Services.AddMarten(opts =>
         opts.Schema.For<BinRecord>()
             .Index(b => b.BinEightStart)
             .Index(b => b.BinEightEnd);
-        opts.Schema.For<MerchantSummary>();
-        opts.Schema.For<BankRouteSummary>()
-            .Index(r => r.MerchantId)
-            .Index(r => r.Currency);
+        opts.Schema.For<BankCommissionReadModel>();
+        opts.Schema.For<MerchantCommissionReadModel>();
     }).IntegrateWithWolverine(x => x.UseFastEventForwarding = true)
     .ApplyAllDatabaseChangesOnStartup();
 
@@ -42,33 +39,20 @@ builder.Services
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("webhook", client => { client.Timeout = TimeSpan.FromSeconds(10); });
 
+var rabbitMq = builder.Configuration.GetConnectionString("rabbitmq")!;
 builder.Host.UseWolverine(opts =>
 {
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
-
     var transport = opts.UseRabbitMq(new Uri(rabbitMq)).AutoProvision();
 
-    // Subscribe to merchant data for local read model
-    transport.BindExchange("merchant.created", ExchangeType.Fanout)
-        .ToQueue("payment-processing.merchant-events");
-    transport.BindExchange("merchant.updated", ExchangeType.Fanout)
-        .ToQueue("payment-processing.merchant-events");
-    transport.BindExchange("merchant.status-changed", ExchangeType.Fanout)
-        .ToQueue("payment-processing.merchant-events");
-    opts.ListenToRabbitQueue("payment-processing.merchant-events");
+    transport.BindExchange(ExchangeConstants.BankCommissionUpdated, ExchangeType.Fanout)
+        .ToQueue("payment-processing.commission-events");
+    
+    transport.BindExchange(ExchangeConstants.MerchantCommissionUpdated, ExchangeType.Fanout)
+        .ToQueue("payment-processing.commission-events");
 
-    // Subscribe to bank routing data for local read model
-    transport.BindExchange("bank.route-synced", ExchangeType.Fanout)
-        .ToQueue("payment-processing.bank-routes");
-    opts.ListenToRabbitQueue("payment-processing.bank-routes");
-
-    opts.PublishMessage<PaymentApprovedIntegration>()
-        .ToRabbitExchange("payment.approved");
-    opts.PublishMessage<PaymentDeclinedIntegration>()
-        .ToRabbitExchange("payment.declined");
-    opts.PublishMessage<PaymentFailedIntegration>()
-        .ToRabbitExchange("payment.failed");
+    opts.ListenToRabbitQueue("payment-processing.commission-events");
 
     opts.Policies.AddMiddleware(typeof(MerchantMiddleware),
         chain => chain.MessageType.GetCustomAttribute<RequiresMerchantAttribute>() != null);
@@ -76,5 +60,4 @@ builder.Host.UseWolverine(opts =>
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
-app.MapPaymentTransactionEndpoints();
 app.Run();

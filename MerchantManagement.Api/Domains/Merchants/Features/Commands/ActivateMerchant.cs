@@ -15,33 +15,27 @@ public static class ActivateMerchant
     [Transactional]
     public class ActivateMerchantHandler
     {
-        public async Task<(FeatureObjectResultModel<ActivateMerchantCommandResponse>, MerchantStatusChanged?)> Handle(
+        public async Task<FeatureObjectResultModel<ActivateMerchantCommandResponse>> Handle(
             ActivateMerchantCommand cmd,
             IDocumentSession session,
             CancellationToken ct)
         {
             var merchant = await session.LoadAsync<Merchant>(cmd.MerchantId, ct);
             if (merchant is null)
-                return (FeatureObjectResultModel<ActivateMerchantCommandResponse>.Error(new MessageItem
+                return FeatureObjectResultModel<ActivateMerchantCommandResponse>.Error(new MessageItem
                 {
                     Table = nameof(Merchant),
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
-                }), null);
+                });
 
-            var oldStatus = merchant.Status;
             var result = merchant.Activate(cmd.Reason);
             if (!result.IsSuccess)
-                return (FeatureObjectResultModel<ActivateMerchantCommandResponse>.Error(result.Messages!), null);
+                return FeatureObjectResultModel<ActivateMerchantCommandResponse>.Error(result.Messages!);
 
             session.Store(merchant);
 
-            var integrationEvent = new MerchantStatusChanged(
-                merchant.Id,
-                oldStatus.ToString(),
-                merchant.Status.ToString(),
-                DateTime.UtcNow);
 
-            return (FeatureObjectResultModel<ActivateMerchantCommandResponse>.Ok(new ActivateMerchantCommandResponse()), integrationEvent);
+            return FeatureObjectResultModel<ActivateMerchantCommandResponse>.Ok(new ActivateMerchantCommandResponse());
         }
     }
 }

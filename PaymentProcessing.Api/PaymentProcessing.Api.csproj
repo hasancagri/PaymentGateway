@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <Folder Include="Domains\" />
+    <Folder Include="Domains\PaymentTransactions\ReadModels\" />
   </ItemGroup>
 
   <PropertyGroup>

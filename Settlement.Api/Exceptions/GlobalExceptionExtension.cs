@@ -1,4 +1,6 @@
-namespace PaymentGatewayApi.Exceptions;
+using PaymentGatewayApi.Exceptions;
+
+namespace Settlement.Api.Exceptions;
 
 public static class GlobalExceptionExtension
 {

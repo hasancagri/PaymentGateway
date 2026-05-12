@@ -1,6 +1,7 @@
 using PaymentGatewayApi.Modules.Settlement.Settlements.Enums;
 using Settlement.Api.Settlement.Settlements.Entities;
 using Settlement.Api.Settlement.Settlements.ValueObjects;
+using Settlement.Api.Shared;
 
 namespace Settlement.Api.Settlement.Settlements;
 

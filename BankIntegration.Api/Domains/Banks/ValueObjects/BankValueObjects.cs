@@ -12,9 +12,6 @@ public sealed record BankName
             return ResultDomain<BankName>.Error(new MessageItem { Code = "BankName.Empty" });
         return ResultDomain<BankName>.Ok(new BankName(value.Trim()));
     }
-
-    public static BankName FromPersistence(string value) => new(value);
-    public override string ToString() => Value;
 }
 
 public sealed record BankPriority
@@ -29,8 +26,6 @@ public sealed record BankPriority
             return ResultDomain<BankPriority>.Error(new MessageItem { Code = "BankPriority.MustBePositive" });
         return ResultDomain<BankPriority>.Ok(new BankPriority(value));
     }
-
-    public static BankPriority FromPersistence(int value) => new(value);
 }
 
 public sealed record BankApiUrl
@@ -47,7 +42,4 @@ public sealed record BankApiUrl
             return ResultDomain<BankApiUrl>.Error(new MessageItem { Code = "BankApiUrl.Invalid" });
         return ResultDomain<BankApiUrl>.Ok(new BankApiUrl(value.Trim()));
     }
-
-    public static BankApiUrl FromPersistence(string value) => new(value);
-    public override string ToString() => Value;
 }

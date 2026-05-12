@@ -1,4 +1,4 @@
-namespace PaymentProcessing.Api.PaymentProcessing.PaymentTransactions.ValueObjects;
+namespace PaymentProcessing.Api.Domains.PaymentTransactions.ValueObjects;
 
 public sealed record OrderId
 {
@@ -15,9 +15,6 @@ public sealed record OrderId
         if (errors.Count > 0) return ResultDomain<OrderId>.Error(errors);
         return ResultDomain<OrderId>.Ok(new OrderId(value.Trim()));
     }
-
-    public static OrderId FromPersistence(string value) => new(value);
-    public override string ToString() => Value;
 }
 
 public sealed record CardInfo

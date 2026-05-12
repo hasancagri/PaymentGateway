@@ -1,6 +1,3 @@
-using CommissionManagement.Api.Domains.BankCommissions.Enums;
-using Common.Domains;
-
 namespace CommissionManagement.Api.Domains.BankCommissions.ValueObjects;
 
 public sealed record CommissionRate
@@ -18,9 +15,6 @@ public sealed record CommissionRate
 
         return ResultDomain<CommissionRate>.Ok(new CommissionRate(Math.Round(value, 4)));
     }
-
-    public static CommissionRate FromPersistence(decimal value) => new(value);
-    public override string ToString() => $"{Value}%";
 }
 
 public sealed record CommissionCriteria
@@ -36,8 +30,4 @@ public sealed record CommissionCriteria
         CardType = cardType;
         TransactionRegion = transactionRegion;
     }
-
-    public static CommissionCriteria FromPersistence(CardBrand cardBrand, CardType cardType,
-        TransactionRegion transactionRegion)
-        => new(cardBrand, cardType, transactionRegion);
 }

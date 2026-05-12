@@ -1,3 +1,5 @@
+using Settlement.Api.Shared;
+
 namespace Settlement.Api.Settlement.Settlements.Features.Commands;
 
 public static class AddSettlementLine

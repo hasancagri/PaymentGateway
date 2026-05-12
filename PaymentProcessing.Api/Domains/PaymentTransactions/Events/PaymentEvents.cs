@@ -1,4 +1,4 @@
-namespace PaymentProcessing.Api.PaymentProcessing.PaymentTransactions.Events;
+namespace PaymentProcessing.Api.Domains.PaymentTransactions.Events;
 
 public sealed record PaymentInitiated(
     Guid TransactionId,

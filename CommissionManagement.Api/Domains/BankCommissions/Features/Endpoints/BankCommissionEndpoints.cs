@@ -7,9 +7,9 @@ public static class BankCommissionEndpoints
         var group = app.MapGroup("/bank-commissions")
             .AddEndpointFilter<JwtPermissionFilter>();
 
-        group.MapPost("/", async ([FromBody] DefineBankCommission.DefineBankCommissionCommand cmd, IMessageBus bus) =>
+        group.MapPost("/", async ([FromBody] CreateBankCommission.CreateBankCommissionCommand cmd, IMessageBus bus) =>
         {
-            var result = await bus.InvokeAsync<FeatureObjectResultModel<DefineBankCommission.DefineBankCommissionResponse>>(cmd);
+            var result = await bus.InvokeAsync<FeatureObjectResultModel<CreateBankCommission.CreateBankCommissionResponse>>(cmd);
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
         });
 

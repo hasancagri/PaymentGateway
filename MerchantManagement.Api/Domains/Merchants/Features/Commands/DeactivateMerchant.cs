@@ -15,33 +15,26 @@ public static class DeactivateMerchant
     [Transactional]
     public class DeactivateMerchantHandler
     {
-        public async Task<(FeatureObjectResultModel<DeactivateMerchantCommandResponse>, MerchantStatusChanged?)> Handle(
+        public async Task<FeatureObjectResultModel<DeactivateMerchantCommandResponse>> Handle(
             DeactivateMerchantCommand cmd,
             IDocumentSession session,
             CancellationToken ct)
         {
             var merchant = await session.LoadAsync<Merchant>(cmd.MerchantId, ct);
             if (merchant is null)
-                return (FeatureObjectResultModel<DeactivateMerchantCommandResponse>.Error(new MessageItem
+                return FeatureObjectResultModel<DeactivateMerchantCommandResponse>.Error(new MessageItem
                 {
                     Table = nameof(Merchant),
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
-                }), null);
+                });
 
-            var oldStatus = merchant.Status;
             var result = merchant.Deactivate(cmd.Reason);
             if (!result.IsSuccess)
-                return (FeatureObjectResultModel<DeactivateMerchantCommandResponse>.Error(result.Messages!), null);
+                return FeatureObjectResultModel<DeactivateMerchantCommandResponse>.Error(result.Messages!);
 
             session.Store(merchant);
-
-            var integrationEvent = new MerchantStatusChanged(
-                merchant.Id,
-                oldStatus.ToString(),
-                merchant.Status.ToString(),
-                DateTime.UtcNow);
-
-            return (FeatureObjectResultModel<DeactivateMerchantCommandResponse>.Ok(new DeactivateMerchantCommandResponse()), integrationEvent);
+            
+            return FeatureObjectResultModel<DeactivateMerchantCommandResponse>.Ok(new DeactivateMerchantCommandResponse());
         }
     }
 }

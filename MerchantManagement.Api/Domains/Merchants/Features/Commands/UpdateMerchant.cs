@@ -21,27 +21,27 @@ public static class UpdateMerchant
     [Transactional]
     public class UpdateMerchantHandler
     {
-        public async Task<(FeatureObjectResultModel<UpdateMerchantCommandResponse>, MerchantUpdated?)> Handle(
+        public async Task<FeatureObjectResultModel<UpdateMerchantCommandResponse>> Handle(
             UpdateMerchantCommand cmd,
             IDocumentSession session,
             CancellationToken ct)
         {
             var merchant = await session.LoadAsync<Merchant>(cmd.MerchantId, ct);
             if (merchant is null)
-                return (FeatureObjectResultModel<UpdateMerchantCommandResponse>.Error(new MessageItem
+                return FeatureObjectResultModel<UpdateMerchantCommandResponse>.Error(new MessageItem
                 {
                     Table = nameof(Merchant),
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
-                }), null);
+                });
 
-            var updateResult = merchant.Update(cmd.Name, cmd.Email, cmd.Phone, cmd.Country, cmd.City, cmd.Mcc, cmd.WebhookUrl);
+            var updateResult = merchant.Update(cmd.Name, cmd.Email, cmd.Phone, cmd.Country, cmd.City, cmd.Mcc,
+                cmd.WebhookUrl);
             if (!updateResult.IsSuccess)
-                return (FeatureObjectResultModel<UpdateMerchantCommandResponse>.Error(updateResult.Messages!), null);
+                return FeatureObjectResultModel<UpdateMerchantCommandResponse>.Error(updateResult.Messages!);
 
             session.Store(merchant);
 
-            var integrationEvent = new MerchantUpdated(merchant.Id, cmd.Name, cmd.WebhookUrl, DateTime.UtcNow);
-            return (FeatureObjectResultModel<UpdateMerchantCommandResponse>.Ok(new UpdateMerchantCommandResponse()), integrationEvent);
+            return FeatureObjectResultModel<UpdateMerchantCommandResponse>.Ok(new UpdateMerchantCommandResponse());
         }
     }
 }

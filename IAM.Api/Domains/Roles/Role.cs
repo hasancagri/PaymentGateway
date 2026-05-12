@@ -2,8 +2,8 @@ namespace IAM.Api.Domains.Roles;
 
 public sealed class Role : AggregateRoot
 {
-    public RoleName Name { get; init; }
-    public bool IsSystem { get; init; }
+    public RoleName Name { get; private set; }
+    public bool IsSystem { get; private set; }
 
     private Role()
     {

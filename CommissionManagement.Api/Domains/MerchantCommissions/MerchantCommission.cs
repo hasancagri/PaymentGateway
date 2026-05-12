@@ -1,6 +1,3 @@
-using CommissionManagement.Api.Domains.BankCommissions.ValueObjects;
-using Common.Domains;
-
 namespace CommissionManagement.Api.Domains.MerchantCommissions;
 
 public sealed class MerchantCommission : AggregateRoot

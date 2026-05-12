@@ -6,8 +6,6 @@ using BankIntegration.Api.Domains.Banks.Features.Endpoints;
 using BankIntegration.Api.Domains.MerchantBanks.Features.Endpoints;
 using BankIntegration.Api.Exceptions;
 using Microsoft.AspNetCore.Mvc;
-using PaymentGateway.SharedContracts;
-using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
@@ -38,13 +36,10 @@ builder.Services.AddMarten(opts =>
 .IntegrateWithWolverine()
 .ApplyAllDatabaseChangesOnStartup();
 
-var rabbitMq = builder.Configuration.GetConnectionString("rabbitmq")!;
 builder.Host.UseWolverine(opts =>
 {
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
-    opts.UseRabbitMq(new Uri(rabbitMq)).AutoProvision();
-    opts.PublishMessage<MerchantBankSynced>().ToRabbitExchange("bank.merchant-bank-synced");
 });
 
 var app = builder.Build();

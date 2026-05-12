@@ -1,21 +1,16 @@
-using CommissionManagement.Api.Domains.BankCommissions.ValueObjects;
-using Common.Domains;
-
-namespace CommissionManagement.Api.CommissionManagement.BankCommissions;
+namespace CommissionManagement.Api.Domains.BankCommissions;
 
 public sealed class BankCommission : AggregateRoot
 {
-    // ── Identity ──────────────────────────────────────────
-    public Guid BankId { get; init; }
-    public CommissionCriteria Criteria { get; init; }
-    private CommissionRate _rate;
-    public CommissionRate Rate { get => _rate; init => _rate = value; }
+    public Guid BankId { get; private set; }
+    public CommissionCriteria Criteria { get; private set; }
+    public CommissionRate Rate { get; private set; }
 
-    [Newtonsoft.Json.JsonConstructor]
-    private BankCommission() { }
+    private BankCommission()
+    {
+    }
 
-    // ── Factory ───────────────────────────────────────────
-    public static BankCommission Define(
+    public static BankCommission Create(
         Guid bankId,
         CommissionCriteria criteria,
         CommissionRate rate)
@@ -30,6 +25,5 @@ public sealed class BankCommission : AggregateRoot
         return commission;
     }
 
-    // ── Update ────────────────────────────────────────────
-    public void UpdateRate(CommissionRate newRate) => _rate = newRate;
+    public void UpdateRate(CommissionRate newRate) => Rate = newRate;
 }

@@ -1,5 +1,6 @@
 using PaymentGatewayApi.Modules.Settlement.Settlements.Enums;
 using Settlement.Api.Settlement.MerchantBalances.Entities;
+using Settlement.Api.Shared;
 
 namespace PaymentGatewayApi.Modules.Settlement.MerchantBalances;
 

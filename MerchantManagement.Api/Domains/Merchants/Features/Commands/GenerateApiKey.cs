@@ -15,7 +15,7 @@ public static class GenerateApiKey
     [Transactional]
     public class GenerateApiKeyHandler
     {
-        public async Task<(FeatureObjectResultModel<GenerateApiKeyResponse>, ApiKeyGenerated?)> Handle(
+        public async Task<FeatureObjectResultModel<GenerateApiKeyResponse>> Handle(
             GenerateApiKeyCommand cmd,
             IDocumentSession session,
             CancellationToken ct)
@@ -26,18 +26,17 @@ public static class GenerateApiKey
                 {
                     Table = nameof(Merchant),
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
-                }), null);
+                }));
 
             var result = merchant.GenerateApiKey();
             if (!result.IsSuccess)
-                return (FeatureObjectResultModel<GenerateApiKeyResponse>.Error(result.Messages!), null);
+                return FeatureObjectResultModel<GenerateApiKeyResponse>.Error(result.Messages!);
 
             session.Store(merchant);
 
             var keyValue = result.Data!;
-            var integrationEvent = new ApiKeyGenerated(merchant.Id, keyValue.Hash, DateTime.UtcNow);
 
-            return (FeatureObjectResultModel<GenerateApiKeyResponse>.Ok(new GenerateApiKeyResponse { PlainTextKey = keyValue.PlainText }), integrationEvent);
+            return FeatureObjectResultModel<GenerateApiKeyResponse>.Ok(new GenerateApiKeyResponse { PlainTextKey = keyValue.PlainText });
         }
     }
 }

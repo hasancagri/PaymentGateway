@@ -1,9 +1,3 @@
-using CommissionManagement.Api.Authorization;
-using CommissionManagement.Api.CommissionManagement.MerchantCommissions.Features.Commands;
-using CommissionManagement.Api.Domains.MerchantCommissions.Features.Commands;
-using CommissionManagement.Api.Domains.MerchantCommissions.Features.Queries;
-using Microsoft.AspNetCore.Mvc;
-
 namespace CommissionManagement.Api.Domains.MerchantCommissions.Features.Endpoints;
 
 public static class MerchantCommissionEndpoints

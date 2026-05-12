@@ -1,4 +1,4 @@
-namespace PaymentProcessing.Api.PaymentProcessing.PaymentTransactions.Services.BankAdapters;
+namespace PaymentProcessing.Api.Domains.PaymentTransactions.Services.BankAdapters;
 
 public record BankAuthResult(
     bool IsApproved,

@@ -1,7 +1,4 @@
-using Common.Exceptions;
-using Microsoft.AspNetCore.Diagnostics;
-
-namespace PaymentGatewayApi.Exceptions;
+namespace BankIntegration.Api.Exceptions;
 
 public class GlobalExceptionHandler : IExceptionHandler
 {

@@ -1,3 +1,5 @@
+using Settlement.Api.Shared;
+
 namespace PaymentGatewayApi.Modules.Settlement.MerchantBalances.Features.Commands;
 
 public static class RequestWithdrawal

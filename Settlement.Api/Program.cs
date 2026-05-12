@@ -29,12 +29,10 @@ builder.Services.AddMarten(opts =>
 .IntegrateWithWolverine()
 .ApplyAllDatabaseChangesOnStartup();
 
-var rabbitMq = builder.Configuration.GetConnectionString("rabbitmq")!;
 builder.Host.UseWolverine(opts =>
 {
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
-    opts.UseRabbitMq(new Uri(rabbitMq)).AutoProvision();
 });
 
 var app = builder.Build();

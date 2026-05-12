@@ -1,7 +1,6 @@
-using CommissionManagement.Api.Domains.BankCommissions.ValueObjects;
-using CommissionManagement.Api.Domains.MerchantCommissions;
+using CommissionManagement.Api.Domains.BankCommissions;
 
-namespace CommissionManagement.Api.CommissionManagement.MerchantCommissions.Features.Commands;
+namespace CommissionManagement.Api.Domains.MerchantCommissions.Features.Commands;
 
 public static class UpdateMerchantCommissionRate
 {
@@ -50,7 +49,16 @@ public static class UpdateMerchantCommissionRate
 
             session.Store(commission);
 
-            await bus.PublishAsync(new MerchantCommissionRateUpdated(commission.Id, cmd.NewRate, DateTime.UtcNow));
+            await bus.PublishAsync(new MerchantCommissionUpdated(
+                commission.Id,
+                commission.MerchantId,
+                commission.BankCommissionId,
+                commission.Criteria.CardBrand,
+                commission.Criteria.CardType,
+                commission.Criteria.TransactionRegion,
+                commission.Rate.Value,
+                DateTime.UtcNow));
+
             return FeatureObjectResultModel<UpdateMerchantCommissionRateCommandResponse>.Ok(new UpdateMerchantCommissionRateCommandResponse());
         }
     }

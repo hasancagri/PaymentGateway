@@ -1,5 +1,3 @@
-using Common.Auths;
-
 namespace CommissionManagement.Api.Auths;
 
 public static class AuthExtensions
