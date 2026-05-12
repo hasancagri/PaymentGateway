@@ -22,6 +22,7 @@
         <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="9.3.0" />
         <PackageReference Include="Aspire.Hosting.Redis" Version="9.3.0" />
         <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="9.3.0" />
+        <PackageReference Include="Aspire.Hosting.Keycloak" Version="13.2.4-preview.1.26224.4" />
     </ItemGroup>
 
 </Project>
