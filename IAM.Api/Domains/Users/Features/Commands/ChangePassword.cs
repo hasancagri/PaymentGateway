@@ -27,7 +27,19 @@ public static class ChangePassword
                     Code  = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
 
-            await keycloak.ResetPasswordAsync(cmd.UserId, cmd.NewPassword, ct);
+            try
+            {
+                await keycloak.ResetPasswordAsync(cmd.UserId, cmd.NewPassword, ct);
+            }
+            catch (Exception)
+            {
+                return FeatureObjectResultModel<ChangePasswordCommandResponse>.Error(new MessageItem
+                {
+                    Table = nameof(User),
+                    Code  = "User.KeycloakResetPasswordFailed"
+                });
+            }
+
             return FeatureObjectResultModel<ChangePasswordCommandResponse>.Ok(
                 new ChangePasswordCommandResponse());
         }
