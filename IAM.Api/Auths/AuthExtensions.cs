@@ -6,20 +6,13 @@ public static class AuthExtensions
     {
         serviceCollection.AddTransient<ICurrentUser>(provider =>
         {
-            var httpContext = provider.GetRequiredService<IHttpContextAccessor>().HttpContext;
-            var authHeader = httpContext?.Request.Headers.Authorization.FirstOrDefault();
+            var httpContext = provider
+                .GetRequiredService<IHttpContextAccessor>().HttpContext;
 
-            if (string.IsNullOrEmpty(authHeader))
+            if (httpContext?.User?.Identity?.IsAuthenticated != true)
                 return new CurrentUser();
 
-            try
-            {
-                return CurrentUser.Load(authHeader);
-            }
-            catch
-            {
-                return new CurrentUser();
-            }
+            return CurrentUser.Load(httpContext.User);
         });
     }
 }
