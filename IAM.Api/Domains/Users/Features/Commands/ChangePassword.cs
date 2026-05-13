@@ -8,9 +8,7 @@ public static class ChangePassword
         public required string NewPassword { get; set; }
     }
 
-    public class ChangePasswordCommandResponse
-    {
-    }
+    public class ChangePasswordCommandResponse { }
 
     [Transactional]
     public class ChangePasswordHandler
@@ -18,6 +16,7 @@ public static class ChangePassword
         public async Task<FeatureObjectResultModel<ChangePasswordCommandResponse>> Handle(
             ChangePasswordCommand cmd,
             IDocumentSession session,
+            IAM.Api.Keycloak.KeycloakAdminClient keycloak,
             CancellationToken ct)
         {
             var user = await session.LoadAsync<User>(cmd.UserId, ct);
@@ -25,15 +24,12 @@ public static class ChangePassword
                 return FeatureObjectResultModel<ChangePasswordCommandResponse>.Error(new MessageItem
                 {
                     Table = nameof(User),
-                    Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
+                    Code  = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
 
-            var result = user.ChangePassword(cmd.NewPassword);
-            if (!result.IsSuccess)
-                return FeatureObjectResultModel<ChangePasswordCommandResponse>.Error(result.Messages!);
-
-            session.Store(user);
-            return FeatureObjectResultModel<ChangePasswordCommandResponse>.Ok(new ChangePasswordCommandResponse());
+            await keycloak.ResetPasswordAsync(cmd.UserId, cmd.NewPassword, ct);
+            return FeatureObjectResultModel<ChangePasswordCommandResponse>.Ok(
+                new ChangePasswordCommandResponse());
         }
     }
 }
