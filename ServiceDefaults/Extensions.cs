@@ -117,9 +117,10 @@ public static class Extensions
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
-                options.Authority = builder.Configuration["Keycloak:Authority"];
+                options.Authority = builder.Configuration["Keycloak:Authority"]
+                    ?? throw new InvalidOperationException("Keycloak:Authority configuration is required.");
                 options.Audience = "payment-api";
-                options.RequireHttpsMetadata = false;
+                options.RequireHttpsMetadata = builder.Environment.IsProduction();
             });
 
         builder.Services.AddAuthorization();
