@@ -1,6 +1,6 @@
 namespace Common.Auths;
 
-public interface ICurrentUser : ISingletonDependency
+public interface ICurrentUser : ITransientDependency
 {
     public Guid Id { get; set; }
     public string? Phone { get; set; }
