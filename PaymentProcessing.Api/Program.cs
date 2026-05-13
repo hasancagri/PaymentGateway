@@ -1,5 +1,6 @@
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
+builder.AddKeycloakJwtAuthentication();
 
 builder.Services.Configure<JsonOptions>(o =>
     o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);
@@ -60,4 +61,6 @@ builder.Host.UseWolverine(opts =>
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
+app.UseAuthentication();
+app.UseAuthorization();
 app.Run();
