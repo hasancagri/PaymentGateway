@@ -20,7 +20,8 @@ public class KeycloakAdminClient : ITransientDependency
     }
 
     private string AdminBase =>
-        $"{_config["Keycloak:AdminApiBaseUrl"]}/admin/realms/{_config["Keycloak:Realm"]}";
+        $"{_config["Keycloak:AdminApiBaseUrl"] ?? throw new InvalidOperationException("Keycloak:AdminApiBaseUrl is required.")}" +
+        $"/admin/realms/{_config["Keycloak:Realm"] ?? throw new InvalidOperationException("Keycloak:Realm is required.")}";
 
     public async Task<Guid> CreateUserAsync(
         string email, string password, string firstName, string lastName,
