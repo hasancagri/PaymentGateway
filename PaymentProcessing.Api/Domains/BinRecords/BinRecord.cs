@@ -1,4 +1,4 @@
-namespace PaymentProcessing.Api.PaymentProcessing.BinRecords;
+namespace PaymentProcessing.Api.Domains.BinRecords;
 
 public sealed class BinRecord : AggregateRoot
 {

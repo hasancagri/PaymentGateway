@@ -19,6 +19,7 @@ public static class DeactivateBank
         public async Task<FeatureObjectResultModel<DeactivateBankCommandResponse>> Handle(
             DeactivateBankCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             var bank = await session.LoadAsync<Bank>(cmd.BankId, ct);
@@ -31,6 +32,22 @@ public static class DeactivateBank
 
             bank.Deactivate();
             session.Store(bank);
+
+            var merchantBanks = await session.Query<MerchantBank>()
+                .Where(mb => mb.BankId == cmd.BankId)
+                .ToListAsync(ct);
+
+            foreach (var mb in merchantBanks)
+                await bus.PublishAsync(new MerchantBankSynced(
+                    MerchantBankId: mb.Id,
+                    MerchantId: mb.MerchantId,
+                    BankId: mb.BankId,
+                    BankName: bank.Name.Value,
+                    IcaMemberId: bank.IcaMemberId,
+                    SupportedCurrencies: bank.SupportedCurrencies,
+                    IsActive: false,
+                    OccurredOn: DateTime.UtcNow));
+
             return FeatureObjectResultModel<DeactivateBankCommandResponse>.Ok(new DeactivateBankCommandResponse());
         }
     }

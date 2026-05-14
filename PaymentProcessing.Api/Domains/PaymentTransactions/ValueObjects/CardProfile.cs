@@ -1,3 +1,5 @@
+using PaymentProcessing.Api.Domains.BinRecords;
+
 namespace PaymentProcessing.Api.Domains.PaymentTransactions.ValueObjects;
 
 public sealed record CardProfile

@@ -36,7 +36,7 @@ public static class UpdateBankCommissionRate
             commission.UpdateRate(rateResult.Data!);
             session.Store(commission);
 
-            await bus.PublishAsync(new BankCommissionUpdated(
+            await bus.PublishAsync(new BankCommissionSynced(
                 commission.Id,
                 commission.BankId,
                 commission.Criteria.CardBrand,

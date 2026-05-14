@@ -1,7 +1,6 @@
-using PaymentProcessing.Api.PaymentProcessing.BinRecords.Features.Commands;
-using PaymentProcessing.Api.PaymentProcessing.BinRecords.Features.Queries;
+using PaymentProcessing.Api.Domains.BinRecords.Features.Queries;
 
-namespace PaymentProcessing.Api.PaymentProcessing.BinRecords.Features.Endpoints;
+namespace PaymentProcessing.Api.Domains.BinRecords.Features.Endpoints;
 
 public static class BinRecordEndpoints
 {

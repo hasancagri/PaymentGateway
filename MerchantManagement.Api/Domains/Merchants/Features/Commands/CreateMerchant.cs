@@ -24,6 +24,7 @@ public static class CreateMerchant
         public async Task<FeatureObjectResultModel<CreateMerchantResponse>> Handle(
             CreateMerchantCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             var merchantResult = Merchant.Create(cmd.Name, cmd.Email, cmd.Phone, cmd.Country, cmd.City, cmd.Mcc, cmd.WebhookUrl);
@@ -32,7 +33,13 @@ public static class CreateMerchant
 
             var merchant = merchantResult.Data!;
             session.Store(merchant);
-            
+
+            await bus.PublishAsync(new MerchantSynced(
+                MerchantId: merchant.Id,
+                WebhookUrl: merchant.WebhookUrl.Value,
+                IsActive: true,
+                OccurredOn: DateTime.UtcNow));
+
             return FeatureObjectResultModel<CreateMerchantResponse>.Ok(new CreateMerchantResponse { Id = merchant.Id });
         }
     }

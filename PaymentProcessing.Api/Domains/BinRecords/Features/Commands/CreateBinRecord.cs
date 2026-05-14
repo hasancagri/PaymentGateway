@@ -1,6 +1,4 @@
-using Marten;
-
-namespace PaymentProcessing.Api.PaymentProcessing.BinRecords.Features.Commands;
+namespace PaymentProcessing.Api.Domains.BinRecords.Features.Commands;
 
 public static class CreateBinRecord
 {

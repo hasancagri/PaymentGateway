@@ -16,6 +16,7 @@ builder.Services.Configure<JsonOptions>(o =>
 
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
+builder.Services.AddGrpc();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.LoadCurrentUser();
@@ -52,5 +53,6 @@ app.UseExceptionHandler();
 var api = app.MapGroup("/api");
 api.MapBankEndpoints();
 api.MapMerchantBankEndpoints();
+app.MapGrpcService<BankIntegration.Api.Grpc.SyncBankIntegrationGrpcService>();
 
 app.Run();

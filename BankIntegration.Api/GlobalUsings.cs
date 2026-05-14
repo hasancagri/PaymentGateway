@@ -18,3 +18,4 @@ global using Microsoft.AspNetCore.Mvc;
 global using Common.Exceptions;
 global using Microsoft.AspNetCore.Diagnostics;
 global using System.Text.Json.Serialization;
+global using PaymentGateway.SharedContracts;

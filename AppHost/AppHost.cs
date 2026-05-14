@@ -42,9 +42,9 @@ var commissionApi = builder.AddProject<Projects.CommissionManagement_Api>("commi
 
 var paymentApi = builder.AddProject<Projects.PaymentProcessing_Api>("payment-processing")
     .WithReference(rabbitmq).WithReference(paymentDb).WithReference(garanti)
-    .WithReference(bankIntApi).WithReference(commissionApi)
+    .WithReference(bankIntApi).WithReference(commissionApi).WithReference(merchantApi)
     .WithEnvironment("Keycloak__Authority", "http://localhost:8080/realms/payment-gateway")
-    .WaitFor(rabbitmq).WaitFor(paymentDb).WaitFor(garanti).WaitFor(bankIntApi).WaitFor(commissionApi);
+    .WaitFor(rabbitmq).WaitFor(paymentDb).WaitFor(garanti).WaitFor(bankIntApi).WaitFor(commissionApi).WaitFor(merchantApi);
 
 var iamApi = builder.AddProject<Projects.IAM_Api>("iam")
     .WithReference(keycloak)

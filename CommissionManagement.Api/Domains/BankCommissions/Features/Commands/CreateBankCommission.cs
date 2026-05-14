@@ -32,7 +32,16 @@ public static class CreateBankCommission
             var criteria   = new CommissionCriteria(cmd.CardBrand, cmd.CardType, cmd.TransactionRegion);
             var commission = BankCommission.Create(cmd.BankId, criteria, rateResult.Data!);
             session.Store(commission);
-            
+
+            await bus.PublishAsync(new BankCommissionSynced(
+                commission.Id,
+                commission.BankId,
+                commission.Criteria.CardBrand,
+                commission.Criteria.CardType,
+                commission.Criteria.TransactionRegion,
+                commission.Rate.Value,
+                DateTime.UtcNow));
+
             return FeatureObjectResultModel<CreateBankCommissionResponse>.Ok(new CreateBankCommissionResponse { Id = commission.Id });
         }
     }

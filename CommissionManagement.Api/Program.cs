@@ -1,6 +1,3 @@
-using CommissionManagement.Api.Domains.BankCommissions;
-using Wolverine.RabbitMQ;
-
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddKeycloakJwtAuthentication();
@@ -10,6 +7,7 @@ builder.Services.Configure<JsonOptions>(o =>
 
 builder.Services.AddProblemDetails();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddGrpc();
 builder.Services.LoadCurrentUser();
 
 var commissionDb = builder.Configuration.GetConnectionString("commissionDb")!;
@@ -36,8 +34,8 @@ builder.Host.UseWolverine(opts =>
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
     opts.UseRabbitMq(new Uri(rabbitMq)).AutoProvision();
 
-    opts.PublishMessage<BankCommissionUpdated>().ToRabbitExchange(ExchangeConstants.BankCommissionUpdated);
-    opts.PublishMessage<MerchantCommissionUpdated>().ToRabbitExchange(ExchangeConstants.MerchantCommissionUpdated);
+    opts.PublishMessage<BankCommissionSynced>().ToRabbitExchange(ExchangeConstants.BankCommissionSynced);
+    opts.PublishMessage<MerchantCommissionSynced>().ToRabbitExchange(ExchangeConstants.MerchantCommissionSynced);
 });
 
 var app = builder.Build();
@@ -49,5 +47,6 @@ app.UseExceptionHandler();
 var api = app.MapGroup("/api");
 api.MapBankCommissionEndpoints();
 api.MapMerchantCommissionEndpoints();
+app.MapGrpcService<CommissionManagement.Api.Grpc.SyncCommissionGrpcService>();
 
 app.Run();

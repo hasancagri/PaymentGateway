@@ -1,3 +1,11 @@
+using Hangfire;
+using Hangfire.PostgreSql;
+using PaymentGateway.SyncContracts.BankIntegration;
+using PaymentGateway.SyncContracts.Commission;
+using PaymentGateway.SyncContracts.Merchant;
+using PaymentProcessing.Api.Domains.BinRecords;
+using PaymentProcessing.Api.Jobs;
+
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddKeycloakJwtAuthentication();
@@ -27,8 +35,10 @@ builder.Services.AddMarten(opts =>
         opts.Schema.For<BinRecord>()
             .Index(b => b.BinEightStart)
             .Index(b => b.BinEightEnd);
-        opts.Schema.For<BankCommissionReadModel>();
-        opts.Schema.For<MerchantCommissionReadModel>();
+        opts.Schema.For<BankCommissionSummary>();
+        opts.Schema.For<MerchantCommissionSummary>();
+        opts.Schema.For<MerchantBankSummary>();
+        opts.Schema.For<MerchantSummary>();
     }).IntegrateWithWolverine(x => x.UseFastEventForwarding = true)
     .ApplyAllDatabaseChangesOnStartup();
 
@@ -36,6 +46,26 @@ builder.Services
     .AddGrpcClient<BankPaymentService.BankPaymentServiceClient>("garanti",
         o => o.Address = new Uri("https+http://garanti"))
     .AddServiceDiscovery();
+
+builder.Services
+    .AddGrpcClient<SyncBankIntegrationService.SyncBankIntegrationServiceClient>(
+        o => o.Address = new Uri("https+http://bank-integration"))
+    .AddServiceDiscovery();
+
+builder.Services
+    .AddGrpcClient<SyncCommissionService.SyncCommissionServiceClient>(
+        o => o.Address = new Uri("https+http://commission-management"))
+    .AddServiceDiscovery();
+
+builder.Services
+    .AddGrpcClient<SyncMerchantService.SyncMerchantServiceClient>(
+        o => o.Address = new Uri("https+http://merchant-management"))
+    .AddServiceDiscovery();
+
+builder.Services.AddHangfire(config => config
+    .UsePostgreSqlStorage(c => c.UseNpgsqlConnection(paymentDb)));
+builder.Services.AddHangfireServer();
+builder.Services.AddScoped<NightlyResyncJob>();
 
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("webhook", client => { client.Timeout = TimeSpan.FromSeconds(10); });
@@ -47,10 +77,10 @@ builder.Host.UseWolverine(opts =>
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
     var transport = opts.UseRabbitMq(new Uri(rabbitMq)).AutoProvision();
 
-    transport.BindExchange(ExchangeConstants.BankCommissionUpdated, ExchangeType.Fanout)
+    transport.BindExchange(ExchangeConstants.BankCommissionSynced, ExchangeType.Fanout)
         .ToQueue("payment-processing.commission-events");
-    
-    transport.BindExchange(ExchangeConstants.MerchantCommissionUpdated, ExchangeType.Fanout)
+
+    transport.BindExchange(ExchangeConstants.MerchantCommissionSynced, ExchangeType.Fanout)
         .ToQueue("payment-processing.commission-events");
 
     opts.ListenToRabbitQueue("payment-processing.commission-events");
@@ -63,4 +93,11 @@ var app = builder.Build();
 app.MapDefaultEndpoints();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseHangfireDashboard("/hangfire");
+
+RecurringJob.AddOrUpdate<NightlyResyncJob>(
+    "nightly-resync",
+    job => job.RunAsync(),
+    Cron.Daily(0));
+
 app.Run();

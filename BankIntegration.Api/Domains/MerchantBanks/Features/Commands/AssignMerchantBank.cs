@@ -36,10 +36,21 @@ public static class AssignMerchantBank
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<AssignMerchantBankResponse>.Error(result.Messages!);
 
-            session.Store(result.Data!);
-            
+            var merchantBank = result.Data!;
+            session.Store(merchantBank);
+
+            await bus.PublishAsync(new MerchantBankSynced(
+                MerchantBankId: merchantBank.Id,
+                MerchantId: merchantBank.MerchantId,
+                BankId: merchantBank.BankId,
+                BankName: bank.Name.Value,
+                IcaMemberId: bank.IcaMemberId,
+                SupportedCurrencies: bank.SupportedCurrencies,
+                IsActive: true,
+                OccurredOn: DateTime.UtcNow));
+
             return FeatureObjectResultModel<AssignMerchantBankResponse>.Ok(
-                new AssignMerchantBankResponse { Id = result.Data!.Id });
+                new AssignMerchantBankResponse { Id = merchantBank.Id });
         }
     }
 }

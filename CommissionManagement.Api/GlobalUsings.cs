@@ -21,3 +21,5 @@ global using PaymentGateway.SharedContracts;
 global using Common.Domains;
 global using CommissionManagement.Api.Domains.MerchantCommissions.Features.Commands;
 global using CommissionManagement.Api.Domains.MerchantCommissions.Features.Queries;
+global using CommissionManagement.Api.Domains.BankCommissions;
+global using Wolverine.RabbitMQ;

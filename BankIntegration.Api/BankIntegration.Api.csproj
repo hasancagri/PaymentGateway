@@ -4,9 +4,11 @@
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
     <ProjectReference Include="..\PaymentGateway.SharedContracts\PaymentGateway.SharedContracts.csproj" />
+    <ProjectReference Include="..\PaymentGateway.SyncContracts\PaymentGateway.SyncContracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" Version="2.67.0" />
     <PackageReference Include="Marten" Version="8.35.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Scrutor" Version="7.0.0" />

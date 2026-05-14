@@ -18,6 +18,7 @@ public static class ActivateMerchant
         public async Task<FeatureObjectResultModel<ActivateMerchantCommandResponse>> Handle(
             ActivateMerchantCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             var merchant = await session.LoadAsync<Merchant>(cmd.MerchantId, ct);
@@ -34,6 +35,11 @@ public static class ActivateMerchant
 
             session.Store(merchant);
 
+            await bus.PublishAsync(new MerchantSynced(
+                MerchantId: merchant.Id,
+                WebhookUrl: merchant.WebhookUrl.Value,
+                IsActive: true,
+                OccurredOn: DateTime.UtcNow));
 
             return FeatureObjectResultModel<ActivateMerchantCommandResponse>.Ok(new ActivateMerchantCommandResponse());
         }

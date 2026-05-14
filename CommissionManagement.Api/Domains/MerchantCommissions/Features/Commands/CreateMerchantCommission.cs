@@ -51,8 +51,20 @@ public static class CreateMerchantCommission
             if (!defineResult.IsSuccess)
                 return FeatureObjectResultModel<CreateMerchantCommissionResponse>.Error(defineResult.Messages!);
 
-            session.Store(defineResult.Data!);
-            return FeatureObjectResultModel<CreateMerchantCommissionResponse>.Ok(new CreateMerchantCommissionResponse { Id = defineResult.Data.Id });
+            var mc = defineResult.Data!;
+            session.Store(mc);
+
+            await bus.PublishAsync(new MerchantCommissionSynced(
+                mc.Id,
+                mc.MerchantId,
+                mc.BankCommissionId,
+                mc.Criteria.CardBrand,
+                mc.Criteria.CardType,
+                mc.Criteria.TransactionRegion,
+                mc.Rate.Value,
+                DateTime.UtcNow));
+
+            return FeatureObjectResultModel<CreateMerchantCommissionResponse>.Ok(new CreateMerchantCommissionResponse { Id = mc.Id });
         }
     }
 }

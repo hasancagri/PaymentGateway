@@ -7,6 +7,7 @@
     <Project Path="Banks/GarantiService/GarantiService.csproj" />
     <Project Path="PaymentGateway.BankContracts/PaymentGateway.BankContracts.csproj" />
     <Project Path="PaymentGateway.SharedContracts/PaymentGateway.SharedContracts.csproj" />
+    <Project Path="PaymentGateway.SyncContracts/PaymentGateway.SyncContracts.csproj" />
   </Folder>
   <Folder Name="/Services/">
     <Project Path="BankIntegration.Api/BankIntegration.Api.csproj" />

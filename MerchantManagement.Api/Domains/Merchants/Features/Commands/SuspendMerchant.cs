@@ -18,6 +18,7 @@ public static class SuspendMerchant
         public async Task<FeatureObjectResultModel<SuspendMerchantCommandResponse>> Handle(
             SuspendMerchantCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             var merchant = await session.LoadAsync<Merchant>(cmd.MerchantId, ct);
@@ -33,7 +34,13 @@ public static class SuspendMerchant
                 return FeatureObjectResultModel<SuspendMerchantCommandResponse>.Error(result.Messages!);
 
             session.Store(merchant);
-            
+
+            await bus.PublishAsync(new MerchantSynced(
+                MerchantId: merchant.Id,
+                WebhookUrl: merchant.WebhookUrl.Value,
+                IsActive: false,
+                OccurredOn: DateTime.UtcNow));
+
             return FeatureObjectResultModel<SuspendMerchantCommandResponse>.Ok(new SuspendMerchantCommandResponse());
         }
     }

@@ -1,6 +1,6 @@
 namespace PaymentGateway.SharedContracts;
 
-public sealed record BankCommissionUpdated(
+public sealed record BankCommissionSynced(
     Guid BankCommissionId,
     Guid BankId,
     CardBrand CardBrand,
@@ -9,7 +9,7 @@ public sealed record BankCommissionUpdated(
     decimal Rate,
     DateTime OccurredOn);
 
-public sealed record MerchantCommissionUpdated(
+public sealed record MerchantCommissionSynced(
     Guid MerchantCommissionId,
     Guid MerchantId,
     Guid BankCommissionId,
@@ -17,4 +17,20 @@ public sealed record MerchantCommissionUpdated(
     CardType CardType,
     TransactionRegion TransactionRegion,
     decimal Rate,
+    DateTime OccurredOn);
+
+public sealed record MerchantBankSynced(
+    Guid MerchantBankId,
+    Guid MerchantId,
+    Guid BankId,
+    string BankName,
+    string? IcaMemberId,
+    IReadOnlyCollection<string> SupportedCurrencies,
+    bool IsActive,
+    DateTime OccurredOn);
+
+public sealed record MerchantSynced(
+    Guid MerchantId,
+    string WebhookUrl,
+    bool IsActive,
     DateTime OccurredOn);

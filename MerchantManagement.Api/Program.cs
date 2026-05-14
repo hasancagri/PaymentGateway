@@ -12,6 +12,7 @@ builder.Services.Configure<JsonOptions>(o =>
 
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
+builder.Services.AddGrpc();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.LoadCurrentUser();
@@ -49,4 +50,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseExceptionHandler();
 app.MapMerchantEndpoints();
+app.MapGrpcService<MerchantManagement.Api.Grpc.SyncMerchantGrpcService>();
+
 app.Run();

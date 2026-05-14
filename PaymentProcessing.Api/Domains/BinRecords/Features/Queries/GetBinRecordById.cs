@@ -1,6 +1,4 @@
-using Marten;
-
-namespace PaymentProcessing.Api.PaymentProcessing.BinRecords.Features.Queries;
+namespace PaymentProcessing.Api.Domains.BinRecords.Features.Queries;
 
 public static class GetBinRecordById
 {

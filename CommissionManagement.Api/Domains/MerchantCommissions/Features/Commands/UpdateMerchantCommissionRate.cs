@@ -49,7 +49,7 @@ public static class UpdateMerchantCommissionRate
 
             session.Store(commission);
 
-            await bus.PublishAsync(new MerchantCommissionUpdated(
+            await bus.PublishAsync(new MerchantCommissionSynced(
                 commission.Id,
                 commission.MerchantId,
                 commission.BankCommissionId,
