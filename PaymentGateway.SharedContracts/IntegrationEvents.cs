@@ -34,3 +34,14 @@ public sealed record MerchantSynced(
     string WebhookUrl,
     bool IsActive,
     DateTime OccurredOn);
+
+public sealed record ApiKeyRevoked(
+    string ApiKeyHash,
+    Guid MerchantId,
+    DateTime OccurredOn);
+
+public sealed record MerchantStatusChanged(
+    Guid MerchantId,
+    MerchantStatus NewStatus,
+    IReadOnlyList<string> ApiKeyHashes,
+    DateTime OccurredOn);
