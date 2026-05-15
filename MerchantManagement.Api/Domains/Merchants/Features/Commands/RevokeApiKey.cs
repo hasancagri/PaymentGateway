@@ -18,6 +18,7 @@ public static class RevokeApiKey
         public async Task<FeatureObjectResultModel<RevokeApiKeyCommandResponse>> Handle(
             RevokeApiKeyCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             var merchant = await session.LoadAsync<Merchant>(cmd.MerchantId, ct);
@@ -41,6 +42,11 @@ public static class RevokeApiKey
                 return FeatureObjectResultModel<RevokeApiKeyCommandResponse>.Error(result.Messages!);
 
             session.Store(merchant);
+
+            await bus.PublishAsync(new ApiKeyRevoked(
+                ApiKeyHash: keyToRevoke.KeyValue.Hash,
+                MerchantId: cmd.MerchantId,
+                OccurredOn: DateTime.UtcNow));
 
             return FeatureObjectResultModel<RevokeApiKeyCommandResponse>.Ok(new RevokeApiKeyCommandResponse());
         }

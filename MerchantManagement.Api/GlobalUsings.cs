@@ -16,7 +16,6 @@ global using MerchantManagement.Api.Authorization;
 global using MerchantManagement.Api.Auths;
 global using Common.Utils.Constants;
 global using Wolverine.Attributes;
-global using MerchantManagement.Api.Domains.Merchants.Enums;
 global using MerchantManagement.Api.Domains.Merchants.ValueObjects;
 global using PaymentGateway.SharedContracts;
 global using MerchantManagement.Api.Domains.Merchants.Features.Commands;

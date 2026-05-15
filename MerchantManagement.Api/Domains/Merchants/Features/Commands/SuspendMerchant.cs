@@ -41,6 +41,12 @@ public static class SuspendMerchant
                 IsActive: false,
                 OccurredOn: DateTime.UtcNow));
 
+            await bus.PublishAsync(new MerchantStatusChanged(
+                MerchantId: merchant.Id,
+                NewStatus: MerchantStatus.Suspended,
+                ApiKeyHashes: merchant.ApiKeys.Where(k => k.IsActive()).Select(k => k.KeyValue.Hash).ToList(),
+                OccurredOn: DateTime.UtcNow));
+
             return FeatureObjectResultModel<SuspendMerchantCommandResponse>.Ok(new SuspendMerchantCommandResponse());
         }
     }

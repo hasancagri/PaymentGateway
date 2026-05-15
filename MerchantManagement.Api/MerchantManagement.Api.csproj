@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <Folder Include="Domains\" />
+    <Folder Include="Domains\Merchants\Enums\" />
   </ItemGroup>
 
   <PropertyGroup>

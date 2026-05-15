@@ -41,6 +41,12 @@ public static class ActivateMerchant
                 IsActive: true,
                 OccurredOn: DateTime.UtcNow));
 
+            await bus.PublishAsync(new MerchantStatusChanged(
+                MerchantId: merchant.Id,
+                NewStatus: MerchantStatus.Active,
+                ApiKeyHashes: merchant.ApiKeys.Where(k => k.IsActive()).Select(k => k.KeyValue.Hash).ToList(),
+                OccurredOn: DateTime.UtcNow));
+
             return FeatureObjectResultModel<ActivateMerchantCommandResponse>.Ok(new ActivateMerchantCommandResponse());
         }
     }
