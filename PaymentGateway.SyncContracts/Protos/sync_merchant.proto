@@ -6,6 +6,7 @@ package syncmerchant;
 
 service SyncMerchantService {
     rpc GetMerchants (PageRequest) returns (MerchantsPage);
+    rpc GetMerchantByApiKey (ApiKeyRequest) returns (MerchantApiKeyResponse);
 }
 
 message PageRequest {
@@ -22,4 +23,16 @@ message MerchantItem {
 message MerchantsPage {
     repeated MerchantItem items = 1;
     bool has_next_page = 2;
+}
+
+message ApiKeyRequest {
+    string key_hash = 1;
+}
+
+message MerchantApiKeyResponse {
+    bool found = 1;
+    string merchant_id = 2;
+    string merchant_name = 3;
+    int32 merchant_status = 4;
+    int32 key_status = 5;
 }
