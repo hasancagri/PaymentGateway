@@ -36,4 +36,29 @@ public class SyncMerchantGrpcService(IQuerySession session)
 
         return response;
     }
+
+    public override async Task<MerchantApiKeyResponse> GetMerchantByApiKey(
+        ApiKeyRequest request, ServerCallContext context)
+    {
+        var merchant = await session.Query<Merchant>()
+            .FirstOrDefaultAsync(
+                m => m.ApiKeys.Any(k => k.KeyValue.Hash == request.KeyHash),
+                context.CancellationToken);
+
+        if (merchant is null)
+            return new MerchantApiKeyResponse { Found = false };
+
+        var key = merchant.ApiKeys.FirstOrDefault(k => k.KeyValue.Hash == request.KeyHash);
+        if (key is null)
+            return new MerchantApiKeyResponse { Found = false };
+
+        return new MerchantApiKeyResponse
+        {
+            Found = true,
+            MerchantId = merchant.Id.ToString(),
+            MerchantName = merchant.Name.Value,
+            MerchantStatus = (int)merchant.Status,
+            KeyStatus = (int)key.Status
+        };
+    }
 }
