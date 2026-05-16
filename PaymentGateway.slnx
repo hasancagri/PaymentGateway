@@ -12,6 +12,7 @@
   <Folder Name="/Services/">
     <Project Path="BankIntegration.Api/BankIntegration.Api.csproj" />
     <Project Path="CommissionManagement.Api/CommissionManagement.Api.csproj" />
+    <Project Path="Gateway.Api/Gateway.Api.csproj" />
     <Project Path="IAM.Api/IAM.Api.csproj" />
     <Project Path="MerchantManagement.Api/MerchantManagement.Api.csproj" />
     <Project Path="PaymentProcessing.Api/PaymentProcessing.Api.csproj" />
