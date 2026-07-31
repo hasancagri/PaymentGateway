@@ -1,0 +1,15 @@
+@page
+@model Admin.Pages.ErrorModel
+@{
+    ViewData["Title"] = "Hata";
+}
+
+<div class="messages">
+    <p>Beklenmeyen bir hata oluştu.</p>
+    @if (!string.IsNullOrEmpty(Model.RequestId))
+    {
+        <p class="muted">İstek: <span class="key">@Model.RequestId</span></p>
+    }
+</div>
+
+<a class="btn" asp-page="/Index">Panele dön</a>

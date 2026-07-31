@@ -1,0 +1,35 @@
+@page
+@model Admin.Pages.Merchants.IndexModel
+@{
+    ViewData["Title"] = "Merchant'lar";
+}
+
+<partial name="_Messages" />
+
+<div class="actions">
+    <a class="btn" asp-page="Create">Yeni Merchant</a>
+</div>
+
+@if (Model.Merchants.Count == 0)
+{
+    <p class="muted">Kayıtlı merchant yok.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>İsim</th><th>MCC</th><th>Durum</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var m in Model.Merchants)
+            {
+                <tr>
+                    <td>@m.Name</td>
+                    <td>@m.Mcc</td>
+                    <td>@m.Status</td>
+                    <td><a asp-page="Details" asp-route-id="@m.Id">Detay</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

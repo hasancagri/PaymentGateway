@@ -1,0 +1,18 @@
+@model Admin.PageModels.BasePageModel
+
+@if (!string.IsNullOrEmpty(Model.Flash))
+{
+    <div class="flash">@Model.Flash</div>
+}
+
+@if (Model.Errors.Count > 0)
+{
+    <div class="messages">
+        <ul>
+            @foreach (var error in Model.Errors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}

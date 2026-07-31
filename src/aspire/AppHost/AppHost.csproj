@@ -1,0 +1,24 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.3.5">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UserSecretsId>7f2b7c2e-0a5d-4a7e-9f0f-dropshop0001</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
+      <ProjectReference Include="..\..\services\Payment.Api\Payment.Api.csproj" />
+      <ProjectReference Include="..\..\services\Merchant.Api\Merchant.Api.csproj" />
+      <ProjectReference Include="..\..\services\Commission.Api\Commission.Api.csproj" />
+      <ProjectReference Include="..\..\ui\Admin\Admin.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+      <PackageReference Include="Aspire.Hosting.RabbitMQ" />
+    </ItemGroup>
+
+</Project>

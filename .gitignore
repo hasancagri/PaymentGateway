@@ -13,3 +13,15 @@ riderModule.iml
 
 # Local secrets
 appsettings.Development.json
+
+# Claude Code — skill'ler takip edilir, yerel ayarlar sızmaz
+.claude/settings.local.json
+
+# Legacy referans (salt-okunur, versiyonlanmaz)
+src/otherProjects/
+
+# CP.VPOS — şimdilik versiyonlanmıyor
+src/services/CP.VPOS/
+
+# Payment.Api — şimdilik versiyonlanmıyor
+src/services/Payment.Api/

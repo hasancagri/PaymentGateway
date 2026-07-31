@@ -1,0 +1,33 @@
+@page "{id:guid}"
+@model Admin.Pages.Merchants.DetailsModel
+@{
+    ViewData["Title"] = "Merchant Detay";
+}
+
+<partial name="_Messages" />
+
+@if (Model.Merchant is null)
+{
+    <p class="muted">Merchant bulunamadı.</p>
+}
+else
+{
+    var m = Model.Merchant;
+    <table>
+        <tr><th>Id</th><td class="key">@m.Id</td></tr>
+        <tr><th>İsim</th><td>@m.Name</td></tr>
+        <tr><th>E-posta</th><td>@m.Email</td></tr>
+        <tr><th>Telefon</th><td>@m.Phone</td></tr>
+        <tr><th>Ülke</th><td>@m.CountryCode @(m.CountryName is null ? "" : $"({m.CountryName})")</td></tr>
+        <tr><th>Şehir</th><td>@m.CityCode @(m.CityName is null ? "" : $"({m.CityName})")</td></tr>
+        <tr><th>MCC</th><td>@m.Mcc @(m.MccName is null ? "" : $"({m.MccName})")</td></tr>
+        <tr><th>Webhook</th><td>@m.WebhookUrl</td></tr>
+        <tr><th>Durum</th><td>@m.Status</td></tr>
+        <tr><th>Oluşturma</th><td>@m.CreatedTime.ToString("g")</td></tr>
+    </table>
+
+    <div class="actions">
+        <a class="btn" asp-page="/MerchantCommissions/Index" asp-route-merchantId="@m.Id">Komisyonları</a>
+        <a class="btn" asp-page="Index" style="background:#6e7781;">Listeye dön</a>
+    </div>
+}
