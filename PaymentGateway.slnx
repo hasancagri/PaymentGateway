@@ -1,22 +1,34 @@
 <Solution>
-  <Folder Name="/AspireProjects/">
-    <Project Path="AppHost/AppHost.csproj" />
-    <Project Path="ServiceDefaults/ServiceDefaults.csproj" />
+  <Folder Name="/src/">
+    <File Path="src\reference-architecture.md" />
+    <File Path="src\scenario.md" />
   </Folder>
-  <Folder Name="/Banking/">
-    <Project Path="Banks/GarantiService/GarantiService.csproj" />
-    <Project Path="PaymentGateway.BankContracts/PaymentGateway.BankContracts.csproj" />
-    <Project Path="PaymentGateway.SharedContracts/PaymentGateway.SharedContracts.csproj" />
-    <Project Path="PaymentGateway.SyncContracts/PaymentGateway.SyncContracts.csproj" />
+  <Folder Name="/src/aspire/">
+    <Project Path="src/aspire/AppHost/AppHost.csproj" />
+    <Project Path="src/aspire/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
-  <Folder Name="/Services/">
-    <Project Path="BankIntegration.Api/BankIntegration.Api.csproj" />
-    <Project Path="CommissionManagement.Api/CommissionManagement.Api.csproj" />
-    <Project Path="Gateway.Api/Gateway.Api.csproj" />
-    <Project Path="IAM.Api/IAM.Api.csproj" />
-    <Project Path="MerchantManagement.Api/MerchantManagement.Api.csproj" />
-    <Project Path="PaymentProcessing.Api/PaymentProcessing.Api.csproj" />
-    <Project Path="Settlement.Api/Settlement.Api.csproj" />
+  <Folder Name="/src/otherProjects/">
+    <Project Path="src/otherProjects/Core/PFApplication.Application/PFApplication.Application.csproj" />
+    <Project Path="src/otherProjects/Core/PFApplication.Data/PFApplication.Data.csproj" />
+    <Project Path="src/otherProjects/Infrastructure/PFApplication.Core/PFApplication.Core.csproj" />
+    <Project Path="src/otherProjects/Infrastructure/PFApplication.Infrastructure/PFApplication.Infrastructure.csproj" />
+    <Project Path="src/otherProjects/Infrastructure/PFApplication.Oracle/PFApplication.Oracle.csproj" />
+    <Project Path="src/otherProjects/Infrastructure/PFApplication.SqlServer/PFApplication.SqlServer.csproj" />
+    <Project Path="src/otherProjects/Presentation/PFApplication.Automation/PFApplication.Automation.csproj" />
+    <Project Path="src/otherProjects/Presentation/PFApplication.DataMigration/PFApplication.DataMigration.csproj" />
+    <Project Path="src/otherProjects/Presentation/PFApplication.DemoMerchant/PFApplication.DemoMerchant.csproj" />
+    <Project Path="src/otherProjects/Presentation/PFApplication.EOD/PFApplication.EOD.csproj" />
+    <Project Path="src/otherProjects/Presentation/PFApplication.Integration/PFApplication.Integration.csproj" />
+    <Project Path="src/otherProjects/Presentation/PFApplication.WebAPI/PFApplication.WebAPI.csproj" />
   </Folder>
-  <Project Path="Common/Common.csproj" />
+  <Folder Name="/src/others/">
+    <Project Path="src/others/Common/Common.csproj" />
+    <Project Path="src/others/Identity.Server/Identity.Server.csproj" />
+    <Project Path="src/others/Shared/Shared.csproj" />
+  </Folder>
+  <Folder Name="/src/services/">
+    <Project Path="src/services/CP.VPOS/CP.VPOS.csproj" />
+    <Project Path="src/services/gateway/Gateway/Gateway.csproj" />
+    <Project Path="src/services/Payment.Api/Payment.Api.csproj" />
+  </Folder>
 </Solution>
