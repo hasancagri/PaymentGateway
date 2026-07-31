@@ -1,0 +1,67 @@
+@page
+@using System.Globalization
+@model Admin.Pages.MerchantCommissions.IndexModel
+@{
+    ViewData["Title"] = "Merchant Komisyonları";
+    string Inv(decimal d) => d.ToString(CultureInfo.InvariantCulture);
+}
+
+<partial name="_Messages" />
+
+<form method="get">
+    <label asp-for="MerchantId">Merchant</label>
+    <select asp-for="MerchantId">
+        <option value="">— seç —</option>
+        @foreach (var m in Model.Merchants)
+        {
+            <option value="@m.Id">@m.Name (@m.Mcc)</option>
+        }
+    </select>
+
+    <label asp-for="BankCode">Banka kodu filtresi (opsiyonel)</label>
+    <input asp-for="BankCode" placeholder="0062" />
+
+    <button type="submit" class="inline">Göster</button>
+</form>
+
+@if (Model.MerchantId is null || Model.MerchantId == Guid.Empty)
+{
+    <p class="muted">Komisyon matrisini görmek için bir merchant seç.</p>
+}
+else if (Model.Rows.Count == 0)
+{
+    <p class="muted">Bu filtreyle banka komisyonu yok. Önce Banka Komisyonları ekle.</p>
+}
+else
+{
+    <p class="muted">Her satır bir banka kombinasyonu. Merchant oranı banka oranından <strong>büyük</strong> olmalı. Boş bırakılan satır kaydedilmez.</p>
+    <table>
+        <thead>
+            <tr><th>Banka</th><th>Marka</th><th>Tip</th><th>Bölge</th><th>Taksit</th><th>Banka Oranı</th><th>Merchant Oranı (%)</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model.Rows)
+            {
+                <tr>
+                    <td>@row.BankCode</td>
+                    <td>@row.Criteria.CardBrand</td>
+                    <td>@row.Criteria.CardType</td>
+                    <td>@row.Criteria.TransactionRegion</td>
+                    <td>@row.Criteria.InstallmentCount</td>
+                    <td>@Inv(row.BankRate)</td>
+                    <td colspan="2">
+                        <form method="post" style="display:flex; gap:0.5rem; align-items:center; margin:0;">
+                            <input type="hidden" name="merchantId" value="@Model.MerchantId" />
+                            <input type="hidden" name="bankCommissionId" value="@row.BankCommissionId" />
+                            <input type="hidden" name="BankCode" value="@Model.BankCode" />
+                            <input class="rate" type="number" step="0.01" min="0" name="rate"
+                                   value="@(row.MerchantRate.HasValue ? Inv(row.MerchantRate.Value) : "")"
+                                   placeholder="> @Inv(row.BankRate)" />
+                            <button type="submit" class="inline">Kaydet</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

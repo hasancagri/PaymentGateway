@@ -1,0 +1,13 @@
+@page
+@model Admin.Pages.IndexModel
+@{
+    ViewData["Title"] = "Panel";
+}
+
+<p class="muted">Merchant onboarding + komisyon yönetimi. Bu dilimde uçlar korumasız (yetki Identity dilimiyle gelecek).</p>
+
+<div class="actions">
+    <a class="btn" asp-page="/Merchants/Index">Merchant'lar</a>
+    <a class="btn" asp-page="/BankCommissions/Index">Banka Komisyonları</a>
+    <a class="btn" asp-page="/MerchantCommissions/Index">Merchant Komisyonları</a>
+</div>

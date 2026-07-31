@@ -1,0 +1,43 @@
+@page
+@model Admin.Pages.BankCommissions.IndexModel
+@{
+    ViewData["Title"] = "Banka Komisyonları";
+}
+
+<partial name="_Messages" />
+
+<div class="actions">
+    <a class="btn" asp-page="Create">Yeni Banka Komisyonu</a>
+</div>
+
+<form method="get">
+    <label asp-for="BankCode">Banka kodu filtresi</label>
+    <input asp-for="BankCode" placeholder="0062" />
+    <button type="submit" class="inline">Filtrele</button>
+</form>
+
+@if (Model.Items.Count == 0)
+{
+    <p class="muted">Kayıt yok.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>Banka</th><th>Marka</th><th>Tip</th><th>Bölge</th><th>Taksit</th><th>Oran (%)</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var b in Model.Items)
+            {
+                <tr>
+                    <td>@b.BankCode</td>
+                    <td>@b.Criteria.CardBrand</td>
+                    <td>@b.Criteria.CardType</td>
+                    <td>@b.Criteria.TransactionRegion</td>
+                    <td>@b.Criteria.InstallmentCount</td>
+                    <td>@b.Rate</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

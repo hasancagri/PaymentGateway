@@ -30,5 +30,14 @@
     <Project Path="src/services/CP.VPOS/CP.VPOS.csproj" />
     <Project Path="src/services/gateway/Gateway/Gateway.csproj" />
     <Project Path="src/services/Payment.Api/Payment.Api.csproj" />
+    <Project Path="src/services/Merchant.Api/Merchant.Api.csproj" />
+    <Project Path="src/services/Commission.Api/Commission.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/ui/">
+    <Project Path="src/ui/Admin/Admin.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Merchant.Api.Tests/Merchant.Api.Tests.csproj" />
+    <Project Path="tests/Commission.Api.Tests/Commission.Api.Tests.csproj" />
   </Folder>
 </Solution>

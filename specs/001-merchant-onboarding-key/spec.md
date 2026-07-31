@@ -23,6 +23,11 @@ key olmadan çalışamaz. Bu, tüm entegrasyonun ön koşulu ve sistemin ilk ça
 **Independent Test**: Admin girişi + merchant oluşturma formu doldurulup gönderildiğinde
 yeni merchant listede görünür ve tek-seferlik bir key döner; key ikinci kez görüntülenemez.
 
+> **Uygulama dilimi notu**: Bu hikaye iki ayağa bölünür. Mevcut uygulama dilimi
+> (`001-merchant-onboarding-key`) yalnız **registry ayağını** (merchant kaydı + doğrulama)
+> teslim eder; **API key üretimi/gösterimi Identity dilimine ertelendi** (bkz. Out of Scope +
+> Assumptions). Yukarıdaki "key döner" ölçütü key dilimi geldiğinde geçerlidir.
+
 **Acceptance Scenarios**:
 
 1. **Given** yetkili admin giriş yapmış, **When** geçerli merchant bilgileriyle oluşturma
@@ -38,8 +43,8 @@ yeni merchant listede görünür ve tek-seferlik bir key döner; key ikinci kez 
 
 ### User Story 2 - Admin kart kombinasyonu başına komisyon belirler (Priority: P2)
 
-Admin bir merchant seçer ve kart kombinasyonları (kart markası × kart tipi × işlem bölgesi)
-için komisyon oranı girer. Her oran, ilgili bankanın o kombinasyondaki oranından yüksek
+Admin bir merchant seçer ve kart kombinasyonları (kart markası × kart tipi × işlem bölgesi
+× taksit sayısı) için komisyon oranı girer. Her oran, ilgili bankanın o kombinasyondaki oranından yüksek
 olmak zorundadır (aksi merchant zararına satış olur). Admin daha sonra oranları güncelleyebilir.
 
 **Why this priority**: Merchant çalışmaya başlayabilir (P1) ama doğru komisyon olmadan gelir
@@ -106,7 +111,8 @@ oluşturma ekranına erişilebildiği doğrulanır; yetkisiz bir kimlik aynı ek
 - **FR-005**: Sistem, bir merchant'ın aynı anda aktif tutabileceği key sayısını sınırlaMALIDIR.
 - **FR-006**: Admin bir API key'i iptal edebilMELİDİR; iptal sonrası key kabul edilmeMELİDİR.
 - **FR-007**: Sistem, bir merchant için kart kombinasyonu (kart markası × kart tipi × işlem
-  bölgesi) başına komisyon oranı tanımlamaya izin verMELİDİR.
+  bölgesi × taksit sayısı) başına komisyon oranı tanımlamaya izin verMELİDİR. Taksit ekseni
+  invariant'ın parçasıdır: oran karşılaştırması taksit-taksit yapılır.
 - **FR-008**: Bir merchant komisyon oranı, ilgili banka oranından **kesinlikle yüksek**
   olmalıdır; eşit/düşük oran reddedilMELİDİR.
 - **FR-009**: Admin var olan bir komisyon oranını güncelleyebilMELİDİR (aynı invariant geçerli).
@@ -125,8 +131,9 @@ oluşturma ekranına erişilebildiği doğrulanır; yetkisiz bir kimlik aynı ek
   görünür; saklanan yalnız doğrulama özeti. İptal edilebilir, süresizdir (yalnız iptal).
 - **Merchant Commission**: Bir merchant + kart kombinasyonu için oran. Banka oranından yüksek
   olma invariant'ı taşır.
-- **Card Combination (Kriter)**: Kart markası × kart tipi × işlem bölgesi üçlüsü; komisyonun
-  uygulandığı bağlam.
+- **Card Combination (Kriter)**: Kart markası × kart tipi × işlem bölgesi × taksit sayısı
+  dörtlüsü; komisyonun uygulandığı bağlam. Taksit ekseni banka oranı taksitle değiştiği için
+  zorunludur (peşin ≪ çok taksit); invariant taksit-taksit eşleşir.
 - **Admin (yetkili kullanıcı)**: Merchant/komisyon yönetimi yetkisine sahip, tek bir merchant'a
   bağlı olmayan (global) kullanıcı.
 
@@ -160,6 +167,9 @@ oluşturma ekranına erişilebildiği doğrulanır; yetkisiz bir kimlik aynı ek
 
 ## Out of Scope (bu dilim)
 
+- **API key üretimi/hash/gösterimi + seed admin + kimlik doğrulama/yetki** — bu dilimde YOK;
+  Identity dilimine ertelendi (US1 key ayağı, US3, FR-001/002/004/005/006/011). Bu dilim yalnız
+  Merchant.Api registry + Commission.Api teslim eder; uçlar korumasız.
 - Merchant self-service portal ve merchant kullanıcı girişi.
 - Ödeme anında API key çözümü (Payment tarafının key→kimlik doğrulaması).
 - Tenant enforcement middleware (claim → tenant filtresi otomasyonu).
