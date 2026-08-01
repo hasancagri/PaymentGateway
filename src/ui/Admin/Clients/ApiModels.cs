@@ -83,6 +83,72 @@ public class CriteriaDto
 
 public record CreateBankCommissionRequest(string BankCode, CriteriaDto Criteria, decimal Rate);
 
+/// <summary>Kriter enum seçenekleri (domain enum'larından; UI kopyalamaz).</summary>
+public class CriteriaOptions
+{
+    public List<string> CardBrands { get; set; } = new();
+    public List<string> CardTypes { get; set; } = new();
+    public List<string> TransactionRegions { get; set; } = new();
+}
+
+// Bank referans aggregate
+
+// Ad ve kod katalogdan gelir; istekler yalnız seçim + taksit/aktiflik taşır.
+public record CreateBankRequest(string Code, List<int> SupportedInstallments);
+
+public record UpdateBankRequest(bool IsActive, List<int> SupportedInstallments);
+
+public class BankCatalogResponse
+{
+    public List<BankCatalogItem> Items { get; set; } = new();
+}
+
+public class BankCatalogItem
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+}
+
+public class BanksResponse
+{
+    public List<BankListItem> Items { get; set; } = new();
+}
+
+public class BankListItem
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public List<int> SupportedInstallments { get; set; } = new();
+    public bool IsActive { get; set; }
+}
+
+public class BankDetail
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public List<int> SupportedInstallments { get; set; } = new();
+    public bool IsActive { get; set; }
+}
+
+public class CodeResult
+{
+    public string Code { get; set; } = string.Empty;
+}
+
+// Toplu komisyon (grid kaydı)
+
+public record BulkBankCommissionItem(CriteriaDto Criteria, decimal Rate);
+
+public record BulkBankCommissionsRequest(string BankCode, List<BulkBankCommissionItem> Items);
+
+public class BulkBankCommissionsResult
+{
+    public int Created { get; set; }
+    public int Updated { get; set; }
+}
+
 public class BankCommissionsResponse
 {
     public List<BankCommissionItem> Items { get; set; } = new();

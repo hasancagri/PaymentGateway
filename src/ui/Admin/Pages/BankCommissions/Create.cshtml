@@ -1,44 +1,107 @@
 @page
 @model Admin.Pages.BankCommissions.CreateModel
 @{
-    ViewData["Title"] = "Yeni Banka Komisyonu";
+    ViewData["Title"] = "Komisyon Grid";
 }
 
 <partial name="_Messages" />
 
-<form method="post">
-    <label asp-for="Input.BankCode">Banka kodu (4 hane)</label>
-    <input asp-for="Input.BankCode" placeholder="0062" />
+<div class="actions">
+    <a class="btn" asp-page="Index" style="background:#6e7781;">Komisyon listesi</a>
+</div>
 
-    <label asp-for="Input.CardBrand">Kart markası</label>
-    <select asp-for="Input.CardBrand">
-        <option>VISA</option>
-        <option>MASTERCARD</option>
-        <option>TROY</option>
-        <option>AMEX</option>
+<form method="get">
+    <label asp-for="BankCode">Banka</label>
+    <select asp-for="BankCode" onchange="this.form.submit()">
+        <option value="">— banka seç —</option>
+        @foreach (var b in Model.Banks)
+        {
+            <option value="@b.Code">@b.Code — @b.Name</option>
+        }
     </select>
-
-    <label asp-for="Input.CardType">Kart tipi</label>
-    <select asp-for="Input.CardType">
-        <option>CREDIT</option>
-        <option>DEBIT</option>
-        <option>PREPAID</option>
-    </select>
-
-    <label asp-for="Input.TransactionRegion">İşlem bölgesi</label>
-    <select asp-for="Input.TransactionRegion">
-        <option>DOMESTIC</option>
-        <option>INTERNATIONAL</option>
-    </select>
-
-    <label asp-for="Input.InstallmentCount">Taksit sayısı (1 = peşin)</label>
-    <input asp-for="Input.InstallmentCount" type="number" min="1" />
-
-    <label asp-for="Input.Rate">Oran (%)</label>
-    <input asp-for="Input.Rate" class="rate" type="number" step="0.01" min="0" />
-
-    <div>
-        <button type="submit">Ekle</button>
-        <a class="btn" asp-page="Index" style="background:#6e7781;">İptal</a>
-    </div>
+    <noscript><button type="submit" class="inline">Yükle</button></noscript>
 </form>
+
+@if (!Model.GridReady)
+{
+    <p class="muted">Grid için bir banka seçin. Grid, bankanın desteklediği taksitlere göre tüm kombinasyonları gösterir.</p>
+}
+else if (Model.Cells.Count == 0)
+{
+    <p class="muted">Bu banka için üretilecek kombinasyon yok (taksit listesi boş olabilir).</p>
+}
+else
+{
+    var brands = Model.Cells.Select(c => c.CardBrand).Distinct().ToList();
+    var types = Model.Cells.Select(c => c.CardType).Distinct().ToList();
+    var regions = Model.Cells.Select(c => c.TransactionRegion).Distinct().ToList();
+    var installments = Model.Cells.Select(c => c.InstallmentCount).Distinct().OrderBy(x => x).ToList();
+
+    <div data-filterable>
+    <div class="grid-toolbar">
+        <div class="filters">
+            <select data-filter="brand">
+                <option value="">Marka: hepsi</option>
+                @foreach (var v in brands) { <option value="@v">@v</option> }
+            </select>
+            <select data-filter="type">
+                <option value="">Tip: hepsi</option>
+                @foreach (var v in types) { <option value="@v">@v</option> }
+            </select>
+            <select data-filter="region">
+                <option value="">Bölge: hepsi</option>
+                @foreach (var v in regions) { <option value="@v">@v</option> }
+            </select>
+            <select data-filter="inst">
+                <option value="">Taksit: hepsi</option>
+                @foreach (var v in installments) { <option value="@v">@v</option> }
+            </select>
+        </div>
+        <div class="bulk-fill">
+            <input type="number" step="0.01" min="0" data-role="fill-rate" class="rate" placeholder="oran" />
+            <button type="button" data-role="fill-empty" class="inline">Boşları doldur</button>
+        </div>
+    </div>
+
+    <form method="post" id="grid-form">
+        <input type="hidden" name="BankCode" value="@Model.BankCode" />
+        <p class="muted">Boş (eksik) hücreler işaretlidir. "Boşları doldur" yalnız görünen (filtreli, açık sayfa) boş hücreleri doldurur. Doldurulan hücreler kaydedilir; dokunulmayanlar değişmez.</p>
+        <table>
+            <thead>
+                <tr><th>Marka</th><th>Tip</th><th>Bölge</th><th>Taksit</th><th>Oran (%)</th></tr>
+            </thead>
+            <tbody>
+                @for (var i = 0; i < Model.Cells.Count; i++)
+                {
+                    var cell = Model.Cells[i];
+                    <tr class="@(cell.Existing ? "" : "missing")"
+                        data-brand="@cell.CardBrand" data-type="@cell.CardType"
+                        data-region="@cell.TransactionRegion" data-inst="@cell.InstallmentCount">
+                        <td>@cell.CardBrand</td>
+                        <td>@cell.CardType</td>
+                        <td>@cell.TransactionRegion</td>
+                        <td>@cell.InstallmentCount</td>
+                        <td>
+                            <input type="hidden" name="Cells[@i].CardBrand" value="@cell.CardBrand" />
+                            <input type="hidden" name="Cells[@i].CardType" value="@cell.CardType" />
+                            <input type="hidden" name="Cells[@i].TransactionRegion" value="@cell.TransactionRegion" />
+                            <input type="hidden" name="Cells[@i].InstallmentCount" value="@cell.InstallmentCount" />
+                            <input class="rate" type="number" step="0.01" min="0"
+                                   name="Cells[@i].Rate" value="@(cell.Rate?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                                   placeholder="eksik" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div class="grid-pager">
+            <button type="button" data-role="prev" class="inline">‹ Önceki</button>
+            <span data-role="page-info" class="muted"></span>
+            <button type="button" data-role="next" class="inline">Sonraki ›</button>
+        </div>
+        <button type="submit">Kaydet</button>
+    </form>
+    </div>
+
+    <script src="~/js/filterable-table.js"></script>
+}

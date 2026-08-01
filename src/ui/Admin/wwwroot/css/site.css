@@ -90,3 +90,59 @@ button.inline { margin-top: 0; padding: 0.3rem 0.6rem; }
 .actions { margin: 1rem 0; }
 .muted { color: #656d76; font-size: 0.85rem; }
 .key { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.85rem; }
+
+/* Komisyon grid: eksik (oranı olmayan) hücreler görsel olarak ayrılır. */
+tr.missing { background: #fff8e6; }
+tr.missing td { border-color: #e6c200; }
+tr.missing input.rate { border-color: #e6c200; background: #fffdf5; }
+
+/* Taksit seçimi: 1..15 checkbox grid. */
+.installment-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(3.2rem, 1fr));
+    gap: 0.4rem;
+    max-width: 26rem;
+    margin: 0.2rem 0 0.4rem;
+}
+.installment-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-weight: 400;
+    cursor: pointer;
+}
+.installment-cell input { min-width: auto; }
+
+/* Komisyon grid araç çubuğu: eksen filtreleri + toplu doldur. */
+.grid-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.6rem;
+    align-items: center;
+    margin: 1rem 0 0.4rem;
+}
+.grid-toolbar .filters,
+.grid-toolbar .bulk-fill {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+.grid-toolbar select { min-width: auto; }
+.grid-toolbar .bulk-fill input.rate { min-width: 6rem; }
+.grid-toolbar .bulk-fill button { margin-top: 0; }
+
+/* Grid sayfalama kontrolü. */
+.grid-pager {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.4rem 0 0.6rem;
+}
+.grid-pager button { margin-top: 0; }
+.grid-pager button:disabled { opacity: 0.5; cursor: default; }

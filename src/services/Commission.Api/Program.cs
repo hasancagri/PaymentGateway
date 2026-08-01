@@ -1,5 +1,6 @@
 using Common.Exceptions;
 using Commission.Api.Domains.BankCommissions;
+using Commission.Api.Domains.Banks;
 using Commission.Api.Domains.MerchantCommissions;
 using Shared.Utils.Constants;
 
@@ -21,6 +22,7 @@ builder.Services.AddMarten(opts =>
 
         opts.Schema.For<BankCommission>();
         opts.Schema.For<MerchantCommission>();
+        opts.Schema.For<Bank>();
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -55,6 +57,7 @@ var apiVersionSet = app.NewApiVersionSet()
     .ReportApiVersions()
     .Build();
 
+app.AddBankGroupEndpointExtension(apiVersionSet);
 app.AddBankCommissionGroupEndpointExtension(apiVersionSet);
 app.AddMerchantCommissionGroupEndpointExtension(apiVersionSet);
 

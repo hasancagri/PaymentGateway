@@ -6,14 +6,16 @@
 
 <partial name="_Messages" />
 
-<div class="actions">
-    <a class="btn" asp-page="Create">Yeni Banka Komisyonu</a>
-</div>
-
 <form method="get">
-    <label asp-for="BankCode">Banka kodu filtresi</label>
-    <input asp-for="BankCode" placeholder="0062" />
-    <button type="submit" class="inline">Filtrele</button>
+    <label asp-for="BankCode">Banka filtresi</label>
+    <select asp-for="BankCode" onchange="this.form.submit()">
+        <option value="">— tüm bankalar —</option>
+        @foreach (var b in Model.Banks)
+        {
+            <option value="@b.Code">@b.Code — @b.Name</option>
+        }
+    </select>
+    <noscript><button type="submit" class="inline">Filtrele</button></noscript>
 </form>
 
 @if (Model.Items.Count == 0)
@@ -22,22 +24,59 @@
 }
 else
 {
-    <table>
-        <thead>
-            <tr><th>Banka</th><th>Marka</th><th>Tip</th><th>Bölge</th><th>Taksit</th><th>Oran (%)</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var b in Model.Items)
-            {
-                <tr>
-                    <td>@b.BankCode</td>
-                    <td>@b.Criteria.CardBrand</td>
-                    <td>@b.Criteria.CardType</td>
-                    <td>@b.Criteria.TransactionRegion</td>
-                    <td>@b.Criteria.InstallmentCount</td>
-                    <td>@b.Rate</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    var brands = Model.Items.Select(b => b.Criteria.CardBrand).Distinct().ToList();
+    var types = Model.Items.Select(b => b.Criteria.CardType).Distinct().ToList();
+    var regions = Model.Items.Select(b => b.Criteria.TransactionRegion).Distinct().ToList();
+    var installments = Model.Items.Select(b => b.Criteria.InstallmentCount).Distinct().OrderBy(x => x).ToList();
+
+    <div data-filterable>
+        <div class="grid-toolbar">
+            <div class="filters">
+                <select data-filter="brand">
+                    <option value="">Marka: hepsi</option>
+                    @foreach (var v in brands) { <option value="@v">@v</option> }
+                </select>
+                <select data-filter="type">
+                    <option value="">Tip: hepsi</option>
+                    @foreach (var v in types) { <option value="@v">@v</option> }
+                </select>
+                <select data-filter="region">
+                    <option value="">Bölge: hepsi</option>
+                    @foreach (var v in regions) { <option value="@v">@v</option> }
+                </select>
+                <select data-filter="inst">
+                    <option value="">Taksit: hepsi</option>
+                    @foreach (var v in installments) { <option value="@v">@v</option> }
+                </select>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr><th>Banka</th><th>Marka</th><th>Tip</th><th>Bölge</th><th>Taksit</th><th>Oran (%)</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var b in Model.Items)
+                {
+                    <tr data-brand="@b.Criteria.CardBrand" data-type="@b.Criteria.CardType"
+                        data-region="@b.Criteria.TransactionRegion" data-inst="@b.Criteria.InstallmentCount">
+                        <td>@Model.BankNameOf(b.BankCode)</td>
+                        <td>@b.Criteria.CardBrand</td>
+                        <td>@b.Criteria.CardType</td>
+                        <td>@b.Criteria.TransactionRegion</td>
+                        <td>@b.Criteria.InstallmentCount</td>
+                        <td>@b.Rate</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="grid-pager">
+            <button type="button" data-role="prev" class="inline">‹ Önceki</button>
+            <span data-role="page-info" class="muted"></span>
+            <button type="button" data-role="next" class="inline">Sonraki ›</button>
+        </div>
+    </div>
+
+    <script src="~/js/filterable-table.js"></script>
 }

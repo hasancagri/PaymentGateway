@@ -1,0 +1,27 @@
+@page "{code}"
+@model Admin.Pages.Banks.DeleteModel
+@{
+    ViewData["Title"] = $"Banka Sil — {Model.Code}";
+}
+
+<partial name="_Messages" />
+
+@if (Model.Bank is not null)
+{
+    <p>Bu bankayı silmek istediğinize emin misiniz? (yumuşak silme)</p>
+    <table>
+        <tr><th>Kod</th><td class="key">@Model.Bank.Code</td></tr>
+        <tr><th>Ad</th><td>@Model.Bank.Name</td></tr>
+        <tr><th>Taksitler</th><td>@string.Join(", ", Model.Bank.SupportedInstallments)</td></tr>
+        <tr><th>Aktif</th><td>@(Model.Bank.IsActive ? "Evet" : "Hayır")</td></tr>
+    </table>
+
+    <form method="post">
+        <button type="submit" style="background:var(--error);">Sil</button>
+        <a class="btn" asp-page="Index" style="background:#6e7781;">İptal</a>
+    </form>
+}
+else
+{
+    <a class="btn" asp-page="Index">Listeye dön</a>
+}

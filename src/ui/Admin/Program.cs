@@ -1,4 +1,6 @@
+using System.Globalization;
 using Admin.Clients;
+using Microsoft.AspNetCore.Localization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +25,17 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
 
 app.UseRouting();
+
+// Ondalık form bağlaması invariant olsun: HTML number input'ları hep "." ondalık gönderir;
+// sunucu tr-TR kültüründe "." grup ayıracı sanıp "4.05"i 405 yapıyordu. Invariant ile eşleşir.
+// UI metinleri sabit Türkçe (resx yok), bu değişiklikten etkilenmez.
+var invariantCultures = new[] { CultureInfo.InvariantCulture };
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(CultureInfo.InvariantCulture),
+    SupportedCultures = invariantCultures,
+    SupportedUICultures = invariantCultures
+});
 
 app.MapStaticAssets();
 app.MapRazorPages()

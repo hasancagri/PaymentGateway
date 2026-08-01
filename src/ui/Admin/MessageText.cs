@@ -15,7 +15,8 @@ public static class MessageText
         ["COMMON_MESSAGE_INVALID_ENUM_TYPE"] = "Geçersiz değer",
         ["COMMON_MESSAGE_INVALID_VALUE"] = "Geçersiz değer",
         ["COMMON_MESSAGE_SERVER_ERROR"] = "Sunucu hatası",
-        ["MERCHANT_RATE_MUST_EXCEED_BANK_RATE"] = "Merchant oranı banka oranından büyük olmalı"
+        ["MERCHANT_RATE_MUST_EXCEED_BANK_RATE"] = "Merchant oranı banka oranından büyük olmalı",
+        ["BANK_HAS_COMMISSIONS"] = "Bankaya bağlı komisyon var, önce onları sil"
     };
 
     public static string Of(ApiMessage message)
