@@ -7,13 +7,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 DropShop: tedarikçi ürünlerini dropship modeliyle satan e-ticaret sistemi. Mimari
 kurallar ECommerceWithAgentFramework projesinden devralındı: her mikroservis bir
 Bounded Context, Vertical Slice + CQRS, zengin aggregate'ler, Result pattern,
-Aspire + Marten + Wolverine. İlk BC: Payment (CP.VPOS sanal POS kütüphanesiyle).
+Aspire + Marten + Wolverine.
+
+Mevcut BC'ler: **Payment** (CP.VPOS sanal POS), **Merchant** (onboarding + settlement
+hesapları), **Commission** (banka referansı + komisyon grid). Ayrıca **Admin** (Razor Pages
+BFF) iki API'yi service discovery ile tüketir. Her BC kendi spec döngüsüyle (spec-kit,
+`specs/<NNN>/`) eklendi.
 
 ## Komutlar
 
 ```bash
 dotnet build                                        # tüm çözüm (PaymentGateway.slnx)
 dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile başlat (Postgres + RabbitMQ)
+dotnet test tests/Merchant.Api.Tests                # saf domain birim testleri (Merchant)
+dotnet test tests/Commission.Api.Tests              # saf domain birim testleri (Commission)
 ```
 
 - Sistemi her zaman AppHost üzerinden başlat; servisler conn-string'leri Aspire'dan alır.
@@ -24,6 +31,14 @@ dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile ba
 
 - `src/services/Payment.Api` — Payment BC. `Domains/<Aggregate>/Features/{Commands,Queries}`
   vertical slice düzeni; bir feature = bir static class (record command + Response + Handler + endpoint).
+- `src/services/Merchant.Api` — Merchant BC. `Merchant` aggregate (onboarding) + `MerchantSettlementAccount`
+  aggregate (payout banka hesabı; IBAN mod-97 saf doğrulama, yerel `BankCatalog` kopyası, endpoint'ler
+  merchant-scoped `merchants/{merchantId}/settlement-accounts`). Aynı vertical slice deseni.
+- `src/services/Commission.Api` — Commission BC. `Bank` aggregate (katalogdan kod+ad) + banka/merchant
+  komisyon grid'leri (kombinasyon-bazlı, atomik toplu upsert). Banka seed yok.
+- `src/ui/Admin` — Razor Pages BFF (yetki yok). Merchant/Bank/komisyon/settlement ekranları; typed
+  `HttpClient`'lar Aspire service discovery ile API'leri çağırır (`http://merchant-api` vb.). Backend'e
+  kural sızdırmaz — yalnız API sonucunu (`ApiResult`/`MessageText` Türkçe) gösterir.
 - `src/otherProjects/CP.VPOS` — sanal POS kütüphanesi, OLDUĞU GİBİ taşındı (eski stil, nullable
   kapalı). `otherProjects` altında (versiyonlanmaz) ama Payment BC'nin aktif bağımlılığı —
   Payment.Api buradan referans verir. CP.VPOS tipleri slice sınırını GEÇMEZ: handler
@@ -41,8 +56,8 @@ dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile ba
 
 ## Bilinçli ertelemeler
 
-- Yetkilendirme yok (Identity BC ile gelecek); endpoint'ler şimdilik korumasız.
-- Test projesi henüz yok. Eklenince saf domain birim testleri olacak (`BankRouter` ilk aday);
-  banka HTTP çağrıları test edilmez.
+- Yetkilendirme yok (Identity BC ile gelecek); endpoint'ler ve Admin BFF şimdilik korumasız.
+- Test: saf domain birim testleri var (`tests/Merchant.Api.Tests`, `tests/Commission.Api.Tests`).
+  Handler/HTTP/Razor Pages entegrasyonu test edilmez — quickstart senaryolarıyla elle doğrulanır.
 - Diğer BC'ler (Catalog, Order, Supplier...) tasarım gereği henüz yok; her biri kendi
   spec döngüsüyle eklenecek.
