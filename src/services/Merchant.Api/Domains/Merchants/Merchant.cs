@@ -17,6 +17,12 @@ public class Merchant : AggregateRoot
     {
     }
 
+    /// <summary>
+    /// Gateway'in onboarding'de mint ettiği benzersiz, değişmez, açık dış kimlik (örn.
+    /// "mk_9f1c..."). Yalnız <see cref="Create"/>'te atanır; hiçbir metot değiştirmez.
+    /// </summary>
+    public string MerchantKey { get; private set; } = string.Empty;
+
     public string Name { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;
     public string Phone { get; private set; } = string.Empty;
@@ -34,8 +40,12 @@ public class Merchant : AggregateRoot
 
     public MerchantStatus Status { get; private set; } = MerchantStatus.Active;
 
-    /// <summary>Saf format doğrulaması. Varlık (lookup) doğrulaması handler'da.</summary>
+    /// <summary>
+    /// Saf format doğrulaması. Varlık (lookup) doğrulaması handler'da. <paramref name="merchantKey"/>
+    /// handler tarafından üretilip (benzersizlik denetlenmiş) geçirilir; burada yalnız boş-değil kontrolü.
+    /// </summary>
     public static ResultDomain<Merchant> Create(
+        string merchantKey,
         string name,
         string email,
         string phone,
@@ -44,12 +54,16 @@ public class Merchant : AggregateRoot
         string mcc,
         string webhookUrl)
     {
+        if (string.IsNullOrWhiteSpace(merchantKey))
+            return ResultDomain<Merchant>.Error(Required(nameof(MerchantKey)));
+
         var validation = Validate(name, email, phone, countryCode, cityCode, mcc, webhookUrl);
         if (validation is not null)
             return ResultDomain<Merchant>.Error(validation);
 
         return ResultDomain<Merchant>.Ok(new Merchant
         {
+            MerchantKey = merchantKey,
             Name = name,
             Email = email,
             Phone = phone,

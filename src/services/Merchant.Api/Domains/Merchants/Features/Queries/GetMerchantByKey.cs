@@ -2,11 +2,11 @@ using Merchant.Api.Domains.Merchants.Lookups;
 
 namespace Merchant.Api.Domains.Merchants.Features.Queries;
 
-public static class GetMerchant
+public static class GetMerchantByKey
 {
-    public record GetMerchantQuery(Guid Id);
+    public record GetMerchantByKeyQuery(string MerchantKey);
 
-    public class GetMerchantResponse
+    public class GetMerchantByKeyResponse
     {
         public Guid Id { get; set; }
         public string MerchantKey { get; set; } = string.Empty;
@@ -24,24 +24,27 @@ public static class GetMerchant
         public DateTime CreatedTime { get; set; }
     }
 
-    public class GetMerchantQueryHandler
+    public class GetMerchantByKeyQueryHandler
     {
-        public async Task<FeatureObjectResultModel<GetMerchantResponse>> Handle(
-            GetMerchantQuery query,
+        public async Task<FeatureObjectResultModel<GetMerchantByKeyResponse>> Handle(
+            GetMerchantByKeyQuery query,
             IDocumentSession session,
             ICountryLookup countryLookup,
             ICityLookup cityLookup,
             IMccLookup mccLookup,
             CancellationToken ct)
         {
+            if (string.IsNullOrWhiteSpace(query.MerchantKey))
+                return FeatureObjectResultModel<GetMerchantByKeyResponse>.NotFound();
+
             var merchant = await session.Query<Merchant>()
-                .Where(m => m.Id == query.Id && !m.IsDeleted)
+                .Where(m => m.MerchantKey == query.MerchantKey && !m.IsDeleted)
                 .FirstOrDefaultAsync(ct);
 
             if (merchant is null)
-                return FeatureObjectResultModel<GetMerchantResponse>.NotFound();
+                return FeatureObjectResultModel<GetMerchantByKeyResponse>.NotFound();
 
-            return FeatureObjectResultModel<GetMerchantResponse>.Ok(new GetMerchantResponse
+            return FeatureObjectResultModel<GetMerchantByKeyResponse>.Ok(new GetMerchantByKeyResponse
             {
                 Id = merchant.Id,
                 MerchantKey = merchant.MerchantKey,
@@ -62,21 +65,21 @@ public static class GetMerchant
     }
 }
 
-public static class GetMerchantQueryEndpoint
+public static class GetMerchantByKeyQueryEndpoint
 {
-    public static RouteGroupBuilder GetMerchantGroupItemEndpoint(this RouteGroupBuilder group)
+    public static RouteGroupBuilder GetMerchantByKeyGroupItemEndpoint(this RouteGroupBuilder group)
     {
-        group.MapGet("/{id:guid}",
-                async (Guid id, IMessageBus bus) =>
+        group.MapGet("/by-key/{merchantKey}",
+                async (string merchantKey, IMessageBus bus) =>
                 {
                     var result = await bus
-                        .InvokeAsync<FeatureObjectResultModel<GetMerchant.GetMerchantResponse>>(
-                            new GetMerchant.GetMerchantQuery(id));
+                        .InvokeAsync<FeatureObjectResultModel<GetMerchantByKey.GetMerchantByKeyResponse>>(
+                            new GetMerchantByKey.GetMerchantByKeyQuery(merchantKey));
                     return result.IsSuccess ? Results.Ok(result.Data) : Results.NotFound(result);
                 })
-            .WithName("GetMerchant")
+            .WithName("GetMerchantByKey")
             .MapToApiVersion(1, 0)
-            .Produces<GetMerchant.GetMerchantResponse>()
+            .Produces<GetMerchantByKey.GetMerchantByKeyResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);
 
