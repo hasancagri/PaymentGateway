@@ -7,10 +7,13 @@ Sistem Aspire ile ayağa: `dotnet run --project src/aspire/AppHost/AppHost.cspro
 
 ## Doğrulama akışı
 
-1. **Banka ekle**: Admin → "Bankalar" → Yeni. Kod `0062`, ad `Garanti BBVA`, taksitler
-   `1,2,3,6,9,12`. Kaydet → listede görünür.
-2. **Kopya reddi**: Aynı kod `0062` ile tekrar ekle → "zaten var" hatası.
-3. **Güncelle**: `0062` düzenle, taksitleri `1,2,3,6` yap, aktif bırak → kaydet. Kod alanı değişmez.
+1. **Banka ekle**: Admin → "Bankalar" → Yeni. Katalog selectbox'ından `0062 — Garanti BBVA` seç
+   (kod/ad elle girilmez), taksitleri 1..15 checkbox grid'inden `1,2,3,6,9,12` işaretle. Kaydet →
+   listede görünür (ad `Garanti BBVA` katalogdan gelir).
+2. **Kopya reddi**: Selectbox `0062`'yi artık listelememeli (eklenmiş); doğrudan tekrar ekleme
+   denemesi → "zaten var" hatası.
+3. **Güncelle**: `0062` düzenle — kod ve ad salt-görünüm (değiştirilemez); taksit checkbox'larından
+   `1,2,3,6` bırak, aktif kalsın → kaydet.
 4. **Grid**: "Banka Komisyonları" → Yeni. Banka dropdown'dan `0062` seç. Grid
    VISA/MC/TROY/AMEX × CREDIT/DEBIT/PREPAID × DOMESTIC/INTERNATIONAL × {1,2,3,6} satırlarını gösterir.
    Tüm hücreler başta **eksik** işaretli.
@@ -23,9 +26,10 @@ Sistem Aspire ile ayağa: `dotnet run --project src/aspire/AppHost/AppHost.cspro
 ## Test doğrulaması
 
 `dotnet test tests/Commission.Api.Tests` — `BankTests` yeşil:
-- `Create` geçerli/geçersiz (kod uzunluğu, boş ad, boş/aralık-dışı taksit)
-- `Update` kod değişmezliği + doğrulama
+- `Create` geçerli/geçersiz (kod uzunluğu, katalog-dışı kod, boş/aralık-dışı taksit; Name katalogdan)
+- `Update` kod+ad değişmezliği + taksit doğrulama
 - `SoftDelete` bayrak + zaman
+- `BankCatalog` arama (var/yok kod)
 
 Detay kontrat: [contracts/banks-api.md](./contracts/banks-api.md),
 [contracts/bank-commissions-bulk-api.md](./contracts/bank-commissions-bulk-api.md).

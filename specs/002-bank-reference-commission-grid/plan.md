@@ -7,8 +7,11 @@
 ## Summary
 
 Commission BC'ye `Bank` referans aggregate'i (Code, Name, IsActive, SupportedInstallments) + tam
-CRUD eklenir; bankalar operatör tarafından elle girilir (seed yok). Admin UI'a banka yönetim
-sayfaları ve bir banka seçildiğinde o bankanın desteklediği taksitlere göre kart markası × tip ×
+CRUD eklenir; bankalar seed edilmez (DB boş başlar) ama operatör serbest metin yerine kanonik bir
+**banka katalogundan** (CP.VPOS `BankService.AllBanks`'ten statik kopyalanan Code+Name; runtime
+bağımlılık yok) seçerek ekler. Ad ve kod katalogdan gelir, ikisi de immutable; operatör yalnız taksit
+setini + aktifliği yönetir. Admin UI'a banka yönetim sayfaları (katalog selectbox + taksit 1..15
+checkbox grid) ve bir banka seçildiğinde o bankanın desteklediği taksitlere göre kart markası × tip ×
 bölge × taksit tüm kombinasyonlarını gösteren, eksikleri işaretleyen ve toplu kaydeden bir komisyon
 grid'i eklenir. Amaç: bir bankanın hiçbir komisyon kombinasyonunun eksik kalmaması.
 
@@ -31,8 +34,10 @@ Mevcut: `BankCommission`, `MerchantCommission`.
 **Performance Goals**: Etkileşimli admin; belirli bir SLA yok. Grid en fazla 4×3×2×15 = 360 satır/banka
 (tipik 144 @ 6 taksit) — tek istekte döner.
 
-**Constraints**: CP.VPOS tipleri slice sınırını geçmez (banka listesi statik veri olarak kopyalanır).
-Yetki bu dilimde uygulanmaz (proje geneli erteleme). Yalnız TL (para birimi modeli yok; oran yüzdedir).
+**Constraints**: CP.VPOS tipleri slice sınırını geçmez; banka katalogu (Code+Name) CP.VPOS
+`BankService.AllBanks`'ten statik veri olarak Commission.Api içine kopyalanır (runtime CP.VPOS
+bağımlılığı/tip geçişi yok — `AllBanks` zaten `internal`, erişilemez). Yetki bu dilimde uygulanmaz
+(proje geneli erteleme). Yalnız TL (para birimi modeli yok; oran yüzdedir).
 
 **Scale/Scope**: Operatörün gireceği kadar banka (elle), banka başına ≤360 komisyon kombinasyonu.
 Tek operatör rolü.
@@ -79,11 +84,12 @@ specs/002-bank-reference-commission-grid/
 src/services/Commission.Api/
 ├── Domains/
 │   ├── Banks/                              # YENİ aggregate + slice
-│   │   ├── Bank.cs
+│   │   ├── Bank.cs                         # Name katalogdan türer; Create(code,installments)/Update(isActive,installments)
+│   │   ├── BankCatalog.cs                  # YENİ statik kanonik katalog (CP.VPOS'tan kopya Code+Name)
 │   │   ├── BankEndpointExtension.cs
 │   │   └── Features/
 │   │       ├── Commands/{CreateBank,UpdateBank,DeleteBank}.cs
-│   │       └── Queries/{GetBanks,GetBank}.cs
+│   │       └── Queries/{GetBanks,GetBank,GetBankCatalog}.cs   # GetBankCatalog YENİ
 │   ├── BankCommissions/
 │   │   └── Features/Commands/BulkUpsertBankCommissions.cs   # YENİ toplu endpoint
 │   └── SharedKernel/CommissionResourceConstants.cs          # + BANK_HAS_COMMISSIONS
@@ -94,11 +100,14 @@ src/ui/Admin/
 │   ├── CommissionApiClient.cs              # + bank & bulk metotları
 │   └── ApiModels.cs                        # + Bank request/response modelleri
 ├── Pages/
-│   ├── Banks/{Index,Create,Edit,Delete}.cshtml(.cs)         # YENİ CRUD sayfaları
-│   └── BankCommissions/Create.cshtml(.cs)  # grid'e dönüştürülür
-├── Pages/Shared/_Layout.cshtml             # nav'a "Bankalar"
+│   ├── Banks/{Index,Create,Edit,Delete}.cshtml(.cs)         # Create: katalog selectbox; Edit: Code+Name salt-görünüm; taksit 1..15 checkbox grid
+│   ├── BankCommissions/Create.cshtml(.cs)  # grid; eksen filtre + "boşları doldur" + 20'li sayfalama
+│   └── BankCommissions/Index.cshtml(.cs)   # "Banka" kolonu kod→ad; + eksen filtre + 20'li sayfalama (salt-görünüm)
+├── Pages/Shared/_Layout.cshtml             # nav'a "Bankalar" + "Komisyon Grid"
 ├── MessageText.cs                          # + BANK_HAS_COMMISSIONS metni
-└── wwwroot/css/site.css                    # grid + .missing stili
+└── wwwroot/
+    ├── css/site.css                        # grid + .missing + filtre/doldur + sayfalama stili
+    └── js/filterable-table.js              # JENERIK client eksen filtresi + 20'li sayfalama + opsiyonel doldur (grid ve liste ortak; commission-grid.js'ten refactor)
 
 tests/Commission.Api.Tests/
 └── BankTests.cs                            # YENİ saf domain testleri

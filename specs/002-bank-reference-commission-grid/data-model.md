@@ -7,8 +7,8 @@ Commission BC (`commission` şeması). `AggregateRoot` (BaseModel'den: `Id` Guid
 
 | Alan | Tip | Görünürlük | Kural |
 |------|-----|-----------|-------|
-| `Code` | string | private set | Zorunlu, tam 4 hane. İş anahtarı, benzersiz (`!IsDeleted`). İmmutable (Create sonrası değişmez). |
-| `Name` | string | private set | Zorunlu (boş/whitespace değil). |
+| `Code` | string | private set | Zorunlu, tam 4 hane. İş anahtarı, benzersiz (`!IsDeleted`). İmmutable (Create sonrası değişmez). Kanonik katalogda bulunmalı. |
+| `Name` | string | private set | Katalogdan türer (Create'te Code'a göre set edilir). Elle girilmez, immutable. |
 | `SupportedInstallments` | `List<int>` | private set | Boş değil; her değer 1..`MaxInstallment`; distinct + artan sıralı. |
 | `IsActive` | bool | miras (public set BaseModel) | Aggregate metotları üzerinden set edilir. Pasif = grid seçiminde varsayılan gizli. |
 
@@ -16,14 +16,24 @@ Sabit: `MaxInstallment = 15`.
 
 ### Davranışlar
 
-- `static ResultDomain<Bank> Create(string code, string name, IEnumerable<int> installments)`
-  - Doğrula: code 4 hane (`COMMON_MESSAGE_INVALID_FORMAT`), name zorunlu
-    (`COMMON_MESSAGE_VALUE_IS_REQUIRED`), installments normalize (boş → `VALUE_IS_REQUIRED`,
-    aralık dışı → `INVALID_RANGE`).
-- `ResultDomain Update(string name, bool isActive, IEnumerable<int> installments)`
-  - `Code` değişmez. name + installments aynı doğrulama. `UpdatedTime = UtcNow`.
+- `static ResultDomain<Bank> Create(string code, IEnumerable<int> installments)`
+  - Doğrula: code 4 hane (`COMMON_MESSAGE_INVALID_FORMAT`); code katalogda mı
+    (`BANK_NOT_IN_CATALOG`); installments normalize (boş → `VALUE_IS_REQUIRED`, aralık dışı →
+    `INVALID_RANGE`). `Name` katalogdan (`BankCatalog`) alınır — parametre değildir.
+- `ResultDomain Update(bool isActive, IEnumerable<int> installments)`
+  - `Code` ve `Name` değişmez. installments aynı doğrulama. `UpdatedTime = UtcNow`.
 - `void SoftDelete()` — `IsDeleted = true`, `DeletedTime = UtcNow`.
 - private `NormalizeInstallments` — tekilleştir, sırala, aralık doğrula.
+
+## Yeni kanonik referans: BankCatalog
+
+Uygulamaya gömülü statik liste (belge değil, kalıcı değil). CP.VPOS `BankService.AllBanks`'ten
+kopyalanan `(Code, Name)` çiftleri (48 banka). Commission.Api içinde `static` sınıf.
+
+- `IReadOnlyList<CatalogEntry> All` — tüm katalog (`CatalogEntry(string Code, string Name)`).
+- `bool TryGetName(string code, out string name)` — Create doğrulaması + Name türetimi.
+- CP.VPOS'a runtime bağımlılık yok (`AllBanks` `internal`; değerler elle kopyalandı).
+- Değişiklik nadir; yeni banka gerekince katalog sabiti elle güncellenir.
 
 ### İlişkiler
 
@@ -60,3 +70,6 @@ birleşiminden UI tarafında üretilir.
 
 `CommissionResourceConstants.BANK_HAS_COMMISSIONS = "BANK_HAS_COMMISSIONS"` — bağlı komisyonu olan
 banka silinmeye çalışıldığında.
+
+`CommissionResourceConstants.BANK_NOT_IN_CATALOG = "BANK_NOT_IN_CATALOG"` — kanonik katalogda
+bulunmayan bir kodla banka eklenmeye çalışıldığında.
