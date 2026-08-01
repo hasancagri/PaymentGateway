@@ -24,8 +24,10 @@ dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile ba
 
 - `src/services/Payment.Api` — Payment BC. `Domains/<Aggregate>/Features/{Commands,Queries}`
   vertical slice düzeni; bir feature = bir static class (record command + Response + Handler + endpoint).
-- `src/services/CP.VPOS` — sanal POS kütüphanesi, OLDUĞU GİBİ taşındı (eski stil, nullable
-  kapalı). CP.VPOS tipleri slice sınırını GEÇMEZ: handler `SaleResponse`'u domain'e çevirir.
+- `src/otherProjects/CP.VPOS` — sanal POS kütüphanesi, OLDUĞU GİBİ taşındı (eski stil, nullable
+  kapalı). `otherProjects` altında (versiyonlanmaz) ama Payment BC'nin aktif bağımlılığı —
+  Payment.Api buradan referans verir. CP.VPOS tipleri slice sınırını GEÇMEZ: handler
+  `SaleResponse`'u domain'e çevirir.
 - `BankRouter` (domain service, saf hesap): komisyon + kart BIN/programı + taksit desteğine göre
   maliyet sıralı banka adayları döner. Failover: handler sıralı adayları dener; 3D'de yalnız ilk aday.
 - `PosAccount` aggregate: banka POS anlaşması (credentials + taksit başına komisyon). Komisyon

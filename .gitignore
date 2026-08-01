@@ -20,8 +20,5 @@ appsettings.Development.json
 # Legacy referans (salt-okunur, versiyonlanmaz)
 src/otherProjects/
 
-# CP.VPOS — şimdilik versiyonlanmıyor
-src/services/CP.VPOS/
-
 # Payment.Api — şimdilik versiyonlanmıyor
 src/services/Payment.Api/

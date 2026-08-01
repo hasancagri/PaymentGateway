@@ -1,5 +1,5 @@
-using Commission.Api.Domains.BankCommissions;
 using Commission.Api.Domains.MerchantCommissions;
+using Commission.Api.Domains.MerchantCommissions.Features.Queries;
 using Commission.Api.Domains.SharedKernel;
 using Xunit;
 
@@ -7,52 +7,37 @@ namespace Commission.Api.Tests;
 
 public class MerchantCommissionTests
 {
-    private static BankCommission Bank(decimal rate = 1.75m) =>
-        BankCommission.Create("0062",
-            Criteria.Create(CardBrand.VISA, CardType.CREDIT, TransactionRegion.DOMESTIC, 6).Data!,
-            rate).Data!;
+    private static Criteria SampleCriteria() =>
+        Criteria.Create(CardBrand.VISA, CardType.CREDIT, TransactionRegion.DOMESTIC, 6).Data!;
 
     [Fact]
-    public void Create_rate_bankRate_ustunde_Ok()
+    public void Create_gecerli_girdi_Ok()
     {
-        var bank = Bank(1.75m);
-
-        var result = MerchantCommission.Create(Guid.NewGuid(), bank, 2.40m);
+        var result = MerchantCommission.Create(Guid.NewGuid(), SampleCriteria(), 2.40m);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(2.40m, result.Data!.Rate);
+        Assert.Equal(SampleCriteria(), result.Data!.Criteria);
     }
 
     [Fact]
-    public void Create_rate_bankRate_ile_esit_Error()
+    public void Create_rate_sifir_veya_negatif_Error()
     {
-        var bank = Bank(1.75m);
+        foreach (var rate in new[] { 0m, -1.5m })
+        {
+            var result = MerchantCommission.Create(Guid.NewGuid(), SampleCriteria(), rate);
 
-        var result = MerchantCommission.Create(Guid.NewGuid(), bank, 1.75m);
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains(result.Messages!, m =>
-            m.Code == CommissionResourceConstants.MERCHANT_RATE_MUST_EXCEED_BANK_RATE);
-    }
-
-    [Fact]
-    public void Create_rate_bankRate_altinda_Error()
-    {
-        var bank = Bank(1.75m);
-
-        var result = MerchantCommission.Create(Guid.NewGuid(), bank, 1.50m);
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains(result.Messages!, m =>
-            m.Code == CommissionResourceConstants.MERCHANT_RATE_MUST_EXCEED_BANK_RATE);
+            Assert.False(result.IsSuccess);
+            Assert.Contains(result.Messages!, m =>
+                m.Property == nameof(MerchantCommission.Rate) &&
+                m.Code == CommonResourceConstants.COMMON_MESSAGE_INVALID_RANGE);
+        }
     }
 
     [Fact]
     public void Create_bos_merchantId_Error()
     {
-        var bank = Bank(1.75m);
-
-        var result = MerchantCommission.Create(Guid.Empty, bank, 2.40m);
+        var result = MerchantCommission.Create(Guid.Empty, SampleCriteria(), 2.40m);
 
         Assert.False(result.IsSuccess);
         Assert.Contains(result.Messages!, m =>
@@ -61,29 +46,56 @@ public class MerchantCommissionTests
     }
 
     [Fact]
-    public void Create_snapshot_bankadan_kopyalanir()
+    public void Create_null_criteria_Error()
     {
-        var bank = Bank(1.75m);
+        var result = MerchantCommission.Create(Guid.NewGuid(), null!, 2.40m);
 
-        var mc = MerchantCommission.Create(Guid.NewGuid(), bank, 2.40m).Data!;
-
-        Assert.Equal(bank.Id, mc.BankCommissionId);
-        Assert.Equal(bank.BankCode, mc.BankCode);
-        Assert.Equal(bank.Criteria, mc.Criteria);
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Messages!, m =>
+            m.Property == nameof(MerchantCommission.Criteria) &&
+            m.Code == CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED);
     }
 
     [Fact]
-    public void UpdateRate_ayni_invariant()
+    public void UpdateRate_gecerli_gunceller()
     {
-        var bank = Bank(1.75m);
-        var mc = MerchantCommission.Create(Guid.NewGuid(), bank, 2.40m).Data!;
+        var mc = MerchantCommission.Create(Guid.NewGuid(), SampleCriteria(), 2.40m).Data!;
 
-        Assert.True(mc.UpdateRate(2.60m, bank).IsSuccess);
+        Assert.True(mc.UpdateRate(2.60m).IsSuccess);
         Assert.Equal(2.60m, mc.Rate);
+    }
 
-        Assert.False(mc.UpdateRate(1.75m, bank).IsSuccess);
-        Assert.False(mc.UpdateRate(1.50m, bank).IsSuccess);
-        // Reddedilen güncellemeler oranı değiştirmez.
-        Assert.Equal(2.60m, mc.Rate);
+    [Fact]
+    public void UpdateRate_sifir_veya_negatif_Error_oran_degismez()
+    {
+        var mc = MerchantCommission.Create(Guid.NewGuid(), SampleCriteria(), 2.40m).Data!;
+
+        Assert.False(mc.UpdateRate(0m).IsSuccess);
+        Assert.False(mc.UpdateRate(-3m).IsSuccess);
+        Assert.Equal(2.40m, mc.Rate);
+    }
+}
+
+public class MerchantCommissionCeilingTests
+{
+    [Theory]
+    [InlineData(2.95, 2.95, true)]   // rate == bankMax → tavan-altı
+    [InlineData(2.50, 2.95, true)]   // rate < bankMax → tavan-altı
+    [InlineData(3.20, 2.95, false)]  // rate > bankMax → üstünde
+    public void ComputeBelowBankCeiling_banka_varken(decimal rate, decimal bankMax, bool expected)
+    {
+        Assert.Equal(expected, GetMerchantCommissions.ComputeBelowBankCeiling(rate, bankMax));
+    }
+
+    [Fact]
+    public void ComputeBelowBankCeiling_banka_yoksa_false()
+    {
+        Assert.False(GetMerchantCommissions.ComputeBelowBankCeiling(2.50m, null));
+    }
+
+    [Fact]
+    public void ComputeBelowBankCeiling_merchant_orani_yoksa_false()
+    {
+        Assert.False(GetMerchantCommissions.ComputeBelowBankCeiling(null, 2.95m));
     }
 }

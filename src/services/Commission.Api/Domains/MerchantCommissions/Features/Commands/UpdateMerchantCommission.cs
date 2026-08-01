@@ -1,7 +1,9 @@
-using Commission.Api.Domains.BankCommissions;
-
 namespace Commission.Api.Domains.MerchantCommissions.Features.Commands;
 
+/// <summary>
+/// Var olan merchant komisyonunun oranını günceller. Banka-bağımsız: banka YÜKLENMEZ.
+/// Criteria/MerchantId değişmez; yalnız <c>Rate</c> (> 0).
+/// </summary>
 public static class UpdateMerchantCommission
 {
     public record UpdateMerchantCommissionCommand(Guid Id, decimal Rate);
@@ -23,18 +25,7 @@ public static class UpdateMerchantCommission
             if (merchantCommission is null || merchantCommission.IsDeleted)
                 return FeatureObjectResultModel<UpdateMerchantCommissionResponse>.NotFound();
 
-            // Bağlı banka oranı invariant referansı (aynı session, in-process).
-            var bankCommission = await session.LoadAsync<BankCommission>(merchantCommission.BankCommissionId, ct);
-            if (bankCommission is null || bankCommission.IsDeleted)
-            {
-                return FeatureObjectResultModel<UpdateMerchantCommissionResponse>.Error(new MessageItem
-                {
-                    Property = nameof(merchantCommission.BankCommissionId),
-                    Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
-                });
-            }
-
-            var result = merchantCommission.UpdateRate(cmd.Rate, bankCommission);
+            var result = merchantCommission.UpdateRate(cmd.Rate);
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<UpdateMerchantCommissionResponse>.Error(result.Messages);
 

@@ -1,12 +1,20 @@
-using Commission.Api.Domains.BankCommissions;
-
 namespace Commission.Api.Domains.MerchantCommissions.Features.Commands;
 
+/// <summary>
+/// Tek merchant komisyonu oluştur/güncelle (upsert). Banka-bağımsız: banka YÜKLENMEZ, banka bağı YOK.
+/// <c>(MerchantId, Criteria)</c> varsa oran güncellenir; yoksa yeni kayıt.
+/// </summary>
 public static class CreateMerchantCommission
 {
+    public record CriteriaDto(
+        string CardBrand,
+        string CardType,
+        string TransactionRegion,
+        int InstallmentCount);
+
     public record CreateMerchantCommissionCommand(
         Guid MerchantId,
-        Guid BankCommissionId,
+        CriteriaDto Criteria,
         decimal Rate);
 
     public class CreateMerchantCommissionResponse
@@ -22,27 +30,24 @@ public static class CreateMerchantCommission
             IDocumentSession session,
             CancellationToken ct)
         {
-            // Bağlı banka oranını yükle (invariant referansı). merchantId'ye Merchant.Api'ye çağrı YOK.
-            var bankCommission = await session.LoadAsync<BankCommission>(cmd.BankCommissionId, ct);
-            if (bankCommission is null || bankCommission.IsDeleted)
-            {
-                return FeatureObjectResultModel<CreateMerchantCommissionResponse>.Error(new MessageItem
-                {
-                    Property = nameof(cmd.BankCommissionId),
-                    Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
-                });
-            }
+            // Kriteri kod stringlerinden kur (enum parse + taksit doğrulama). Banka yüklenmez.
+            var criteriaResult = Criteria.FromCodes(cmd.Criteria.CardBrand, cmd.Criteria.CardType,
+                cmd.Criteria.TransactionRegion, cmd.Criteria.InstallmentCount);
+            if (!criteriaResult.IsSuccess)
+                return FeatureObjectResultModel<CreateMerchantCommissionResponse>.Error(criteriaResult.Messages);
 
-            // (MerchantId, BankCommissionId) zaten varsa → upsert (UpdateRate); yoksa Create.
-            var existing = await session.Query<MerchantCommission>()
-                .Where(c => c.MerchantId == cmd.MerchantId
-                            && c.BankCommissionId == cmd.BankCommissionId
-                            && !c.IsDeleted)
-                .FirstOrDefaultAsync(ct);
+            var criteria = criteriaResult.Data!;
+
+            // (MerchantId, Criteria) mevcutsa upsert. Nested VO LINQ'tan kaçın: belleğe alıp eşitlikle eşleştir.
+            var existingForMerchant = await session.Query<MerchantCommission>()
+                .Where(c => c.MerchantId == cmd.MerchantId && !c.IsDeleted)
+                .ToListAsync(ct);
+
+            var existing = existingForMerchant.FirstOrDefault(c => Equals(c.Criteria, criteria));
 
             if (existing is not null)
             {
-                var updateResult = existing.UpdateRate(cmd.Rate, bankCommission);
+                var updateResult = existing.UpdateRate(cmd.Rate);
                 if (!updateResult.IsSuccess)
                     return FeatureObjectResultModel<CreateMerchantCommissionResponse>.Error(updateResult.Messages);
 
@@ -53,7 +58,7 @@ public static class CreateMerchantCommission
                 });
             }
 
-            var result = MerchantCommission.Create(cmd.MerchantId, bankCommission, cmd.Rate);
+            var result = MerchantCommission.Create(cmd.MerchantId, criteria, cmd.Rate);
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<CreateMerchantCommissionResponse>.Error(result.Messages);
 

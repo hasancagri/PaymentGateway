@@ -162,21 +162,36 @@ public class BankCommissionItem
     public decimal Rate { get; set; }
 }
 
-public record CreateMerchantCommissionRequest(Guid MerchantId, Guid BankCommissionId, decimal Rate);
+public record CreateMerchantCommissionRequest(Guid MerchantId, CriteriaDto Criteria, decimal Rate);
 
 public record UpdateMerchantCommissionRequest(decimal Rate);
+
+// Toplu merchant komisyonu (grid kaydı)
+
+public record MerchantCommissionBulkItem(CriteriaDto Criteria, decimal Rate);
+
+public record BulkUpsertMerchantCommissionsRequest(Guid MerchantId, List<MerchantCommissionBulkItem> Items);
+
+public class BulkUpsertResult
+{
+    public int Created { get; set; }
+    public int Updated { get; set; }
+}
 
 public class MerchantCommissionsResponse
 {
     public List<MerchantCommissionItem> Items { get; set; } = new();
 }
 
+/// <summary>Enriched grid satırı: merchant oranı + banka aralığı (min/max) + tavan-altı işareti (read-time).</summary>
 public class MerchantCommissionItem
 {
-    public Guid Id { get; set; }
+    public Guid? Id { get; set; }
     public Guid MerchantId { get; set; }
-    public Guid BankCommissionId { get; set; }
-    public string BankCode { get; set; } = string.Empty;
     public CriteriaDto Criteria { get; set; } = new();
-    public decimal Rate { get; set; }
+    public decimal? Rate { get; set; }
+    public decimal? BankMin { get; set; }
+    public decimal? BankMax { get; set; }
+    public bool BelowBankCeiling { get; set; }
+    public bool IsMissing { get; set; }
 }
