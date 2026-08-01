@@ -10,6 +10,8 @@ public static class BankCommissionEndpointExtension
         app.MapGroup("api/v{version:apiVersion}/bank-commissions").WithTags("bank-commissions")
             .WithApiVersionSet(apiVersionSet)
             .CreateBankCommissionGroupItemEndpoint()
+            .BulkUpsertBankCommissionsGroupItemEndpoint()
+            .GetCriteriaOptionsGroupItemEndpoint()
             .GetBankCommissionsGroupItemEndpoint();
     }
 }
