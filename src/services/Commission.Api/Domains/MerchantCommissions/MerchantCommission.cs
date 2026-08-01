@@ -1,10 +1,10 @@
-using Commission.Api.Domains.BankCommissions;
-
 namespace Commission.Api.Domains.MerchantCommissions;
 
 /// <summary>
-/// Merchant'ın gateway'e ödediği komisyon (gelir). Belirli bir BankCommission'a bağlıdır;
-/// invariant onun oranına karşı: <c>Rate &gt; bankCommission.Rate</c> (kesin büyük, eşit reddedilir).
+/// Merchant'ın belirli bir kombinasyon için gateway'e ödediği komisyon oranı. Banka-bağımsız:
+/// tek bir BankCommission'a bağlanmaz, kombinasyona <c>(MerchantId, Criteria)</c> bağlanır.
+/// <c>Rate &gt; 0</c> tek invariant'tır (sanity). Banka oranıyla karşılaştırma aggregate'te YOK —
+/// tavan-altı işareti okuma anında (GetMerchantCommissions) türetilir, saklanmaz.
 /// Tenant YOK (düz MerchantId filtresi). MerchantId Merchant.Api'ye çağrı YAPILMADAN Guid olarak tutulur.
 /// </summary>
 public class MerchantCommission : AggregateRoot
@@ -13,19 +13,16 @@ public class MerchantCommission : AggregateRoot
     {
     }
 
+    /// <summary>Opak merchant referansı (Merchant.Api'ye çağrı yok).</summary>
     public Guid MerchantId { get; private set; }
-    public Guid BankCommissionId { get; private set; }
 
-    /// <summary>Bağlı banka oranından snapshot (okuma kolaylığı).</summary>
+    /// <summary>Kart markası × tip × bölge × taksit. Benzersizlik: (MerchantId, Criteria).</summary>
     public Criteria Criteria { get; private set; } = null!;
 
-    /// <summary>Bağlı banka kodundan snapshot.</summary>
-    public string BankCode { get; private set; } = string.Empty;
-
-    /// <summary>Yüzde oran; invariant: banka oranından kesin büyük.</summary>
+    /// <summary>Yüzde oran; invariant: kesin pozitif (> 0).</summary>
     public decimal Rate { get; private set; }
 
-    public static ResultDomain<MerchantCommission> Create(Guid merchantId, BankCommission bankCommission, decimal rate)
+    public static ResultDomain<MerchantCommission> Create(Guid merchantId, Criteria criteria, decimal rate)
     {
         if (merchantId == Guid.Empty)
         {
@@ -36,50 +33,45 @@ public class MerchantCommission : AggregateRoot
             });
         }
 
-        if (bankCommission is null)
+        if (criteria is null)
         {
             return ResultDomain<MerchantCommission>.Error(new MessageItem
             {
-                Property = nameof(BankCommissionId),
-                Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
+                Property = nameof(Criteria),
+                Code = CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED
             });
         }
 
-        if (rate <= bankCommission.Rate)
-            return ResultDomain<MerchantCommission>.Error(RateMustExceedBankRate());
+        if (rate <= 0)
+        {
+            return ResultDomain<MerchantCommission>.Error(new MessageItem
+            {
+                Property = nameof(Rate),
+                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_RANGE
+            });
+        }
 
         return ResultDomain<MerchantCommission>.Ok(new MerchantCommission
         {
             MerchantId = merchantId,
-            BankCommissionId = bankCommission.Id,
-            Criteria = bankCommission.Criteria,
-            BankCode = bankCommission.BankCode,
+            Criteria = criteria,
             Rate = rate
         });
     }
 
-    public ResultDomain UpdateRate(decimal rate, BankCommission bankCommission)
+    public ResultDomain UpdateRate(decimal rate)
     {
-        if (bankCommission is null)
+        if (rate <= 0)
         {
             return ResultDomain.Error(new MessageItem
             {
-                Property = nameof(BankCommissionId),
-                Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
+                Property = nameof(Rate),
+                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_RANGE
             });
         }
-
-        if (rate <= bankCommission.Rate)
-            return ResultDomain.Error(RateMustExceedBankRate());
 
         Rate = rate;
         UpdatedTime = DateTime.UtcNow;
         return ResultDomain.Ok();
     }
-
-    private static MessageItem RateMustExceedBankRate() => new()
-    {
-        Property = nameof(Rate),
-        Code = CommissionResourceConstants.MERCHANT_RATE_MUST_EXCEED_BANK_RATE
-    };
 }

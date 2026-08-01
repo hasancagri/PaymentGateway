@@ -16,6 +16,7 @@ public interface ICommissionApiClient
     Task<ApiResult<CodeResult>> DeleteBankAsync(string code, CancellationToken ct = default);
     Task<ApiResult<IdResult>> CreateMerchantCommissionAsync(CreateMerchantCommissionRequest request, CancellationToken ct = default);
     Task<ApiResult<IdResult>> UpdateMerchantCommissionAsync(Guid id, UpdateMerchantCommissionRequest request, CancellationToken ct = default);
+    Task<ApiResult<BulkUpsertResult>> BulkUpsertMerchantCommissionsAsync(BulkUpsertMerchantCommissionsRequest request, CancellationToken ct = default);
     Task<ApiResult<MerchantCommissionsResponse>> GetMerchantCommissionsAsync(Guid merchantId, CancellationToken ct = default);
 }
 
@@ -65,6 +66,9 @@ public class CommissionApiClient : ApiClientBase, ICommissionApiClient
 
     public Task<ApiResult<IdResult>> UpdateMerchantCommissionAsync(Guid id, UpdateMerchantCommissionRequest request, CancellationToken ct = default) =>
         SendAsync<IdResult>(() => Http.PutAsJsonAsync($"/api/v1/merchant-commissions/{id}", request, ct), ct);
+
+    public Task<ApiResult<BulkUpsertResult>> BulkUpsertMerchantCommissionsAsync(BulkUpsertMerchantCommissionsRequest request, CancellationToken ct = default) =>
+        SendAsync<BulkUpsertResult>(() => Http.PostAsJsonAsync("/api/v1/merchant-commissions/bulk", request, ct), ct);
 
     public Task<ApiResult<MerchantCommissionsResponse>> GetMerchantCommissionsAsync(Guid merchantId, CancellationToken ct = default) =>
         SendAsync<MerchantCommissionsResponse>(() => Http.GetAsync($"/api/v1/merchant-commissions?merchantId={merchantId}", ct), ct);

@@ -96,6 +96,11 @@ tr.missing { background: #fff8e6; }
 tr.missing td { border-color: #e6c200; }
 tr.missing input.rate { border-color: #e6c200; background: #fffdf5; }
 
+/* Merchant grid: oran banka tavanının (max) altında/eşit — bilgi amaçlı işaret (engellemez). */
+tr.below-ceiling { background: #fff0f0; }
+tr.below-ceiling td { border-color: var(--error); }
+tr.below-ceiling input.rate { border-color: var(--error); background: #fff5f5; }
+
 /* Taksit seçimi: 1..15 checkbox grid. */
 .installment-grid {
     display: grid;

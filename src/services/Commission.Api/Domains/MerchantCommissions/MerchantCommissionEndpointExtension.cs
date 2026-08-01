@@ -11,6 +11,7 @@ public static class MerchantCommissionEndpointExtension
             .WithApiVersionSet(apiVersionSet)
             .CreateMerchantCommissionGroupItemEndpoint()
             .UpdateMerchantCommissionGroupItemEndpoint()
+            .BulkUpsertMerchantCommissionsGroupItemEndpoint()
             .GetMerchantCommissionsGroupItemEndpoint();
     }
 }
