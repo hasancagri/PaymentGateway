@@ -110,7 +110,7 @@ Mevcut yapı korunur: backend `src/services/Commission.Api/`, Admin UI `src/ui/A
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [X] T023 [P] Bulk upsert saf domain testleri (mümkün olan kısımlar — kriter eşleme/upsert kararı): `tests/Commission.Api.Tests/`
-- [ ] T024 quickstart.md senaryolarını Aspire ile elle doğrula (AppHost başlat → banka ekle → grid doldur → filtrele)
+- [X] T024 quickstart.md senaryolarını Aspire ile elle doğrula (AppHost başlat → banka ekle → grid doldur → filtrele) (kullanıcı elle doğruladı)
 - [X] T025 [P] `dotnet build` + `dotnet test` temiz geçtiğini doğrula
 
 ---
