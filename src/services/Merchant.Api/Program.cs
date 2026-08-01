@@ -18,6 +18,7 @@ builder.Services.AddMarten(opts =>
             });
 
         opts.Schema.For<Merchant.Api.Domains.Merchants.Merchant>();
+        opts.Schema.For<Merchant.Api.Domains.MerchantSettlementAccounts.MerchantSettlementAccount>();
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -53,5 +54,6 @@ var apiVersionSet = app.NewApiVersionSet()
     .Build();
 
 app.AddMerchantGroupEndpointExtension(apiVersionSet);
+app.AddMerchantSettlementAccountGroupEndpointExtension(apiVersionSet);
 
 await app.RunAsync();
