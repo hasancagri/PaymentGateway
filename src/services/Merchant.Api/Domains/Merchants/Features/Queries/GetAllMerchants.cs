@@ -12,6 +12,7 @@ public static class GetAllMerchants
     public class MerchantItem
     {
         public Guid Id { get; set; }
+        public string MerchantKey { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Mcc { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
@@ -33,6 +34,7 @@ public static class GetAllMerchants
                 Merchants = merchants.Select(m => new MerchantItem
                 {
                     Id = m.Id,
+                    MerchantKey = m.MerchantKey,
                     Name = m.Name,
                     Mcc = m.Mcc,
                     Status = m.Status.ToString()

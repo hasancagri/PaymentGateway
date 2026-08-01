@@ -16,6 +16,7 @@ public static class CreateMerchant
     public class CreateMerchantResponse
     {
         public Guid Id { get; set; }
+        public string MerchantKey { get; set; } = string.Empty;
     }
 
     [Transactional]
@@ -29,8 +30,11 @@ public static class CreateMerchant
             IMccLookup mccLookup,
             CancellationToken ct)
         {
-            // 1) Saf format doğrulaması aggregate'te.
-            var result = Merchant.Create(cmd.Name, cmd.Email, cmd.Phone, cmd.CountryCode,
+            // 1) Benzersiz merchantKey üret (gateway mint eder; istemcinin gönderdiği değer yok sayılır).
+            var merchantKey = await GenerateUniqueMerchantKeyAsync(session, ct);
+
+            // 2) Saf format doğrulaması aggregate'te (merchantKey presence dahil).
+            var result = Merchant.Create(merchantKey, cmd.Name, cmd.Email, cmd.Phone, cmd.CountryCode,
                 cmd.CityCode, cmd.Mcc, cmd.WebhookUrl);
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<CreateMerchantResponse>.Error(result.Messages);
@@ -59,8 +63,26 @@ public static class CreateMerchant
 
             return FeatureObjectResultModel<CreateMerchantResponse>.Ok(new CreateMerchantResponse
             {
-                Id = result.Data!.Id
+                Id = result.Data!.Id,
+                MerchantKey = result.Data!.MerchantKey
             });
+        }
+
+        /// <summary>Aday üret, mevcut kayıtlarda çakışma yoksa döndür; çakışırsa yeniden dene.</summary>
+        private static async Task<string> GenerateUniqueMerchantKeyAsync(
+            IDocumentSession session, CancellationToken ct)
+        {
+            for (var attempt = 0; attempt < 5; attempt++)
+            {
+                var candidate = MerchantKeyGenerator.Generate();
+                var exists = await session.Query<Merchant>()
+                    .AnyAsync(m => m.MerchantKey == candidate, ct);
+                if (!exists)
+                    return candidate;
+            }
+
+            // 122-bit rastgelelikte buraya ulaşmak pratikte imkânsız; son aday yine de benzersiz kabul edilir.
+            return MerchantKeyGenerator.Generate();
         }
 
         private static MessageItem NotFound(string property) => new()
