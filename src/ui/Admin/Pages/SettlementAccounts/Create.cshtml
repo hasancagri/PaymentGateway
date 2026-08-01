@@ -1,0 +1,37 @@
+@page
+@model Admin.Pages.SettlementAccounts.CreateModel
+@{
+    ViewData["Title"] = "Yeni Settlement Hesabı";
+}
+
+<partial name="_Messages" />
+
+<form method="post">
+    <input type="hidden" asp-for="MerchantId" />
+
+    <label asp-for="Input.BankCode">Banka (katalogdan seç)</label>
+    <select asp-for="Input.BankCode">
+        <option value="">— banka seç —</option>
+        @foreach (var b in Model.Banks)
+        {
+            <option value="@b.Code">@b.Code — @b.Name</option>
+        }
+    </select>
+
+    <label asp-for="Input.Iban">IBAN</label>
+    <input asp-for="Input.Iban" placeholder="TR..." />
+
+    <label asp-for="Input.AccountOwnerName">Hesap sahibi</label>
+    <input asp-for="Input.AccountOwnerName" />
+
+    <label asp-for="Input.AccountNo">Hesap no (opsiyonel)</label>
+    <input asp-for="Input.AccountNo" />
+
+    <label asp-for="Input.AccountDescription">Açıklama (opsiyonel)</label>
+    <input asp-for="Input.AccountDescription" />
+
+    <div>
+        <button type="submit">Ekle</button>
+        <a class="btn" asp-page="Index" asp-route-merchantId="@Model.MerchantId" style="background:#6e7781;">İptal</a>
+    </div>
+</form>

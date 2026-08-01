@@ -1,0 +1,57 @@
+@page
+@model Admin.Pages.SettlementAccounts.IndexModel
+@{
+    ViewData["Title"] = "Settlement Hesapları";
+}
+
+<partial name="_Messages" />
+
+<form method="get">
+    <label asp-for="MerchantId">Merchant</label>
+    <select asp-for="MerchantId" onchange="this.form.submit()">
+        <option value="">— seç —</option>
+        @foreach (var m in Model.Merchants)
+        {
+            <option value="@m.Id">@m.Name (@m.Mcc)</option>
+        }
+    </select>
+    <noscript><button type="submit" class="inline">Göster</button></noscript>
+</form>
+
+@if (Model.MerchantId is null || Model.MerchantId == Guid.Empty)
+{
+    <p class="muted">Hesapları görmek için bir merchant seç.</p>
+}
+else
+{
+    <div class="actions">
+        <a class="btn" asp-page="Create" asp-route-merchantId="@Model.MerchantId">Yeni hesap</a>
+    </div>
+
+    @if (Model.Accounts.Count == 0)
+    {
+        <p class="muted">Bu merchant için hesap yok. <a asp-page="Create" asp-route-merchantId="@Model.MerchantId">Yeni hesap ekle</a>.</p>
+    }
+    else
+    {
+        <table>
+            <thead>
+                <tr><th>Banka</th><th>IBAN</th><th>Sahip</th><th>Durum</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model.Accounts)
+                {
+                    <tr>
+                        <td>@a.BankCode @(a.BankName is null ? "" : $"({a.BankName})")</td>
+                        <td class="key">@a.Iban</td>
+                        <td>@a.AccountOwnerName</td>
+                        <td>@a.Status</td>
+                        <td>
+                            <a class="btn" asp-page="Edit" asp-route-merchantId="@Model.MerchantId" asp-route-accountId="@a.Id">Düzenle</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
