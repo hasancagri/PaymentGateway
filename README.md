@@ -9,7 +9,8 @@ Altyapı: **Aspire** (orkestrasyon), **Marten** (Postgres document store), **Wol
 ```bash
 dotnet build                                             # tüm çözüm (PaymentGateway.slnx)
 dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile başlat (Postgres + RabbitMQ)
-dotnet test tests/Commission.Api.Tests                   # saf domain birim testleri
+dotnet test tests/Merchant.Api.Tests                     # saf domain birim testleri (Merchant)
+dotnet test tests/Commission.Api.Tests                   # saf domain birim testleri (Commission)
 ```
 
 Sistemi her zaman AppHost üzerinden başlatın; servisler bağlantı dizelerini Aspire'dan alır.
@@ -22,11 +23,10 @@ src/
 ├── aspire/           AppHost + ServiceDefaults (orkestrasyon)
 ├── services/
 │   ├── Payment.Api   Ödeme BC (CP.VPOS sanal POS ile)
-│   ├── Merchant.Api  Merchant onboarding BC
+│   ├── Merchant.Api  Merchant BC (onboarding + settlement hesapları)
 │   └── Commission.Api Komisyon BC (banka + komisyon)
 ├── ui/Admin          Razor Pages yönetim arayüzü
-├── others/           Common (domain base, Result, auth) + Shared (integration event)
-└── otherProjects/    CP.VPOS sanal POS kütüphanesi + eski PFApplication referansı (salt-okunur)
+└── others/           Common (domain base, Result, auth) + Shared (integration event)
 ```
 
 Bir feature = bir static class (record command/query + Response + Handler + endpoint). Handler'lar
@@ -38,8 +38,39 @@ Bir feature = bir static class (record command/query + Response + Handler + endp
 | BC | Sorumluluk |
 |----|-----------|
 | **Payment** | Sanal POS ödeme; `BankRouter` maliyet-sıralı banka adayları; `PosAccount` aggregate (banka anlaşması + komisyon). |
-| **Merchant** | Merchant onboarding + API key. |
+| **Merchant** | Merchant onboarding + API key; settlement (payout) banka hesapları. |
 | **Commission** | Banka referansı, banka komisyonları, merchant komisyonları. |
+
+## Merchant BC — Settlement hesapları (feature 004) + Admin ekranları (005)
+
+Merchant'a payout için para yatırılacak banka hesabı yönetimi. `MerchantSettlementAccount` aggregate;
+`Merchant` aggregate'ine dokunulmaz, bağ `MerchantId` referansıyla.
+
+### MerchantSettlementAccount aggregate
+
+- **BankCode** (4 hane), **Iban** (normalize saklanır), **AccountOwnerName**, **AccountNo**/
+  **AccountDescription** (opsiyonel), **Status** (`Active`/`Passive`, soft — silme yok).
+- IBAN doğrulama saf aggregate içinde: `^TR\d{24}$` + **ISO 13616 mod-97**. Yalnız TR (yurtiçi TL).
+- Banka referansı yerel `BankCatalog` kopyasına (Commission ile elle senkron) doğrulanır — cross-BC
+  çağrı yok. Merchant varlığı + mükerrer IBAN handler'da (Marten sorgu).
+
+### API
+
+| Metod | Yol | Açıklama |
+|-------|-----|----------|
+| `POST` | `/merchants/{merchantId}/settlement-accounts` | Ekle. |
+| `GET` | `…/settlement-accounts` | Merchant'ın hesapları (tenant-scoped). |
+| `GET` | `…/settlement-accounts/{accountId}` | Detay (başka merchant → 404). |
+| `PUT` | `…/settlement-accounts/{accountId}` | Güncelle. |
+| `PUT` | `…/settlement-accounts/{accountId}/status` | `{ isActive }` aktif/pasif. |
+
+Doğrulama kodları: `INVALID_FORMAT` (IBAN/bankCode), `RECORD_NOT_FOUND` (merchant/banka), `RECORD_DUPLICATE`.
+
+### Admin arayüzü (005)
+
+Gateway admin için (merchant self-service değil). Merchant detay → **Settlement Hesapları**: liste
+(banka kod+ad, IBAN, sahip, durum), ekleme (banka dropdown Commission katalogundan), düzenleme + aktif/
+pasif. Salt-UI — backend'e dokunmaz; API sonucunu `MessageText` ile Türkçe gösterir.
 
 ## Commission BC — Banka referansı + komisyon grid (feature 002)
 
@@ -85,9 +116,12 @@ banka silinemez), `RECORD_DUPLICATE`, `INVALID_RANGE`.
 
 ## Test
 
-Saf domain birim testleri (`tests/Commission.Api.Tests`); banka/dış HTTP çağrıları test edilmez.
-`BankTests` (aggregate + katalog), `BulkUpsertCriteriaMatchTests`, `BankCommissionTests`,
-`MerchantCommissionTests`.
+Saf domain birim testleri; handler/HTTP/Razor Pages entegrasyonu test edilmez (quickstart ile elle).
+
+- `tests/Merchant.Api.Tests` — `MerchantTests`, `MerchantSettlementAccountTests` (IBAN mod-97, TR kısıtı,
+  durum geçişleri).
+- `tests/Commission.Api.Tests` — `BankTests` (aggregate + katalog), `BulkUpsertCriteriaMatchTests`,
+  `BankCommissionTests`, `MerchantCommissionTests`.
 
 ## Geliştirme akışı
 

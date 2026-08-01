@@ -22,3 +22,7 @@ src/otherProjects/
 
 # Payment.Api — şimdilik versiyonlanmıyor
 src/services/Payment.Api/
+
+# Tasarım/senaryo notları — yerel referans, versiyonlanmaz
+src/reference-architecture.md
+src/scenario.md
