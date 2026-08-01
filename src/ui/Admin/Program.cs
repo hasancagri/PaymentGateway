@@ -17,6 +17,9 @@ builder.Services.AddHttpClient<IMerchantApiClient, MerchantApiClient>(client =>
 builder.Services.AddHttpClient<ICommissionApiClient, CommissionApiClient>(client =>
     client.BaseAddress = new Uri("http://commission-api"));
 
+builder.Services.AddHttpClient<ISettlementAccountApiClient, SettlementAccountApiClient>(client =>
+    client.BaseAddress = new Uri("http://merchant-api"));
+
 var app = builder.Build();
 
 app.MapDefaultEndpoints();

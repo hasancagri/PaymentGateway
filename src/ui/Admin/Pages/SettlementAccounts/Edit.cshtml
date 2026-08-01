@@ -1,0 +1,57 @@
+@page
+@model Admin.Pages.SettlementAccounts.EditModel
+@{
+    ViewData["Title"] = "Settlement Hesabı Düzenle";
+}
+
+<partial name="_Messages" />
+
+@if (!Model.Loaded)
+{
+    <p class="muted">Hesap bulunamadı.</p>
+    <a class="btn" asp-page="Index" asp-route-merchantId="@Model.MerchantId">Listeye dön</a>
+}
+else
+{
+    <p class="muted">Durum: <strong>@Model.Status</strong></p>
+
+    <form method="post">
+        <input type="hidden" asp-for="MerchantId" />
+        <input type="hidden" asp-for="AccountId" />
+
+        <label asp-for="Input.BankCode">Banka (katalogdan seç)</label>
+        <select asp-for="Input.BankCode">
+            <option value="">— banka seç —</option>
+            @foreach (var b in Model.Banks)
+            {
+                <option value="@b.Code">@b.Code — @b.Name</option>
+            }
+        </select>
+
+        <label asp-for="Input.Iban">IBAN</label>
+        <input asp-for="Input.Iban" />
+
+        <label asp-for="Input.AccountOwnerName">Hesap sahibi</label>
+        <input asp-for="Input.AccountOwnerName" />
+
+        <label asp-for="Input.AccountNo">Hesap no (opsiyonel)</label>
+        <input asp-for="Input.AccountNo" />
+
+        <label asp-for="Input.AccountDescription">Açıklama (opsiyonel)</label>
+        <input asp-for="Input.AccountDescription" />
+
+        <div>
+            <button type="submit">Kaydet</button>
+            <a class="btn" asp-page="Index" asp-route-merchantId="@Model.MerchantId" style="background:#6e7781;">İptal</a>
+        </div>
+    </form>
+
+    <form method="post" asp-page-handler="ToggleStatus"
+          asp-route-merchantId="@Model.MerchantId" asp-route-accountId="@Model.AccountId">
+        @{
+            var willActivate = Model.Status == "Passive";
+        }
+        <input type="hidden" name="isActive" value="@willActivate.ToString().ToLowerInvariant()" />
+        <button type="submit">@(willActivate ? "Aktif et" : "Pasife al")</button>
+    </form>
+}

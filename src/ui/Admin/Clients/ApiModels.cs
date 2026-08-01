@@ -71,6 +71,62 @@ public class MerchantListItem
     public string Status { get; set; } = string.Empty;
 }
 
+// ---- Merchant.Api (settlement hesapları) ----
+
+public record CreateSettlementAccountRequest(
+    string BankCode,
+    string Iban,
+    string AccountOwnerName,
+    string AccountNo,
+    string AccountDescription);
+
+public record UpdateSettlementAccountRequest(
+    string BankCode,
+    string Iban,
+    string AccountOwnerName,
+    string AccountNo,
+    string AccountDescription);
+
+public record SetSettlementAccountStatusRequest(bool IsActive);
+
+public class SettlementAccountsResponse
+{
+    public List<SettlementAccountListItem> Accounts { get; set; } = new();
+}
+
+/// <summary>Liste satırı (GET /). <c>BankName</c> lookup türevi (bilinmeyen kod → null).</summary>
+public class SettlementAccountListItem
+{
+    public Guid Id { get; set; }
+    public string BankCode { get; set; } = string.Empty;
+    public string? BankName { get; set; }
+    public string Iban { get; set; } = string.Empty;
+    public string AccountOwnerName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+}
+
+/// <summary>Tekil ayrıntı (GET /{accountId}).</summary>
+public class SettlementAccountDetail
+{
+    public Guid Id { get; set; }
+    public Guid MerchantId { get; set; }
+    public string BankCode { get; set; } = string.Empty;
+    public string? BankName { get; set; }
+    public string Iban { get; set; } = string.Empty;
+    public string AccountOwnerName { get; set; } = string.Empty;
+    public string AccountNo { get; set; } = string.Empty;
+    public string AccountDescription { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedTime { get; set; }
+}
+
+/// <summary>Durum değişimi yanıtı ({ id, status }).</summary>
+public class IdStatusResult
+{
+    public Guid Id { get; set; }
+    public string Status { get; set; } = string.Empty;
+}
+
 // ---- Commission.Api ----
 
 public class CriteriaDto
