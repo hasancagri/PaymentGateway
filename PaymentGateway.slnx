@@ -8,6 +8,7 @@
     <Project Path="src/aspire/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/otherProjects/">
+    <Project Path="src/otherProjects/CP.VPOS/CP.VPOS.csproj" />
     <Project Path="src/otherProjects/Core/PFApplication.Application/PFApplication.Application.csproj" />
     <Project Path="src/otherProjects/Core/PFApplication.Data/PFApplication.Data.csproj" />
     <Project Path="src/otherProjects/Infrastructure/PFApplication.Core/PFApplication.Core.csproj" />
@@ -27,7 +28,6 @@
     <Project Path="src/others/Shared/Shared.csproj" />
   </Folder>
   <Folder Name="/src/services/">
-    <Project Path="src/services/CP.VPOS/CP.VPOS.csproj" />
     <Project Path="src/services/gateway/Gateway/Gateway.csproj" />
     <Project Path="src/services/Payment.Api/Payment.Api.csproj" />
     <Project Path="src/services/Merchant.Api/Merchant.Api.csproj" />
