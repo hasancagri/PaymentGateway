@@ -1,0 +1,99 @@
+@page
+@using Admin.PageModels
+@model Admin.Pages.BinCards.IndexModel
+@{
+    ViewData["Title"] = "BIN Kataloğu";
+}
+
+<partial name="_Messages" />
+
+<div class="actions">
+    <a class="btn" asp-page="Resolve">BIN Ara</a>
+</div>
+
+<form method="get">
+    <label asp-for="BankCode">Banka Kodu</label>
+    <input asp-for="BankCode" maxlength="4" placeholder="ör. 0062" style="max-width:120px;" />
+
+    <label asp-for="CardProgram">Program</label>
+    <select asp-for="CardProgram">
+        <option value="">(hepsi)</option>
+        @foreach (var o in BinCardLabels.ProgramOptions)
+        {
+            <option value="@o.Key">@o.Value</option>
+        }
+    </select>
+
+    <label asp-for="CardType">Kart Tipi</label>
+    <select asp-for="CardType">
+        <option value="">(hepsi)</option>
+        @foreach (var o in BinCardLabels.TypeOptions)
+        {
+            <option value="@o.Key">@o.Value</option>
+        }
+    </select>
+
+    <label asp-for="CardBrand">Marka</label>
+    <select asp-for="CardBrand">
+        <option value="">(hepsi)</option>
+        @foreach (var o in BinCardLabels.BrandOptions)
+        {
+            <option value="@o.Key">@o.Value</option>
+        }
+    </select>
+
+    <label asp-for="Commercial">Ticari</label>
+    <select asp-for="Commercial">
+        <option value="">(hepsi)</option>
+        <option value="true">Evet</option>
+        <option value="false">Hayır</option>
+    </select>
+
+    <button type="submit" class="inline">Filtrele</button>
+</form>
+
+@if (Model.Result.Items.Count == 0)
+{
+    <p class="muted">Sonuç yok.</p>
+}
+else
+{
+    <p class="muted">
+        Toplam @Model.Result.TotalCount kayıt — sayfa @Model.Result.Page / @Model.Result.PageCount
+    </p>
+    <table>
+        <thead>
+            <tr><th>BIN</th><th>Banka Kodu</th><th>Kart Tipi</th><th>Marka</th><th>Program</th><th>Ticari</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model.Result.Items)
+            {
+                <tr>
+                    <td class="key">@r.BinNumber</td>
+                    <td>@r.BankCode</td>
+                    <td>@BinCardLabels.Type(r.CardType)</td>
+                    <td>@BinCardLabels.Brand(r.CardBrand)</td>
+                    <td>@BinCardLabels.Program(r.CardProgram)</td>
+                    <td>@BinCardLabels.Commercial(r.Commercial)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="actions">
+        @if (Model.Result.Page > 1)
+        {
+            <a asp-page="Index"
+               asp-route-BankCode="@Model.BankCode" asp-route-CardProgram="@Model.CardProgram"
+               asp-route-CardType="@Model.CardType" asp-route-CardBrand="@Model.CardBrand"
+               asp-route-Commercial="@Model.Commercial" asp-route-Page="@(Model.Result.Page - 1)">← Önceki</a>
+        }
+        @if (Model.Result.Page < Model.Result.PageCount)
+        {
+            <a asp-page="Index"
+               asp-route-BankCode="@Model.BankCode" asp-route-CardProgram="@Model.CardProgram"
+               asp-route-CardType="@Model.CardType" asp-route-CardBrand="@Model.CardBrand"
+               asp-route-Commercial="@Model.Commercial" asp-route-Page="@(Model.Result.Page + 1)">Sonraki →</a>
+        }
+    </div>
+}
