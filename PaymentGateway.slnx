@@ -37,6 +37,7 @@
     <Project Path="src/ui/Admin/Admin.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Payment.Api.Tests/Payment.Api.Tests.csproj" />
     <Project Path="tests/Merchant.Api.Tests/Merchant.Api.Tests.csproj" />
     <Project Path="tests/Commission.Api.Tests/Commission.Api.Tests.csproj" />
   </Folder>
