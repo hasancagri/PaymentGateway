@@ -11,16 +11,38 @@ public static class BinCardEndpointExtension
             .WithTags("bin-cards")
             .WithApiVersionSet(apiVersionSet);
 
-        // Debug/iç çözümleme ucu: BIN → CardInfo (bulunamazsa 404).
-        group.MapGet("/{bin}",
-                async (string bin, IQuerySession session, CancellationToken ct) =>
+        // Filtreli sayfalı liste (Admin): segmentsiz GET → ham katalog, AND filtre + sayfalama.
+        group.MapGet("/",
+                async (
+                    [FromQuery] string? bankCode,
+                    [FromQuery] string? cardProgram,
+                    [FromQuery] string? cardType,
+                    [FromQuery] string? cardBrand,
+                    [FromQuery] bool? commercial,
+                    [FromQuery] int page,
+                    [FromQuery] int pageSize,
+                    IMessageBus bus) =>
                 {
-                    var card = await ResolveBinCard.Resolve(session, bin, ct);
-                    return card is null ? Results.NotFound() : Results.Ok(card);
+                    var result = await bus.InvokeAsync<FeatureObjectResultModel<ListBinCards.BinCardListResponse>>(
+                        new ListBinCards.ListBinCardsQuery(bankCode, cardProgram, cardType, cardBrand, commercial, page, pageSize));
+                    return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
                 })
-            .WithName("ResolveBinCard")
+            .WithName("ListBinCards")
             .MapToApiVersion(1, 0)
-            .Produces<CardInfo>()
+            .Produces<ListBinCards.BinCardListResponse>()
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
+
+        // Tekil BIN detayı (Admin): ham alanlar + türetilmiş taksit-banka (bulunamazsa 404).
+        group.MapGet("/{bin}",
+                async (string bin, IMessageBus bus) =>
+                {
+                    var result = await bus.InvokeAsync<FeatureObjectResultModel<GetBinCardDetail.BinCardDetailResponse>>(
+                        new GetBinCardDetail.GetBinCardDetailQuery(bin));
+                    return result.IsSuccess ? Results.Ok(result.Data) : Results.NotFound(result);
+                })
+            .WithName("GetBinCardDetail")
+            .MapToApiVersion(1, 0)
+            .Produces<GetBinCardDetail.BinCardDetailResponse>()
             .Produces(StatusCodes.Status404NotFound);
 
         // Operatör: yayınlanan listeyi idempotent toplu upsert.

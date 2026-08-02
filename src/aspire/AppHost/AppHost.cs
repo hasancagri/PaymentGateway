@@ -15,7 +15,7 @@ var paymentDb = postgres.AddDatabase("paymentDb");
 var merchantDb = postgres.AddDatabase("merchantDb");
 var commissionDb = postgres.AddDatabase("commissionDb");
 
-builder.AddProject<Projects.Payment_Api>("payment-api")
+var paymentApi = builder.AddProject<Projects.Payment_Api>("payment-api")
     .WithReference(paymentDb)
     .WithReference(rabbit)
     .WaitFor(paymentDb)
@@ -38,7 +38,9 @@ var commissionApi = builder.AddProject<Projects.Commission_Api>("commission-api"
 builder.AddProject<Projects.Admin>("admin-web")
     .WithReference(merchantApi)
     .WithReference(commissionApi)
+    .WithReference(paymentApi)
     .WaitFor(merchantApi)
-    .WaitFor(commissionApi);
+    .WaitFor(commissionApi)
+    .WaitFor(paymentApi);
 
 builder.Build().Run();
