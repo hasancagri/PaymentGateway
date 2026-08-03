@@ -15,7 +15,8 @@ public class IndexModel : BasePageModel
     [BindProperty(SupportsGet = true)] public string? CardType { get; set; }
     [BindProperty(SupportsGet = true)] public string? CardBrand { get; set; }
     [BindProperty(SupportsGet = true)] public bool? Commercial { get; set; }
-    [BindProperty(SupportsGet = true)] public int Page { get; set; } = 1;
+    // NOT: "Page" Razor Pages'te rezerve route anahtarı (asp-page). Bind edilmez → PageNo kullan.
+    [BindProperty(SupportsGet = true)] public int PageNo { get; set; } = 1;
 
     public BinCardListResponse Result { get; private set; } = new();
 
@@ -28,7 +29,7 @@ public class IndexModel : BasePageModel
             CardType = CardType,
             CardBrand = CardBrand,
             Commercial = Commercial,
-            Page = Page < 1 ? 1 : Page
+            Page = PageNo < 1 ? 1 : PageNo
         };
 
         var result = await _api.ListAsync(filter, ct);

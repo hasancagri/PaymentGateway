@@ -151,3 +151,5 @@ tr.below-ceiling input.rate { border-color: var(--error); background: #fff5f5; }
 }
 .grid-pager button { margin-top: 0; }
 .grid-pager button:disabled { opacity: 0.5; cursor: default; }
+/* Pager içi buton/anchor: küçük ve hizalı (button.inline ile aynı boyut). */
+.grid-pager .btn { margin-top: 0; padding: 0.3rem 0.6rem; }

@@ -58,9 +58,6 @@
 }
 else
 {
-    <p class="muted">
-        Toplam @Model.Result.TotalCount kayıt — sayfa @Model.Result.Page / @Model.Result.PageCount
-    </p>
     <table>
         <thead>
             <tr><th>BIN</th><th>Banka Kodu</th><th>Kart Tipi</th><th>Marka</th><th>Program</th><th>Ticari</th></tr>
@@ -80,20 +77,31 @@ else
         </tbody>
     </table>
 
-    <div class="actions">
+    <div class="grid-pager">
         @if (Model.Result.Page > 1)
         {
-            <a asp-page="Index"
+            <a class="btn" asp-page="Index"
                asp-route-BankCode="@Model.BankCode" asp-route-CardProgram="@Model.CardProgram"
                asp-route-CardType="@Model.CardType" asp-route-CardBrand="@Model.CardBrand"
-               asp-route-Commercial="@Model.Commercial" asp-route-Page="@(Model.Result.Page - 1)">← Önceki</a>
+               asp-route-Commercial="@Model.Commercial" asp-route-PageNo="@(Model.Result.Page - 1)">‹ Önceki</a>
         }
+        else
+        {
+            <button type="button" class="btn" disabled>‹ Önceki</button>
+        }
+
+        <span class="muted">Sayfa @Model.Result.Page / @Model.Result.PageCount (@Model.Result.TotalCount kayıt)</span>
+
         @if (Model.Result.Page < Model.Result.PageCount)
         {
-            <a asp-page="Index"
+            <a class="btn" asp-page="Index"
                asp-route-BankCode="@Model.BankCode" asp-route-CardProgram="@Model.CardProgram"
                asp-route-CardType="@Model.CardType" asp-route-CardBrand="@Model.CardBrand"
-               asp-route-Commercial="@Model.Commercial" asp-route-Page="@(Model.Result.Page + 1)">Sonraki →</a>
+               asp-route-Commercial="@Model.Commercial" asp-route-PageNo="@(Model.Result.Page + 1)">Sonraki ›</a>
+        }
+        else
+        {
+            <button type="button" class="btn" disabled>Sonraki ›</button>
         }
     </div>
 }
