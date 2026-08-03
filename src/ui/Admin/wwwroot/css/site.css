@@ -153,3 +153,8 @@ tr.below-ceiling input.rate { border-color: var(--error); background: #fff5f5; }
 .grid-pager button:disabled { opacity: 0.5; cursor: default; }
 /* Pager içi buton/anchor: küçük ve hizalı (button.inline ile aynı boyut). */
 .grid-pager .btn { margin-top: 0; padding: 0.3rem 0.6rem; }
+/* Numaralı sayfa gezinme. */
+.grid-pager .page-link { padding: 0.3rem 0.55rem; border: 1px solid var(--accent); border-radius: 4px; text-decoration: none; color: var(--accent); }
+.grid-pager .page-link:hover { background: var(--accent); color: #fff; }
+.grid-pager .page-current { padding: 0.3rem 0.55rem; border: 1px solid var(--accent); border-radius: 4px; background: var(--accent); color: #fff; font-weight: 600; }
+.grid-pager .page-gap { color: var(--muted); padding: 0 0.15rem; }

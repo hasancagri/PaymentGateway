@@ -3,6 +3,28 @@
 @model Admin.Pages.BinCards.IndexModel
 @{
     ViewData["Title"] = "BIN Kataloğu";
+
+    // Sayfalama penceresi: aktif sayfa etrafında ± + ilk/son; boşluklar "…".
+    var cur = Model.Result.Page;
+    var last = Model.Result.PageCount;
+    var nums = new SortedSet<int> { 1, last < 1 ? 1 : last };
+    for (var i = cur - 2; i <= cur + 2; i++)
+    {
+        if (i >= 1 && i <= last) nums.Add(i);
+    }
+    var pageNums = nums.Where(n => n >= 1 && n <= last).ToList();
+
+    // Filtreleri + hedef sayfayı taşıyan route verisi (yalnız dolu filtreler).
+    Func<int, Dictionary<string, string>> rv = n =>
+    {
+        var d = new Dictionary<string, string> { ["PageNo"] = n.ToString() };
+        if (!string.IsNullOrEmpty(Model.BankCode)) d["BankCode"] = Model.BankCode;
+        if (!string.IsNullOrEmpty(Model.CardProgram)) d["CardProgram"] = Model.CardProgram;
+        if (!string.IsNullOrEmpty(Model.CardType)) d["CardType"] = Model.CardType;
+        if (!string.IsNullOrEmpty(Model.CardBrand)) d["CardBrand"] = Model.CardBrand;
+        if (Model.Commercial.HasValue) d["Commercial"] = Model.Commercial.Value.ToString();
+        return d;
+    };
 }
 
 <partial name="_Messages" />
@@ -78,30 +100,40 @@ else
     </table>
 
     <div class="grid-pager">
-        @if (Model.Result.Page > 1)
+        @if (cur > 1)
         {
-            <a class="btn" asp-page="Index"
-               asp-route-BankCode="@Model.BankCode" asp-route-CardProgram="@Model.CardProgram"
-               asp-route-CardType="@Model.CardType" asp-route-CardBrand="@Model.CardBrand"
-               asp-route-Commercial="@Model.Commercial" asp-route-PageNo="@(Model.Result.Page - 1)">‹ Önceki</a>
+            <a class="btn" asp-page="Index" asp-all-route-data="rv(cur - 1)">‹ Önceki</a>
         }
         else
         {
             <button type="button" class="btn" disabled>‹ Önceki</button>
         }
 
-        <span class="muted">Sayfa @Model.Result.Page / @Model.Result.PageCount (@Model.Result.TotalCount kayıt)</span>
-
-        @if (Model.Result.Page < Model.Result.PageCount)
+        @for (var idx = 0; idx < pageNums.Count; idx++)
         {
-            <a class="btn" asp-page="Index"
-               asp-route-BankCode="@Model.BankCode" asp-route-CardProgram="@Model.CardProgram"
-               asp-route-CardType="@Model.CardType" asp-route-CardBrand="@Model.CardBrand"
-               asp-route-Commercial="@Model.Commercial" asp-route-PageNo="@(Model.Result.Page + 1)">Sonraki ›</a>
+            if (idx > 0 && pageNums[idx] - pageNums[idx - 1] > 1)
+            {
+                <span class="page-gap">…</span>
+            }
+            if (pageNums[idx] == cur)
+            {
+                <span class="page-current">@pageNums[idx]</span>
+            }
+            else
+            {
+                <a class="page-link" asp-page="Index" asp-all-route-data="rv(pageNums[idx])">@pageNums[idx]</a>
+            }
+        }
+
+        @if (cur < last)
+        {
+            <a class="btn" asp-page="Index" asp-all-route-data="rv(cur + 1)">Sonraki ›</a>
         }
         else
         {
             <button type="button" class="btn" disabled>Sonraki ›</button>
         }
+
+        <span class="muted">@Model.Result.TotalCount kayıt</span>
     </div>
 }
