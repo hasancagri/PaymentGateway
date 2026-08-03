@@ -20,6 +20,15 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="10.0.0" />
+    <!-- 007 A2A: MCP server (Payment.Api). GA 2.0.0. -->
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.0.0" />
+    <!-- 007 A2A: Payment.Agent (A2A host + LLM router + MCP client). Preview pin (churn). -->
+    <PackageVersion Include="ModelContextProtocol.Core" Version="2.0.0" />
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.16.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="1.16.0-preview.260730.1" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.8.3" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.8.3" />
+    <PackageVersion Include="A2A" Version="1.0.0-preview2" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.7" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.2.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.6.0" />

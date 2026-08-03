@@ -18,6 +18,7 @@
         <PackageReference Include="WolverineFx.Postgresql" />
         <PackageReference Include="WolverineFx.RabbitMQ" />
         <PackageReference Include="Asp.Versioning.Http" />
+        <PackageReference Include="ModelContextProtocol.AspNetCore" />
     </ItemGroup>
 
     <ItemGroup>

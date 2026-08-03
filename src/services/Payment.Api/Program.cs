@@ -24,6 +24,8 @@ builder.Services.AddMarten(opts =>
         opts.Schema.For<Payment.Api.Domains.BinCards.BinCard>()
             .Identity(x => x.BinNumber)
             .Index(x => x.CardProgram);
+        // 007 A2A: ödeme oturumu (agent-başlatımlı akışın kalıcı izdüşümü).
+        opts.Schema.For<Payment.Api.Domains.PaymentSessions.PaymentSession>();
     })
     .IntegrateWithWolverine()
     // Katalog boşsa gömülü bincards.json'dan bir kez seed (idempotent).
@@ -64,6 +66,13 @@ builder.Services.AddApiVersioning(options =>
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
+// 007 A2A: MCP server — Payment.Agent'a agent tool'larını sunar (assembly'deki [McpServerToolType]).
+// Stateless HTTP transport (ölçek için affinity gerektirmez). Tool gövdeleri IMessageBus ile slice sarar.
+builder.Services
+    .AddMcpServer()
+    .WithHttpTransport(o => o.Stateless = true)
+    .WithToolsFromAssembly();
+
 var app = builder.Build();
 app.MapDefaultEndpoints();
 app.MapScalarDocumentation();
@@ -76,5 +85,8 @@ var apiVersionSet = app.NewApiVersionSet()
 app.AddPaymentGroupEndpointExtension(apiVersionSet);
 app.AddPosAccountGroupEndpointExtension(apiVersionSet);
 app.AddBinCardGroupEndpointExtension(apiVersionSet);
+
+// 007 A2A: MCP endpoint (Streamable HTTP) — Payment.Agent MCP client buraya bağlanır.
+app.MapMcp("/mcp");
 
 await app.RunAsync();
