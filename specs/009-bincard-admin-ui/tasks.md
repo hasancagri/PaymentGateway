@@ -125,7 +125,7 @@ ticari daraltır; uymayan kombinasyon → "sonuç yok"; sayfa ileri/geri doğru 
 
 - [X] T014 [P] `dotnet build` (Payment.Api + Admin + AppHost) + `dotnet test tests/Payment.Api.Tests`
   yeşil.
-- [ ] T015 `quickstart.md` senaryolarını elle koştur (Aspire: US1 detay + parite, US2 filtre/sayfa,
+- [X] T015 `quickstart.md` senaryolarını elle koştur (Aspire: US1 detay + parite, US2 filtre/sayfa,
   payment-api kapalıyken TR hata).
 
 ---
