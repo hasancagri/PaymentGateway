@@ -19,12 +19,14 @@ public static class BinCardEndpointExtension
                     [FromQuery] string? cardType,
                     [FromQuery] string? cardBrand,
                     [FromQuery] bool? commercial,
-                    [FromQuery] int page,
-                    [FromQuery] int pageSize,
+                    [FromQuery] int? page,
+                    [FromQuery] int? pageSize,
                     IMessageBus bus) =>
                 {
+                    // page/pageSize opsiyonel (value-type non-nullable minimal API'de zorunlu olurdu);
+                    // verilmezse PlanFilter varsayılana/clamp'e düşürür.
                     var result = await bus.InvokeAsync<FeatureObjectResultModel<ListBinCards.BinCardListResponse>>(
-                        new ListBinCards.ListBinCardsQuery(bankCode, cardProgram, cardType, cardBrand, commercial, page, pageSize));
+                        new ListBinCards.ListBinCardsQuery(bankCode, cardProgram, cardType, cardBrand, commercial, page ?? 1, pageSize ?? 0));
                     return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
                 })
             .WithName("ListBinCards")
