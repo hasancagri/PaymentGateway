@@ -9,6 +9,7 @@ Altyapı: **Aspire** (orkestrasyon), **Marten** (Postgres document store), **Wol
 ```bash
 dotnet build                                             # tüm çözüm (PaymentGateway.slnx)
 dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile başlat (Postgres + RabbitMQ)
+dotnet test tests/Payment.Api.Tests                      # saf domain birim testleri (Payment)
 dotnet test tests/Merchant.Api.Tests                     # saf domain birim testleri (Merchant)
 dotnet test tests/Commission.Api.Tests                   # saf domain birim testleri (Commission)
 ```
@@ -21,8 +22,10 @@ Central Package Management açık (sürümler `Directory.Packages.props`); tek i
 ```text
 src/
 ├── aspire/           AppHost + ServiceDefaults (orkestrasyon)
+├── agents/
+│   └── Payment.Agent A2A host + LLM router + MCP client (007) — BC değil, stateless adaptör
 ├── services/
-│   ├── Payment.Api   Ödeme BC (CP.VPOS sanal POS ile)
+│   ├── Payment.Api   Ödeme BC (CP.VPOS sanal POS + BinCard katalog + A2A ödeme oturumu/MCP)
 │   ├── Merchant.Api  Merchant BC (onboarding + settlement hesapları)
 │   └── Commission.Api Komisyon BC (banka + komisyon)
 ├── ui/Admin          Razor Pages yönetim arayüzü
@@ -37,7 +40,7 @@ Bir feature = bir static class (record command/query + Response + Handler + endp
 
 | BC | Sorumluluk |
 |----|-----------|
-| **Payment** | Sanal POS ödeme; `BankRouter` maliyet-sıralı banka adayları; `PosAccount` aggregate (banka anlaşması + komisyon). |
+| **Payment** | Sanal POS ödeme; `BankRouter` maliyet-sıralı banka adayları; `PosAccount` aggregate (banka anlaşması + komisyon); BIN kart katalogu (008); A2A ödeme oturumu + MCP tool'ları (007). |
 | **Merchant** | Merchant onboarding + API key; settlement (payout) banka hesapları. |
 | **Commission** | Banka referansı, banka komisyonları, merchant komisyonları. |
 
@@ -114,10 +117,46 @@ banka silinemez), `RECORD_DUPLICATE`, `INVALID_RANGE`.
 - **Komisyon listesi** — banka adı gösterimi + eksen filtresi + 20'li sayfalama.
 - Filtre/sayfalama/doldur davranışı jenerik `wwwroot/js/filterable-table.js` modülünde (grid + liste ortak).
 
+## Payment BC — A2A Ödeme Oturumu (feature 007)
+
+Kayıtlı kart **token**'ı ile A2A üzerinden **taksit seçimine kadar** akış. Kart verisi (PAN/CVV)
+LLM/A2A/MCP kanalından **geçmez** — yalnız token + tutar + seçilen taksit. Fiyatlama **Model A**:
+kullanıcı sepet tutarını öder; banka komisyonu yalnız en ucuz POS'u seçmek için `BankRouter`'a girer.
+**Fiili çekim (pay) 007 dışı** — seçilen taksit sonraki pay feature'ına seam ile devredilir.
+
+### Bileşenler
+
+- **`src/agents/Payment.Agent`** — A2A host (`AddA2AServer` + `MapA2AJsonRpc` + `MapWellKnownAgentCard`)
+  + LLM router (`ChatClientAgent`, Microsoft Agent Framework) + MCP client. BC değil, stateless. LLM
+  yalnız tool sırasını kurar (quote → select); tutar/banka/kart üretmez (domain'den).
+- **`Payment.Api/Domains/PaymentSessions`** — `PaymentSession` aggregate (faz makinesi:
+  `Opened → QuoteProvided → InstallmentSelected / Failed`). Agent'a açık slice'lar `Features/Agent/`;
+  MCP tool'ları `PaymentSessionMcpTools.cs` (ince `[McpServerToolType]` sarmalayıcı, `IMessageBus` ile
+  slice sarar). MCP server: `AddMcpServer().WithToolsFromAssembly()` + `MapMcp("/mcp")`.
+- **`Payment.Api/CardVault`** — `ICardVault` seam; `SimulatedCardVault` token→BIN simüle eder, BIN→kart
+  çözümü 008 `ResolveBinCard`'tan (gerçek tokenizasyon ayrı feature).
+
+### MCP tool'ları (agent yüzeyi)
+
+| Tool | İş |
+|------|-----|
+| `get_installment_options` | token + sepet tutarı → Model A taksit listesi + `sessionId` (oturum açılır). |
+| `select_installment` | `sessionId` + taksit → seçimi oturuma yazar (`InstallmentSelected`). Çekim yapmaz. |
+| `payment_status` | `sessionId` → güncel faz. |
+
+Bir MCP client (ör. Claude Desktop, `mcp-remote` ile `http://<payment-api>/mcp`) doğrudan bağlanıp
+bu tool'ları çağırabilir; o zaman router LLM = client'ın kendisidir (Payment.Agent bypass). E-ticaret
+agent'ı ise Payment.Agent'a **A2A** ile bağlanır (Agent Card skill'leri: quote-installments /
+select-installment / payment-status).
+
+> Preview paketler (A2A / Agent Framework) `Directory.Packages.props`'ta pin'lidir. Payment.Agent
+> chat anahtarını kendi config'inden alır (`OpenAI:ApiKey`, user-secrets).
+
 ## Test
 
-Saf domain birim testleri; handler/HTTP/Razor Pages entegrasyonu test edilmez (quickstart ile elle).
+Saf domain birim testleri; handler/HTTP/Razor Pages/A2A/MCP/LLM entegrasyonu test edilmez (quickstart ile elle).
 
+- `tests/Payment.Api.Tests` — `PaymentSession` faz geçişleri + Model A taksit hesabı (008 BinCard testleri dahil).
 - `tests/Merchant.Api.Tests` — `MerchantTests`, `MerchantSettlementAccountTests` (IBAN mod-97, TR kısıtı,
   durum geçişleri).
 - `tests/Commission.Api.Tests` — `BankTests` (aggregate + katalog), `BulkUpsertCriteriaMatchTests`,

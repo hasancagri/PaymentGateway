@@ -33,6 +33,13 @@ var commissionApi = builder.AddProject<Projects.Commission_Api>("commission-api"
     .WaitFor(commissionDb)
     .WaitFor(rabbit);
 
+// 007 A2A: Payment.Agent — A2A host + LLM router + MCP client. BC değil, stateless delivery
+// adaptörü. payment-api'nin MCP endpoint'ini (http://payment-api/mcp) service discovery ile bulur.
+// Chat model anahtarı agent'ın kendi config'inden (OpenAI:ApiKey / user-secrets) — ECommerce deseni.
+builder.AddProject<Projects.Payment_Agent>("payment-agent")
+    .WithReference(paymentApi)
+    .WaitFor(paymentApi);
+
 // Admin BFF (Razor Pages) — iki API'yi service discovery ile çağırır (http://merchant-api,
 // http://commission-api). Yetki bu dilimde yok.
 builder.AddProject<Projects.Admin>("admin-web")

@@ -3,6 +3,9 @@
     <File Path="src\reference-architecture.md" />
     <File Path="src\scenario.md" />
   </Folder>
+  <Folder Name="/src/agents/">
+    <Project Path="src/agents/Payment.Agent/Payment.Agent.csproj" />
+  </Folder>
   <Folder Name="/src/aspire/">
     <Project Path="src/aspire/AppHost/AppHost.csproj" />
     <Project Path="src/aspire/ServiceDefaults/ServiceDefaults.csproj" />

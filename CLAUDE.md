@@ -36,6 +36,19 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   merchant-scoped `merchants/{merchantId}/settlement-accounts`). Aynı vertical slice deseni.
 - `src/services/Commission.Api` — Commission BC. `Bank` aggregate (katalogdan kod+ad) + banka/merchant
   komisyon grid'leri (kombinasyon-bazlı, atomik toplu upsert). Banka seed yok.
+- `src/agents/Payment.Agent` — A2A host + LLM router + MCP client (007). Payment BC **DEĞİL** —
+  kalıcılık yok, stateless delivery adaptörü. `AddA2AServer(agent)` + `MapA2AJsonRpc` +
+  `MapWellKnownAgentCard` (`/.well-known/agent-card.json`). LLM yalnız tool sırasını kurar
+  (`get_installment_options` → `select_installment`); tutar/banka/kart üretmez (domain'den).
+  Chat anahtarı agent config'inden (`OpenAI:ApiKey`/user-secrets). Tüm A2A/Agent Framework paketleri
+  preview — `Directory.Packages.props`'ta pin.
+- Payment.Api MCP yüzeyi (007): agent'a açık işlemler `Domains/PaymentSessions/Features/**Agent**/`
+  altında (Commands/Queries değil); MCP tool'ları `PaymentSessionMcpTools.cs`'te her tool ayrı
+  `[McpServerToolType]`, yalnız `IMessageBus.InvokeAsync` ile slice'ı sarar. Kayıt:
+  `AddMcpServer().WithToolsFromAssembly()` + `MapMcp("/mcp")`. `PaymentSession` aggregate = A2A
+  akışının kalıcı izdüşümü (faz: Opened→QuoteProvided→InstallmentSelected/Failed). Token→BIN çözümü
+  `CardVault/ICardVault` (`SimulatedCardVault` → 008 `ResolveBinCard`; PAN kanala girmez). Model A
+  quote = kullanıcı tutarı sepet tutarı (komisyon yalnız `BankRouter` POS seçiminde). Çekim 007 dışı.
 - `src/ui/Admin` — Razor Pages BFF (yetki yok). Merchant/Bank/komisyon/settlement ekranları; typed
   `HttpClient`'lar Aspire service discovery ile API'leri çağırır (`http://merchant-api` vb.). Backend'e
   kural sızdırmaz — yalnız API sonucunu (`ApiResult`/`MessageText` Türkçe) gösterir.
