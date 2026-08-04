@@ -1,3 +1,5 @@
+using Commission.Api.Domains.Migrations;
+
 namespace Commission.Api.Domains.MerchantCommissions;
 
 /// <summary>
@@ -21,6 +23,9 @@ public class MerchantCommission : AggregateRoot
 
     /// <summary>Yüzde oran; invariant: kesin pozitif (> 0).</summary>
     public decimal Rate { get; private set; }
+
+    /// <summary>Kart taksonomi şema sürümü (bkz. BankCommission.TaxonomyVersion). Migration işareti.</summary>
+    public int TaxonomyVersion { get; private set; }
 
     public static ResultDomain<MerchantCommission> Create(Guid merchantId, Criteria criteria, decimal rate)
     {
@@ -55,8 +60,17 @@ public class MerchantCommission : AggregateRoot
         {
             MerchantId = merchantId,
             Criteria = criteria,
-            Rate = rate
+            Rate = rate,
+            TaxonomyVersion = CardTaxonomyRemap.CurrentVersion // yeni kayıt zaten kanonik
         });
+    }
+
+    /// <summary>Migration: remap edilmiş kanonik Criteria'yı uygular + şema sürümünü günceller.</summary>
+    public void MigrateTaxonomy(Criteria remapped)
+    {
+        Criteria = remapped;
+        TaxonomyVersion = CardTaxonomyRemap.CurrentVersion;
+        UpdatedTime = DateTime.UtcNow;
     }
 
     public ResultDomain UpdateRate(decimal rate)

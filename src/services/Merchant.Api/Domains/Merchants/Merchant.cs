@@ -5,7 +5,7 @@ namespace Merchant.Api.Domains.Merchants;
 /// <summary>
 /// Global merchant registry — merchant kimliğinin source of truth'u. Key üretimi/alanı YOK
 /// (Identity dilimi). Alan format doğrulamaları burada (saf); MCC/Country/City varlık
-/// doğrulaması handler'da (I*Lookup).
+/// doğrulaması handler'da (Reference read-model).
 /// </summary>
 public class Merchant : AggregateRoot
 {

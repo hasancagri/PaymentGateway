@@ -5,4 +5,5 @@ public abstract class SchemaConstants
     public const string PaymentSchemaName = "paymentManagement";
     public const string MerchantSchemaName = "merchantManagement";
     public const string CommissionSchemaName = "commissionManagement";
+    public const string ReferenceSchemaName = "referenceManagement";
 }

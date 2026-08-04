@@ -27,15 +27,16 @@ public class Bank : AggregateRoot
     public IReadOnlyList<int> SupportedInstallments => _supportedInstallments;
 
     /// <summary>
-    /// Katalogdan seçilen bir kodla banka oluşturur. Ad katalogdan türer (parametre değildir);
-    /// kod katalogda yoksa reddedilir.
+    /// Banka oluşturur. Ad artık Reference-beslemeli read-model'den türer ve handler tarafından
+    /// parametreyle geçilir (yerel <c>BankCatalog</c> kaldırıldı — tek kaynak Reference.Api).
+    /// Boş ad = katalogda yok anlamına gelir → reddedilir.
     /// </summary>
-    public static ResultDomain<Bank> Create(string code, IEnumerable<int> installments)
+    public static ResultDomain<Bank> Create(string code, string name, IEnumerable<int> installments)
     {
         if (!IsValidCode(code))
             return ResultDomain<Bank>.Error(Message(nameof(Code), CommonResourceConstants.COMMON_MESSAGE_INVALID_FORMAT));
 
-        if (!BankCatalog.TryGetName(code, out var name))
+        if (string.IsNullOrWhiteSpace(name))
             return ResultDomain<Bank>.Error(Message(nameof(Code), CommissionResourceConstants.BANK_NOT_IN_CATALOG));
 
         var normalized = NormalizeInstallments(installments, out var installmentError);

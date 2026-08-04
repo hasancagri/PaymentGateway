@@ -1,5 +1,8 @@
 using Common.Exceptions;
+using Merchant.Api.Domains.Reference;
+using Shared;
 using Shared.Utils.Constants;
+using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
@@ -18,7 +21,13 @@ builder.Services.AddMarten(opts =>
             });
 
         opts.Schema.For<Merchant.Api.Domains.Merchants.Merchant>();
-        opts.Schema.For<Merchant.Api.Domains.MerchantSettlementAccounts.MerchantSettlementAccount>();
+        opts.Schema.For<Merchant.Api.Domains.SettlementAccounts.SettlementAccount>();
+
+        // Reference.Api katalog verisinin yerel read-model izdüşümü (id = Code). Event ile beslenir.
+        opts.Schema.For<ReferenceCountry>().Identity(x => x.Code);
+        opts.Schema.For<ReferenceCity>().Identity(x => x.Code);
+        opts.Schema.For<ReferenceMcc>().Identity(x => x.Code);
+        opts.Schema.For<ReferenceBank>().Identity(x => x.Code);
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -28,6 +37,19 @@ builder.Host.UseWolverine(opts =>
     // Dev: tek dugum (Solo) - leader election/node-agent koordinasyonu kapali.
     if (builder.Environment.IsDevelopment())
         opts.Durability.Mode = DurabilityMode.Solo;
+
+    // Reference tüketimi: fanout exchange'e bağlı durable queue'yu dinle; Handle(ReferenceDataUpdated)
+    // assembly taramasıyla keşfedilir. Durable inbox → restart'ta kayıp yok, at-least-once + idempotent.
+    var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
+        .AutoProvision();
+
+    rabbit.DeclareExchange(RabbitMqConstants.ReferenceDataUpdated.Exchange,
+        e => { e.ExchangeType = ExchangeType.Fanout; });
+    rabbit.DeclareQueue("merchant.reference-sync");
+    rabbit.BindExchange(RabbitMqConstants.ReferenceDataUpdated.Exchange)
+        .ToQueue("merchant.reference-sync");
+
+    opts.ListenToRabbitQueue("merchant.reference-sync").UseDurableInbox();
 
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
@@ -54,6 +76,6 @@ var apiVersionSet = app.NewApiVersionSet()
     .Build();
 
 app.AddMerchantGroupEndpointExtension(apiVersionSet);
-app.AddMerchantSettlementAccountGroupEndpointExtension(apiVersionSet);
+app.AddSettlementAccountGroupEndpointExtension(apiVersionSet);
 
 await app.RunAsync();

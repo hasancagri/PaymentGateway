@@ -19,6 +19,7 @@ appsettings.Development.json
 
 # Legacy referans (salt-okunur, versiyonlanmaz)
 src/otherProjects/
+src/services/CP.VPOS/
 
 # Tasarım/senaryo notları — yerel referans, versiyonlanmaz
 src/reference-architecture.md

@@ -1,4 +1,4 @@
-using Merchant.Api.Domains.Merchants.Lookups;
+using Merchant.Api.Domains.Reference;
 
 namespace Merchant.Api.Domains.Merchants.Features.Queries;
 
@@ -29,9 +29,6 @@ public static class GetMerchantByKey
         public async Task<FeatureObjectResultModel<GetMerchantByKeyResponse>> Handle(
             GetMerchantByKeyQuery query,
             IDocumentSession session,
-            ICountryLookup countryLookup,
-            ICityLookup cityLookup,
-            IMccLookup mccLookup,
             CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(query.MerchantKey))
@@ -44,6 +41,11 @@ public static class GetMerchantByKey
             if (merchant is null)
                 return FeatureObjectResultModel<GetMerchantByKeyResponse>.NotFound();
 
+            // İsim zenginleştirme: yerel read-model'den (id = Code).
+            var country = await session.LoadAsync<ReferenceCountry>(ReferenceKey.Country(merchant.CountryCode), ct);
+            var city = await session.LoadAsync<ReferenceCity>(merchant.CityCode, ct);
+            var mcc = await session.LoadAsync<ReferenceMcc>(merchant.Mcc, ct);
+
             return FeatureObjectResultModel<GetMerchantByKeyResponse>.Ok(new GetMerchantByKeyResponse
             {
                 Id = merchant.Id,
@@ -52,11 +54,11 @@ public static class GetMerchantByKey
                 Email = merchant.Email,
                 Phone = merchant.Phone,
                 CountryCode = merchant.CountryCode,
-                CountryName = countryLookup.NameOf(merchant.CountryCode),
+                CountryName = country?.Name,
                 CityCode = merchant.CityCode,
-                CityName = cityLookup.NameOf(merchant.CityCode),
+                CityName = city?.Name,
                 Mcc = merchant.Mcc,
-                MccName = mccLookup.NameOf(merchant.Mcc),
+                MccName = mcc?.Name,
                 WebhookUrl = merchant.WebhookUrl,
                 Status = merchant.Status.ToString(),
                 CreatedTime = merchant.CreatedTime

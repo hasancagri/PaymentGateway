@@ -1,4 +1,4 @@
-using Merchant.Api.Domains.Merchants.Lookups;
+using Merchant.Api.Domains.Reference;
 
 namespace Merchant.Api.Domains.Merchants.Features.Queries;
 
@@ -29,9 +29,6 @@ public static class GetMerchant
         public async Task<FeatureObjectResultModel<GetMerchantResponse>> Handle(
             GetMerchantQuery query,
             IDocumentSession session,
-            ICountryLookup countryLookup,
-            ICityLookup cityLookup,
-            IMccLookup mccLookup,
             CancellationToken ct)
         {
             var merchant = await session.Query<Merchant>()
@@ -41,6 +38,11 @@ public static class GetMerchant
             if (merchant is null)
                 return FeatureObjectResultModel<GetMerchantResponse>.NotFound();
 
+            // İsim zenginleştirme: Reference olaylarıyla beslenen yerel read-model'den (id = Code).
+            var country = await session.LoadAsync<ReferenceCountry>(ReferenceKey.Country(merchant.CountryCode), ct);
+            var city = await session.LoadAsync<ReferenceCity>(merchant.CityCode, ct);
+            var mcc = await session.LoadAsync<ReferenceMcc>(merchant.Mcc, ct);
+
             return FeatureObjectResultModel<GetMerchantResponse>.Ok(new GetMerchantResponse
             {
                 Id = merchant.Id,
@@ -49,11 +51,11 @@ public static class GetMerchant
                 Email = merchant.Email,
                 Phone = merchant.Phone,
                 CountryCode = merchant.CountryCode,
-                CountryName = countryLookup.NameOf(merchant.CountryCode),
+                CountryName = country?.Name,
                 CityCode = merchant.CityCode,
-                CityName = cityLookup.NameOf(merchant.CityCode),
+                CityName = city?.Name,
                 Mcc = merchant.Mcc,
-                MccName = mccLookup.NameOf(merchant.Mcc),
+                MccName = mcc?.Name,
                 WebhookUrl = merchant.WebhookUrl,
                 Status = merchant.Status.ToString(),
                 CreatedTime = merchant.CreatedTime

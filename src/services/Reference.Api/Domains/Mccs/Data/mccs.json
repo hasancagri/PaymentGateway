@@ -1,0 +1,8 @@
+[
+  { "code": "5411", "name": "Grocery Stores" },
+  { "code": "5311", "name": "Department Stores" },
+  { "code": "5651", "name": "Family Clothing Stores" },
+  { "code": "5732", "name": "Electronics Stores" },
+  { "code": "5912", "name": "Drug Stores & Pharmacies" },
+  { "code": "5814", "name": "Fast Food Restaurants" }
+]

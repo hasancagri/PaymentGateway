@@ -14,11 +14,20 @@ var rabbit = builder.AddRabbitMQ("rabbitmq")
 var paymentDb = postgres.AddDatabase("paymentDb");
 var merchantDb = postgres.AddDatabase("merchantDb");
 var commissionDb = postgres.AddDatabase("commissionDb");
+var referenceDb = postgres.AddDatabase("referenceDb");
 
 var paymentApi = builder.AddProject<Projects.Payment_Api>("payment-api")
     .WithReference(paymentDb)
     .WithReference(rabbit)
     .WaitFor(paymentDb)
+    .WaitFor(rabbit);
+
+// Referans veri kaynak-of-truth BC. HTTP yüzeyi yok — katalog verisini yalnız ReferenceDataUpdated
+// fanout event'iyle yayar; Merchant/Commission durable queue ile tüketir (yerel read-model).
+builder.AddProject<Projects.Reference_Api>("reference-api")
+    .WithReference(referenceDb)
+    .WithReference(rabbit)
+    .WaitFor(referenceDb)
     .WaitFor(rabbit);
 
 var merchantApi = builder.AddProject<Projects.Merchant_Api>("merchant-api")

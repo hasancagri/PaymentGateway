@@ -1,5 +1,3 @@
-using Payment.Api.Domains.Payments;
-
 namespace Payment.Api.CardVault;
 
 /// <summary>

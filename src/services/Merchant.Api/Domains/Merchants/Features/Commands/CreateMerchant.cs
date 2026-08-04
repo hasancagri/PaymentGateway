@@ -1,4 +1,4 @@
-using Merchant.Api.Domains.Merchants.Lookups;
+using Merchant.Api.Domains.Reference;
 
 namespace Merchant.Api.Domains.Merchants.Features.Commands;
 
@@ -25,9 +25,6 @@ public static class CreateMerchant
         public async Task<FeatureObjectResultModel<CreateMerchantResponse>> Handle(
             CreateMerchantCommand cmd,
             IDocumentSession session,
-            ICountryLookup countryLookup,
-            ICityLookup cityLookup,
-            IMccLookup mccLookup,
             CancellationToken ct)
         {
             // 1) Benzersiz merchantKey üret (gateway mint eder; istemcinin gönderdiği değer yok sayılır).
@@ -39,21 +36,25 @@ public static class CreateMerchant
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<CreateMerchantResponse>.Error(result.Messages);
 
-            // 2) Varlık doğrulaması handler'da (referans veri okuması).
+            // 2) Varlık doğrulaması handler'da: Reference olaylarıyla beslenen yerel read-model (id = Code).
             var errors = new List<MessageItem>();
-            if (!countryLookup.Exists(cmd.CountryCode))
+
+            var country = await session.LoadAsync<ReferenceCountry>(ReferenceKey.Country(cmd.CountryCode), ct);
+            if (country is null)
                 errors.Add(NotFound(nameof(cmd.CountryCode)));
 
-            if (!cityLookup.Exists(cmd.CityCode))
+            var city = await session.LoadAsync<ReferenceCity>(cmd.CityCode?.Trim() ?? string.Empty, ct);
+            if (city is null)
                 errors.Add(NotFound(nameof(cmd.CityCode)));
-            else if (!cityLookup.BelongsTo(cmd.CityCode, cmd.CountryCode))
+            else if (!string.Equals(city.CountryCode, ReferenceKey.Country(cmd.CountryCode), StringComparison.OrdinalIgnoreCase))
                 errors.Add(new MessageItem
                 {
                     Property = nameof(cmd.CityCode),
                     Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_VALUE
                 });
 
-            if (!mccLookup.Exists(cmd.Mcc))
+            var mcc = await session.LoadAsync<ReferenceMcc>(cmd.Mcc?.Trim() ?? string.Empty, ct);
+            if (mcc is null)
                 errors.Add(NotFound(nameof(cmd.Mcc)));
 
             if (errors.Count > 0)

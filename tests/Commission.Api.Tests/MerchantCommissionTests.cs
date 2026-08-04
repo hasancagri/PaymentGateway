@@ -8,7 +8,7 @@ namespace Commission.Api.Tests;
 public class MerchantCommissionTests
 {
     private static Criteria SampleCriteria() =>
-        Criteria.Create(CardBrand.VISA, CardType.CREDIT, TransactionRegion.DOMESTIC, 6).Data!;
+        Criteria.Create(CardBrand.Visa, CardType.Credit, TransactionRegion.DOMESTIC, 6).Data!;
 
     [Fact]
     public void Create_gecerli_girdi_Ok()

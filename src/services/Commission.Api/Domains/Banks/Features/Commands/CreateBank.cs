@@ -1,4 +1,5 @@
 using Commission.Api.Domains.Banks;
+using Commission.Api.Domains.Reference;
 
 namespace Commission.Api.Domains.Banks.Features.Commands;
 
@@ -37,7 +38,11 @@ public static class CreateBank
                 });
             }
 
-            var result = Bank.Create(cmd.Code, cmd.SupportedInstallments ?? new List<int>());
+            // Banka adı Reference-beslemeli read-model'den türer (id = Code); yoksa Create reddeder.
+            var reference = await session.LoadAsync<ReferenceBank>(cmd.Code?.Trim() ?? string.Empty, ct);
+
+            var result = Bank.Create(cmd.Code, reference?.Name ?? string.Empty,
+                cmd.SupportedInstallments ?? new List<int>());
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<CreateBankResponse>.Error(result.Messages);
 

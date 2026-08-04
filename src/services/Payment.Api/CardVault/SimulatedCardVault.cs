@@ -1,6 +1,5 @@
 using Common.Dependencies;
 using Payment.Api.Domains.BinCards.Features.Queries;
-using Payment.Api.Domains.Payments;
 
 namespace Payment.Api.CardVault;
 

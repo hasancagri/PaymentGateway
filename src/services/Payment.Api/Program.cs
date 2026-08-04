@@ -19,7 +19,6 @@ builder.Services.AddMarten(opts =>
                 s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
             });
 
-        opts.Schema.For<Payment.Api.Domains.Payments.Payment>();
         opts.Schema.For<Payment.Api.Domains.PosAccounts.PosAccount>();
         opts.Schema.For<Payment.Api.Domains.BinCards.BinCard>()
             .Identity(x => x.BinNumber)
@@ -82,7 +81,6 @@ var apiVersionSet = app.NewApiVersionSet()
     .ReportApiVersions()
     .Build();
 
-app.AddPaymentGroupEndpointExtension(apiVersionSet);
 app.AddPosAccountGroupEndpointExtension(apiVersionSet);
 app.AddBinCardGroupEndpointExtension(apiVersionSet);
 

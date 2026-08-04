@@ -23,6 +23,7 @@
     <ItemGroup>
       <ProjectReference Include="..\..\others\Common\Common.csproj" />
       <ProjectReference Include="..\..\others\Shared\Shared.csproj" />
+      <ProjectReference Include="..\..\others\SharedKernel\SharedKernel.csproj" />
       <ProjectReference Include="..\..\aspire\ServiceDefaults\ServiceDefaults.csproj" />
     </ItemGroup>
 
