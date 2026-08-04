@@ -7,7 +7,7 @@ namespace Commission.Api.Tests;
 public class BankCommissionTests
 {
     private static Criteria ValidCriteria() =>
-        Criteria.Create(CardBrand.VISA, CardType.CREDIT, TransactionRegion.DOMESTIC, 6).Data!;
+        Criteria.Create(CardBrand.Visa, CardType.Credit, TransactionRegion.DOMESTIC, 6).Data!;
 
     [Fact]
     public void Create_gecerli_Ok()
@@ -47,7 +47,7 @@ public class BankCommissionTests
     [Fact]
     public void Criteria_taksit_sifir_Error()
     {
-        var result = Criteria.Create(CardBrand.VISA, CardType.CREDIT, TransactionRegion.DOMESTIC, 0);
+        var result = Criteria.Create(CardBrand.Visa, CardType.Credit, TransactionRegion.DOMESTIC, 0);
 
         Assert.False(result.IsSuccess);
         Assert.Contains(result.Messages!, m => m.Code == CommonResourceConstants.COMMON_MESSAGE_INVALID_RANGE);

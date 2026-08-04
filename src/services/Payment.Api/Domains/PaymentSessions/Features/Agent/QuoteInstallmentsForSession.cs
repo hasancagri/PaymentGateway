@@ -1,5 +1,4 @@
 using Payment.Api.CardVault;
-using Payment.Api.Domains.Payments;
 using Payment.Api.Domains.PosAccounts;
 
 namespace Payment.Api.Domains.PaymentSessions.Features.Agent;

@@ -1,10 +1,12 @@
 using Commission.Api.Domains.Banks;
+using Commission.Api.Domains.Reference;
 
 namespace Commission.Api.Domains.Banks.Features.Queries;
 
 /// <summary>
-/// Seçilebilir bankaların kanonik katalogu (Code+Name). <c>onlyAvailable=true</c> → zaten eklenmiş
-/// (`!IsDeleted`) bankaları eler; operatör yalnız henüz eklenmemişleri görür.
+/// Seçilebilir bankaların kataloğu (Code+Name) — Reference-beslemeli yerel read-model'den (tek kaynak).
+/// <c>onlyAvailable=true</c> → zaten eklenmiş (`!IsDeleted`) bankaları eler; operatör yalnız henüz
+/// eklenmemişleri görür.
 /// </summary>
 public static class GetBankCatalog
 {
@@ -28,7 +30,8 @@ public static class GetBankCatalog
             IDocumentSession session,
             CancellationToken ct)
         {
-            var entries = BankCatalog.All.AsEnumerable();
+            var banks = await session.Query<ReferenceBank>().OrderBy(b => b.Code).ToListAsync(ct);
+            var entries = banks.AsEnumerable();
 
             if (query.OnlyAvailable)
             {

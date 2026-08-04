@@ -10,31 +10,19 @@
     <Project Path="src/aspire/AppHost/AppHost.csproj" />
     <Project Path="src/aspire/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
-  <Folder Name="/src/otherProjects/">
-    <Project Path="src/otherProjects/CP.VPOS/CP.VPOS.csproj" />
-    <Project Path="src/otherProjects/Core/PFApplication.Application/PFApplication.Application.csproj" />
-    <Project Path="src/otherProjects/Core/PFApplication.Data/PFApplication.Data.csproj" />
-    <Project Path="src/otherProjects/Infrastructure/PFApplication.Core/PFApplication.Core.csproj" />
-    <Project Path="src/otherProjects/Infrastructure/PFApplication.Infrastructure/PFApplication.Infrastructure.csproj" />
-    <Project Path="src/otherProjects/Infrastructure/PFApplication.Oracle/PFApplication.Oracle.csproj" />
-    <Project Path="src/otherProjects/Infrastructure/PFApplication.SqlServer/PFApplication.SqlServer.csproj" />
-    <Project Path="src/otherProjects/Presentation/PFApplication.Automation/PFApplication.Automation.csproj" />
-    <Project Path="src/otherProjects/Presentation/PFApplication.DataMigration/PFApplication.DataMigration.csproj" />
-    <Project Path="src/otherProjects/Presentation/PFApplication.DemoMerchant/PFApplication.DemoMerchant.csproj" />
-    <Project Path="src/otherProjects/Presentation/PFApplication.EOD/PFApplication.EOD.csproj" />
-    <Project Path="src/otherProjects/Presentation/PFApplication.Integration/PFApplication.Integration.csproj" />
-    <Project Path="src/otherProjects/Presentation/PFApplication.WebAPI/PFApplication.WebAPI.csproj" />
-  </Folder>
   <Folder Name="/src/others/">
     <Project Path="src/others/Common/Common.csproj" />
     <Project Path="src/others/Identity.Server/Identity.Server.csproj" />
     <Project Path="src/others/Shared/Shared.csproj" />
+    <Project Path="src/others/SharedKernel/SharedKernel.csproj" />
   </Folder>
   <Folder Name="/src/services/">
+    <Project Path="src/services/CP.VPOS/CP.VPOS.csproj" />
     <Project Path="src/services/gateway/Gateway/Gateway.csproj" />
     <Project Path="src/services/Payment.Api/Payment.Api.csproj" />
     <Project Path="src/services/Merchant.Api/Merchant.Api.csproj" />
     <Project Path="src/services/Commission.Api/Commission.Api.csproj" />
+    <Project Path="src/services/Reference.Api/Reference.Api.csproj" />
   </Folder>
   <Folder Name="/src/ui/">
     <Project Path="src/ui/Admin/Admin.csproj" />
@@ -43,5 +31,6 @@
     <Project Path="tests/Payment.Api.Tests/Payment.Api.Tests.csproj" />
     <Project Path="tests/Merchant.Api.Tests/Merchant.Api.Tests.csproj" />
     <Project Path="tests/Commission.Api.Tests/Commission.Api.Tests.csproj" />
+    <Project Path="tests/Reference.Api.Tests/Reference.Api.Tests.csproj" />
   </Folder>
 </Solution>

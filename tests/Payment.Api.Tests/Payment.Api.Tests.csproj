@@ -16,7 +16,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\services\Payment.Api\Payment.Api.csproj" />
-        <ProjectReference Include="..\..\src\otherProjects\CP.VPOS\CP.VPOS.csproj" />
+        <ProjectReference Include="..\..\src\services\CP.VPOS\CP.VPOS.csproj" />
     </ItemGroup>
 
 </Project>

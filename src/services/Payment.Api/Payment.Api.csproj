@@ -29,7 +29,8 @@
       <ProjectReference Include="..\..\aspire\ServiceDefaults\ServiceDefaults.csproj" />
       <ProjectReference Include="..\..\others\Common\Common.csproj" />
       <ProjectReference Include="..\..\others\Shared\Shared.csproj" />
-      <ProjectReference Include="..\..\otherProjects\CP.VPOS\CP.VPOS.csproj" />
+      <ProjectReference Include="..\..\others\SharedKernel\SharedKernel.csproj" />
+      <ProjectReference Include="..\CP.VPOS\CP.VPOS.csproj" />
     </ItemGroup>
 
 </Project>

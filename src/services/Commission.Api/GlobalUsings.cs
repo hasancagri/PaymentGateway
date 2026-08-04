@@ -7,6 +7,7 @@ global using Common.Results.BaseClasses;
 global using Common.Utils.Constants;
 global using Commission.Api.Dependencies;
 global using Commission.Api.Domains.SharedKernel;
+global using SharedKernel.CardTaxonomy;
 global using Marten;
 global using Marten.Newtonsoft;
 global using Microsoft.AspNetCore.Mvc;

@@ -1,3 +1,5 @@
+using Commission.Api.Domains.Migrations;
+
 namespace Commission.Api.Domains.BankCommissions;
 
 /// <summary>
@@ -17,6 +19,11 @@ public class BankCommission : AggregateRoot
 
     /// <summary>Yüzde oran (örn. 1.75); >= 0.</summary>
     public decimal Rate { get; private set; }
+
+    /// <summary>Kart taksonomi şema sürümü. 0 = eski (VISA=1..) enum; 1 = kanonik (SharedKernel).
+    /// Migration yalnız &lt; güncel sürümdeki dokümanları remap eder (idempotency; eski/yeni int
+    /// aralıkları çakıştığı için değere değil bu işarete güvenilir).</summary>
+    public int TaxonomyVersion { get; private set; }
 
     public static ResultDomain<BankCommission> Create(string bankCode, Criteria criteria, decimal rate)
     {
@@ -51,8 +58,17 @@ public class BankCommission : AggregateRoot
         {
             BankCode = bankCode,
             Criteria = criteria,
-            Rate = rate
+            Rate = rate,
+            TaxonomyVersion = CardTaxonomyRemap.CurrentVersion // yeni kayıt zaten kanonik
         });
+    }
+
+    /// <summary>Migration: remap edilmiş kanonik Criteria'yı uygular + şema sürümünü günceller.</summary>
+    public void MigrateTaxonomy(Criteria remapped)
+    {
+        Criteria = remapped;
+        TaxonomyVersion = CardTaxonomyRemap.CurrentVersion;
+        UpdatedTime = DateTime.UtcNow;
     }
 
     public ResultDomain UpdateRate(decimal rate)

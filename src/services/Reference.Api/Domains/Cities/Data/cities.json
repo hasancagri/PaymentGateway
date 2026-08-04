@@ -1,0 +1,7 @@
+[
+  { "code": "34", "name": "İstanbul", "countryCode": "TR" },
+  { "code": "06", "name": "Ankara", "countryCode": "TR" },
+  { "code": "35", "name": "İzmir", "countryCode": "TR" },
+  { "code": "16", "name": "Bursa", "countryCode": "TR" },
+  { "code": "07", "name": "Antalya", "countryCode": "TR" }
+]
