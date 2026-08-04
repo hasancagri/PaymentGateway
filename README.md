@@ -124,6 +124,13 @@ LLM/A2A/MCP kanalından **geçmez** — yalnız token + tutar + seçilen taksit.
 kullanıcı sepet tutarını öder; banka komisyonu yalnız en ucuz POS'u seçmek için `BankRouter`'a girer.
 **Fiili çekim (pay) 007 dışı** — seçilen taksit sonraki pay feature'ına seam ile devredilir.
 
+**BIN-bazlı read-only quote (feature 024).** E-ticaret tarafının **quote-only** akışı için token/oturum
+GEREKTİRMEYEN ikinci bir taksit sorgusu eklendi: girdi = kartın **BIN**'i (ilk 6 hane, hassas değil) +
+sepet tutarı. BIN → `CardInfo` (`ResolveBinCard`) çözülür, taksit listesi token akışıyla **aynı pure**
+`BuildOfferedInstallments` (Model A) ile üretilir; **oturum açılmaz, hiçbir şey yazılmaz**. Token/PAN/CVV
+kabul etmez. Token+oturum akışı (`get_installment_options` → `select_installment`) charge için korunur;
+bu ikisi bilinçli olarak ayrı tutulur (quote yalnız bankayı = BIN'i ister, charge kart kimliğini/token'ı).
+
 ### Bileşenler
 
 - **`src/agents/Payment.Agent`** — A2A host (`AddA2AServer` + `MapA2AJsonRpc` + `MapWellKnownAgentCard`)
@@ -140,14 +147,15 @@ kullanıcı sepet tutarını öder; banka komisyonu yalnız en ucuz POS'u seçme
 
 | Tool | İş |
 |------|-----|
+| `quote_installments_by_bin` | **BIN** (ilk 6 hane) + sepet tutarı → Model A taksit listesi. **Read-only**, oturum açmaz, token/PAN/CVV kabul etmez (024). |
 | `get_installment_options` | token + sepet tutarı → Model A taksit listesi + `sessionId` (oturum açılır). |
 | `select_installment` | `sessionId` + taksit → seçimi oturuma yazar (`InstallmentSelected`). Çekim yapmaz. |
 | `payment_status` | `sessionId` → güncel faz. |
 
 Bir MCP client (ör. Claude Desktop, `mcp-remote` ile `http://<payment-api>/mcp`) doğrudan bağlanıp
 bu tool'ları çağırabilir; o zaman router LLM = client'ın kendisidir (Payment.Agent bypass). E-ticaret
-agent'ı ise Payment.Agent'a **A2A** ile bağlanır (Agent Card skill'leri: quote-installments /
-select-installment / payment-status).
+agent'ı ise Payment.Agent'a **A2A** ile bağlanır. Agent Card skill'leri: **`installment_quote`**
+(BIN-bazlı read-only quote, e-ticaret 024 tüketir) + `quote-installments` (token+oturum, charge yolu).
 
 > Preview paketler (A2A / Agent Framework) `Directory.Packages.props`'ta pin'lidir. Payment.Agent
 > chat anahtarını kendi config'inden alır (`OpenAI:ApiKey`, user-secrets).
