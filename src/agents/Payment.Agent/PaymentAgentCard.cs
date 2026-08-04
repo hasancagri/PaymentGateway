@@ -27,28 +27,22 @@ public static class PaymentAgentCard
         [
             new AgentSkill
             {
+                Id = "installment_quote",
+                Name = "BIN ile taksit seçeneklerini getir",
+                Description = "Kartın BIN'i (ilk 6 hane, hassas değil) + sepet tutarı ile desteklenen " +
+                              "taksit seçeneklerini Model A tutarlarıyla (her satır = sepet tutarı) READ-ONLY " +
+                              "döner. Token/PAN/CVV KABUL ETMEZ; oturum açmaz. (024 e-ticaret quote-only akışı.)",
+                Tags = ["payment", "installments", "quote", "bin"],
+                Examples = ["Default kartımla sepetimdeki tutar için taksitleri göster"]
+            },
+            new AgentSkill
+            {
                 Id = "quote-installments",
                 Name = "Taksit seçeneklerini getir",
                 Description = "Kayıtlı kart token'ı + sepet tutarı ile desteklenen taksit seçeneklerini " +
                               "Model A tutarlarıyla (her satır = sepet tutarı) döner.",
                 Tags = ["payment", "installments", "quote"],
                 Examples = ["Hesabımdaki kartla sepetimi almak istiyorum"]
-            },
-            new AgentSkill
-            {
-                Id = "select-installment",
-                Name = "Taksit seç",
-                Description = "Sunulan listeden bir taksiti seçer ve oturuma yazar. Çekim yapmaz.",
-                Tags = ["payment", "installments", "select"],
-                Examples = ["3 taksit seçiyorum"]
-            },
-            new AgentSkill
-            {
-                Id = "payment-status",
-                Name = "Durum sorgula",
-                Description = "Ödeme oturumunun güncel fazını döner.",
-                Tags = ["payment", "status"],
-                Examples = ["Ödeme durumum ne?"]
             }
         ],
         SupportedInterfaces =

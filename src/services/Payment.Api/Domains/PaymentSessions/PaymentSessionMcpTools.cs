@@ -26,6 +26,25 @@ public static class GetInstallmentOptionsMcpTool
             new Agent.QuoteInstallmentsForSession.QuoteInstallmentsForSessionCommand(cardToken, cartAmount), ct);
 }
 
+/// <summary>024 (e-ticaret quote-only) — kart BIN'i + sepet tutarından read-only Model A taksit
+/// listesi üretir. Token/PAN/CVV YOK, oturum AÇMAZ. Read-only quote akışının girişi.</summary>
+[McpServerToolType]
+public static class QuoteInstallmentsByBinMcpTool
+{
+    [McpServerTool(Name = "quote_installments_by_bin")]
+    [Description("Kartın BIN'i (ilk 6 hane, hassas değil — banka tespiti için) ve sepet tutarından " +
+                 "desteklenen taksit seçeneklerini (Model A: her satır tutarı = sepet tutarı, komisyon " +
+                 "eklenmez) READ-ONLY üretir. Oturum açmaz, hiçbir şey kaydetmez. Token/PAN/CVV KABUL ETMEZ.")]
+    public static Task<FeatureObjectResultModel<Agent.QuoteInstallmentsByBin.QuoteInstallmentsByBinResponse>>
+        QuoteInstallmentsByBinAsync(
+            [Description("Kartın BIN'i — ilk 6 hane (PAN değil)")] string bin,
+            [Description("Sepet tutarı (TL, nokta ondalık, > 0)")] decimal cartAmount,
+            IMessageBus bus,
+            CancellationToken ct)
+        => bus.InvokeAsync<FeatureObjectResultModel<Agent.QuoteInstallmentsByBin.QuoteInstallmentsByBinResponse>>(
+            new Agent.QuoteInstallmentsByBin.QuoteInstallmentsByBinQuery(bin, cartAmount), ct);
+}
+
 /// <summary>Faz 2 — kullanıcının seçtiği taksiti oturuma yazar. Çekim yapmaz.</summary>
 [McpServerToolType]
 public static class SelectInstallmentMcpTool
