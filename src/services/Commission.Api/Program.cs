@@ -2,7 +2,6 @@ using Common.Exceptions;
 using Commission.Api.Domains.BankCommissions;
 using Commission.Api.Domains.Banks;
 using Commission.Api.Domains.MerchantCommissions;
-using Commission.Api.Infrastructure;
 using Commission.Api.ReadModels;
 using Shared;
 using Shared.Utils.Constants;
@@ -67,9 +66,6 @@ builder.Services.AddApiVersioning(options =>
 
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
-
-// Açılışta bir kez: eski kart taksonomi int'lerini kanonik sete remap eder (idempotent, işaret-güdümlü).
-builder.Services.AddHostedService<RemapCardTaxonomyMigration>();
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
