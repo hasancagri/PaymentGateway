@@ -3,7 +3,7 @@ using Reference.Api.Domains.Banks;
 using Reference.Api.Domains.Cities;
 using Reference.Api.Domains.Countries;
 using Reference.Api.Domains.Mccs;
-using Reference.Api.Domains.Seeding;
+using Reference.Api.Seeding;
 using Shared;
 using Shared.Utils.Constants;
 using Wolverine.RabbitMQ;

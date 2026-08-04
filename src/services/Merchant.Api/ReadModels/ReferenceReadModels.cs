@@ -1,4 +1,4 @@
-namespace Merchant.Api.Domains.Reference;
+namespace Merchant.Api.ReadModels;
 
 /// <summary>
 /// Reference.Api katalog verisinin yerel izdüşümü (BC izolasyonu: Merchant Reference DB'sine erişmez).

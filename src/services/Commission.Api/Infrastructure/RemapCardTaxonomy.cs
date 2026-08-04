@@ -1,7 +1,7 @@
 using Commission.Api.Domains.BankCommissions;
 using Commission.Api.Domains.MerchantCommissions;
 
-namespace Commission.Api.Domains.Migrations;
+namespace Commission.Api.Infrastructure;
 
 /// <summary>
 /// Kanonik kart taksonomiye (SharedKernel) tek-geçiş, idempotent veri migration'ı. Commission grid'i

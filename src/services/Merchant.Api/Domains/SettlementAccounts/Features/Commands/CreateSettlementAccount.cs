@@ -1,4 +1,4 @@
-using Merchant.Api.Domains.Reference;
+using Merchant.Api.ReadModels;
 using MerchantAggregate = Merchant.Api.Domains.Merchants.Merchant;
 
 namespace Merchant.Api.Domains.SettlementAccounts.Features.Commands;

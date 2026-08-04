@@ -1,5 +1,5 @@
 using Common.Exceptions;
-using Merchant.Api.Domains.Reference;
+using Merchant.Api.ReadModels;
 using Shared;
 using Shared.Utils.Constants;
 using Wolverine.RabbitMQ;

@@ -1,5 +1,5 @@
 using Commission.Api.Domains.BankCommissions;
-using Commission.Api.Domains.Migrations;
+using Commission.Api.Infrastructure;
 using Commission.Api.Domains.SharedKernel;
 using Xunit;
 

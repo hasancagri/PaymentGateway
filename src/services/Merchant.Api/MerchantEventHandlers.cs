@@ -1,13 +1,14 @@
+using Merchant.Api.ReadModels;
 using Shared;
 
-namespace Merchant.Api.Domains.Reference;
+namespace Merchant.Api;
 
 /// <summary>
 /// <c>ReferenceDataUpdated</c> tüketicisi (Wolverine assembly taramasıyla keşfedilir). Kind'e göre
 /// yerel read-model'i idempotent upsert eder (Marten kimliği = Code → aynı kod overwrite; at-least-once
 /// teslimde tekrar zararsız). Tam-set veya diff fark etmez; her kayıt Code anahtarıyla yazılır.
 /// </summary>
-public static class ReferenceEventHandler
+public class MerchantEventHandlers
 {
     public static async Task Handle(
         IntegrationEvents.ReferenceDataUpdated message,

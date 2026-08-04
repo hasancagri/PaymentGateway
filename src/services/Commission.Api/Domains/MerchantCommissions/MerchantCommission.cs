@@ -1,4 +1,4 @@
-using Commission.Api.Domains.Migrations;
+using Commission.Api.Infrastructure;
 
 namespace Commission.Api.Domains.MerchantCommissions;
 
