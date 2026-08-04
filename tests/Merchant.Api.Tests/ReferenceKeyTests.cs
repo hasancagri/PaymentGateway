@@ -1,4 +1,4 @@
-using Merchant.Api.Domains.Reference;
+using Merchant.Api.ReadModels;
 using Xunit;
 
 namespace Merchant.Api.Tests;

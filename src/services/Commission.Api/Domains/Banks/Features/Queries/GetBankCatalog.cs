@@ -1,5 +1,5 @@
 using Commission.Api.Domains.Banks;
-using Commission.Api.Domains.Reference;
+using Commission.Api.ReadModels;
 
 namespace Commission.Api.Domains.Banks.Features.Queries;
 

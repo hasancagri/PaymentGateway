@@ -4,7 +4,7 @@ using Reference.Api.Domains.Countries;
 using Reference.Api.Domains.Mccs;
 using Shared;
 
-namespace Reference.Api.Domains.Seeding;
+namespace Reference.Api.Seeding;
 
 /// <summary>
 /// Açılışta katalog tam-setini <see cref="IntegrationEvents.ReferenceDataUpdated"/> ile yayınlar

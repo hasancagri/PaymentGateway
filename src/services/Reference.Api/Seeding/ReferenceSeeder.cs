@@ -4,7 +4,7 @@ using Reference.Api.Domains.Cities;
 using Reference.Api.Domains.Countries;
 using Reference.Api.Domains.Mccs;
 
-namespace Reference.Api.Domains.Seeding;
+namespace Reference.Api.Seeding;
 
 /// <summary>
 /// İlk seed: gömülü JSON kaynaklarından katalog aggregate'lerini doldurur. İdempotent — yalnız

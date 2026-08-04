@@ -1,6 +1,6 @@
 using Shared;
 
-namespace Commission.Api.Domains.Reference;
+namespace Commission.Api.ReadModels;
 
 /// <summary>
 /// Reference.Api banka kataloğunun yerel izdüşümü (yalnız code→ad; Country/City/MCC Commission'da

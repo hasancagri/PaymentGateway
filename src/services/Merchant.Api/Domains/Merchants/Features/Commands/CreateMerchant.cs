@@ -1,4 +1,4 @@
-using Merchant.Api.Domains.Reference;
+using Merchant.Api.ReadModels;
 
 namespace Merchant.Api.Domains.Merchants.Features.Commands;
 
