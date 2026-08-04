@@ -36,7 +36,7 @@ var tools = await McpToolProvider.DiscoverToolsAsync(mcpEndpoint, bootstrapLogge
 // --- Router agent (ECommerce ChatClientAgent deseni): LLM sırayı kurar, domain kararları vermez.
 AIAgent agent = new ChatClientAgent(
     chatClient,
-    PaymentAgentPrompts.RouterInstructions,
+    ConstValues.RouterInstructions,
     "PaymentAgent",
     null,
     tools);

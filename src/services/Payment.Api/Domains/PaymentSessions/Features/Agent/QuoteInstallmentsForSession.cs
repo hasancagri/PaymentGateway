@@ -24,14 +24,16 @@ public static class QuoteInstallmentsForSession
         {
             SessionId = session.Id,
             Status = session.Status.ToString(),
-            Installments = session.OfferedInstallments
-                .Select(o => new InstallmentLine
-                {
-                    InstallmentCount = o.InstallmentCount,
-                    UserTotalAmount = o.UserTotalAmount,
-                    MonthlyAmount = o.MonthlyAmount
-                })
-                .ToList()
+            Installments =
+            [
+                .. session.OfferedInstallments
+                    .Select(o => new InstallmentLine
+                    {
+                        InstallmentCount = o.InstallmentCount,
+                        UserTotalAmount = o.UserTotalAmount,
+                        MonthlyAmount = o.MonthlyAmount
+                    })
+            ]
         };
     }
 
