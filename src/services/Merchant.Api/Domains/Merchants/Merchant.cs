@@ -167,3 +167,24 @@ public class Merchant : AggregateRoot
         Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_FORMAT
     };
 }
+
+/// <summary>
+/// Merchant yaşam döngüsü durumu. Şimdilik düz enum (kullanıcı direktifi); ileride gerekirse
+/// Enumeration smart-enum'a dönüştürülür. Referans mimari de status için düz enum kullanıyor.
+/// </summary>
+public enum MerchantStatus
+{
+    Active = 1,
+    Passive = 2,
+    Suspended = 3
+}
+
+/// <summary>
+/// merchantKey aday üreticisi (saf). Gateway'in her merchant'a mint ettiği açık dış kimlik:
+/// <c>mk_</c> öneki + 32 hane hex (Guid "N"). URL-güvenli, boşluksuz, gizli DEĞİL.
+/// Benzersizlik <b>garantisi</b> handler'daki üret-kontrol döngüsündedir; burada yalnız aday üretilir.
+/// </summary>
+public static class MerchantKeyGenerator
+{
+    public static string Generate() => "mk_" + Guid.NewGuid().ToString("N");
+}
