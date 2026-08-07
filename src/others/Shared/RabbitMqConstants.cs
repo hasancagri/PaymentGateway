@@ -16,4 +16,10 @@ public static class RabbitMqConstants
     {
         public const string Exchange = "reference.data-updated";
     }
+
+    public static class MerchantLifecycle
+    {
+        public const string Exchange = "merchant.lifecycle";
+        public const string IdentityQueue = "identity.merchant-sync";
+    }
 }

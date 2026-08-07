@@ -2,6 +2,9 @@ using Identity.Server;
 using Identity.Server.Connect;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Shared;
+using Wolverine;
+using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +47,10 @@ builder.Services.AddOpenIddict()
         // Access token düz imzalı JWT olsun ki servislerin JwtBearer'ı çözebilsin.
         options.DisableAccessTokenEncryption();
 
+        // 012: 15 dk global ömür — revocation kolu (self-contained JWT'de anlık iptal yok;
+        // askıya alınan merchant en geç 15 dk'da düşer). Admin/Agent handler'ları proaktif yeniler.
+        options.SetAccessTokenLifetime(TimeSpan.FromMinutes(15));
+
         // R3: access token scope claim'ini JSON dizisine çevir (029 tuzağı — D3).
         options.AddEventHandler(ScopeClaimArrayHandler.Descriptor);
 
@@ -53,6 +60,32 @@ builder.Services.AddOpenIddict()
 
 // Açılışta idempotent client + scope seed.
 builder.Services.AddHostedService<SeedHostedService>();
+
+// 012: merchant.lifecycle fanout tüketimi — Merchant BC olayları OpenIddict istemci kaydına
+// izdüşürülür (MerchantClientEventHandler). Message store YOK (D1): durable inbox kullanılamaz;
+// kuyruk RabbitMQ tarafında durable, handler idempotent → inline işleme (ack handler bitince) yeterli.
+builder.Host.UseWolverine(opts =>
+{
+    if (builder.Environment.IsDevelopment())
+        opts.Durability.Mode = DurabilityMode.Solo;
+
+    var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
+        .AutoProvision();
+
+    rabbit.DeclareExchange(RabbitMqConstants.MerchantLifecycle.Exchange,
+        e => { e.ExchangeType = ExchangeType.Fanout; });
+    rabbit.DeclareQueue(RabbitMqConstants.MerchantLifecycle.IdentityQueue);
+    rabbit.BindExchange(RabbitMqConstants.MerchantLifecycle.Exchange)
+        .ToQueue(RabbitMqConstants.MerchantLifecycle.IdentityQueue);
+
+    opts.ListenToRabbitQueue(RabbitMqConstants.MerchantLifecycle.IdentityQueue).ProcessInline();
+
+    opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
+
+    // Handler parametreleri (IOpenIddictApplicationManager, ILogger) scoped container'dan
+    // service-location ile çözülür; Wolverine 6 default'u bunu yasaklıyor — bilinçli izin (warn'lı).
+    opts.ServiceLocationPolicy = JasperFx.CodeGeneration.Model.ServiceLocationPolicy.AllowedButWarn;
+});
 
 var app = builder.Build();
 

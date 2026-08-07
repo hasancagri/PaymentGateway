@@ -13,4 +13,11 @@ public static class IntegrationEvents
 
     // CountryCode yalnız City için dolu; diğer türlerde null.
     public record ReferenceItem(string Code, string Name, string? CountryCode);
+
+    // Merchant yaşam döngüsü: Merchant.Api yayınlar; Identity.Server tüketir (OpenIddict istemci upsert).
+    // Status/NewStatus ∈ { "Active", "Passive", "Suspended" } (string — BC enum'u Shared'a sızmaz).
+    // MerchantKey yalnız Created'da taşınır (istemci sırrı); StatusChanged sır taşımaz.
+    public record MerchantCreated(Guid MerchantId, string MerchantKey, string Status);
+
+    public record MerchantStatusChanged(Guid MerchantId, string NewStatus);
 }

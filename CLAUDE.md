@@ -62,7 +62,9 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
 - `PosAccount` aggregate: banka POS anlaşması (credentials + taksit başına komisyon). Komisyon
   oranları buradan yönetilir; router'ın girdisidir.
 - Integration event'ler `src/others/Shared` (`PaymentCompletedEvent/PaymentFailedEvent`, fanout exchange).
-  Henüz tüketici yok; Order BC gelince bağlanır.
+  Henüz tüketici yok; Order BC gelince bağlanır. 012: `MerchantCreated/MerchantStatusChanged`
+  (`merchant.lifecycle` fanout) — Merchant.Api yayınlar, Identity.Server tüketir (OpenIddict
+  istemci senkronu; status string taşır, BC enum'u sızmaz).
 - Ortak yapı taşları `src/others/Common`'da: domain base tipleri, Result pattern, DI marker'ları,
   auth, caching, exception handler.
 - `src/others/Identity.Server` — OpenIddict tabanlı minimal M2M IdP (011). Sabit issuer
@@ -71,14 +73,31 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   (`ScopeClaimArrayHandler` — tek-string'te policy'ler sessizce 403 verir, dokunma). Seed
   idempotent: 6 scope + 2 istemci (admin-ui, payment-agent); secret'lar config'ten
   (`Clients:<id>:Secret`). Kendi `identityDb`'si (EF Core — anayasanın izole-altyapı istisnası).
-- Auth modeli (011): BC API'leri `AddAuthenticationAndAuthorizationExtension` (JwtBearer + scope
+  012: Wolverine ile `merchant.lifecycle` tüketir (`MerchantClientEventHandlers` — idempotent
+  upsert; message store YOK, bilinçli); access token ömrü GLOBAL 15 dk.
+- Auth modeli (011+012): BC API'leri `AddAuthenticationAndAuthorizationExtension` (JwtBearer + scope
   policy) kullanır; her endpoint policy'yi AÇIKÇA beyan eder (`RequireAuthorization` — GET →
   `<bc>.read`, mutasyon → `<bc>.write`; sabitler `AuthorizationScopes`). Payment `/mcp` yüzeyi
   tek policy: `payment.write`. Admin BFF (`AdminTokenHandler`) ve Payment.Agent
-  (`AgentTokenHandler`) client_credentials token'ını cache'ler (−30 sn yenileme). Merchant'ın
-  istemcileşmesi (client_id=merchantId, secret=MerchantKey) G2'de; insan login + RBAC G3'te.
+  (`AgentTokenHandler`) client_credentials token'ını cache'ler (−30 sn yenileme).
+- Merchant istemci düzlemi (012, G2 KARARLI): merchant = OAuth istemcisi (`client_id=merchantId`,
+  `client_secret=MerchantKey`; MerchantKey yalnız `connect/token`'a gider). Token'da `merchant_id`
+  claim'i; verme statü-kapılı (yalnız Active — izinler event'le açılır/kapanır, client silinmez).
+  Enforcement `Common`'da: `MerchantScopeEvaluator` (saf çekirdek) + `MerchantScoped` (claim-route
+  eşleşmesi, fail-closed) ve `AdminPlaneOnly` (claim'li token giremez — ör. `PUT
+  merchants/{merchantId}/status`) policy'leri (`AuthorizationPolicies`). Merchant token'ı yalnız
+  Merchant BC'de kendi kaydı + settlement-account uçlarına erişir; Payment/Commission audience
+  zinciriyle kapalı. İnsan login + RBAC G3'te.
 - Handler'lar `[Transactional]` + `IDocumentSession` (repository yok); sonuçlar
   `FeatureObjectResultModel<T>`/`ResultDomain` (exception değil).
+- **Wolverine event-handler kuralı (sık hata: static/async + ad son eki)**: integration-event
+  tüketicisi `public static class` + `public static async Task Handle(<Event> message, ...)`
+  olacak — instance class, `async void`, sync `void Handle` YASAK. Sınıf adı **"Handler" ile
+  TEKİL** bitecek (`ReferenceEventHandler` ✓); **"Handlers" (çoğul) Wolverine 6.4'te SESSİZCE
+  keşfedilmiyor** — "No known handler ... discarded", dead-letter YOK, mesaj kaybolur (012'de
+  `MerchantEventHandlers` ve `MerchantClientEventHandlers` bu yüzden tekile taşındı). Şablon:
+  Commission `ReadModels/ReferenceBankReadModel.cs`. Canlı doğrulama: consumer log'unda
+  "Successfully processed message" var, "No known handler" yok.
 
 ## Bilinçli ertelemeler
 

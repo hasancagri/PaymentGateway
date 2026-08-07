@@ -184,9 +184,33 @@ Reference.Api'nin HTTP yüzeyi yok — kapsam dışı. Sağlık/doc uçları ano
 
 **İstemciler** — Admin BFF (`AdminTokenHandler`) ve Payment.Agent (`AgentTokenHandler`):
 client_credentials token'ı static cache'lenir, süresine 30 sn kala (veya dolmuşsa anında)
-yenilenir; token edinilemezse hata yüzeye çıkar (sessiz başarı yok). Merchant'ın istemcileşmesi
-(`client_id=merchantId`, `client_secret=MerchantKey`, status-gated scope) sonraki dilimde (G2);
-011 zeminini hazırlar (DB-tabanlı client store, `sub=client_id`, genişletilebilir scope registry).
+yenilenir; token edinilemezse hata yüzeye çıkar (sessiz başarı yok).
+
+## Merchant istemci düzlemi (feature 012 — G2)
+
+Merchant = OAuth istemcisi: **`client_id = merchantId`, `client_secret = MerchantKey`** (006'nın
+`mk_+Guid` değeri; üçüncü sır yok). MerchantKey yalnız `connect/token`'a gider — BC API'lerine
+asla taşınmaz (API-key deseni bilinçli reddedildi). Access token ömrü **global 15 dk**
+(revocation kolu; Admin/Agent handler'ları proaktif yenilediği için davranış değişmez).
+
+- **Otomatik istemcileşme (event-driven):** Merchant.Api onboarding'de `MerchantCreated`,
+  statü değişiminde `MerchantStatusChanged` yayınlar (`merchant.lifecycle` fanout);
+  Identity.Server `MerchantClientEventHandlers` ile tüketip OpenIddict kaydını idempotent
+  upsert eder. Backfill yok (dev fazı — ortam sıfırlanır).
+- **Status-gated issuance:** yalnız `Active` merchant token alır. Suspended/Passive'de istemci
+  SİLİNMEZ; izinleri boşaltılır (`unauthorized_client`) — reaktivasyonda secret yeniden taşınmaz.
+- **`merchant_id` claim'i:** application `Properties`'ten `TokenEndpoint`'e; yalnız merchant
+  istemcilerinde bulunur (admin-ui/payment-agent claim'siz = global davranış).
+- **Tenant enforcement (`Common`):** `MerchantScopeEvaluator` (saf çekirdek, birim testli) +
+  iki policy — `MerchantScoped` (claim ↔ route `{merchantId}` eşleşmesi; route'ta değer yoksa
+  fail-closed RET → liste/by-key/create merchant token'ına kapalı; uyuşmazlık 403) ve
+  `AdminPlaneOnly` (claim'li token giremez — `PUT merchants/{merchantId}/status`, merchant
+  kendini askıdan çıkaramaz). Uçlar policy'yi `RequireAuthorization` ile açıkça beyan eder.
+- **Erişim alanı:** merchant token'ı yalnız Merchant BC'de kendi kaydı + settlement-account
+  uçları; Payment/Commission audience uyuşmazlığıyla 401.
+
+İnsan login + merchant'a bağlı kullanıcı/rol (RBAC) sonraki dilimde (G3); storage düzeyi tenant
+izolasyonu (Marten conjoined tenancy) 013'te.
 
 ## Test
 

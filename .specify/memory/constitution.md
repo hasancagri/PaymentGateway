@@ -1,6 +1,26 @@
 <!--
 SYNC IMPACT REPORT
 ==================
+Version change: 1.2.0 → 1.3.0
+Bump rationale: MINOR — İlke V rehberliği belirgin genişledi: merchant-istemci düzlemi (G2)
+  KARARLI hâle geldi (012). TODO(AUTHZ_MODEL)'in G2 kolu kapandı; açık kalan yalnız insan/rol
+  düzlemi (G3).
+
+Modified principles:
+  - V. Merkezi Kimlik ve Açık Yetki: merchant-istemci düzlemi sabitlendi —
+    client_id=merchantId + client_secret=MerchantKey (client_credentials), 15 dk global access
+    token ömrü, token'da merchant_id claim'i (yalnız merchant istemcilerinde), status-gated
+    issuance (yalnız Active merchant token alır; izinler event'le açılır/kapanır), claim-vs-route
+    enforcement (MerchantScoped: eşleşme zorunlu, route'ta merchantId yoksa fail-closed RET;
+    AdminPlaneOnly: claim'li token admin uçlarına giremez). Scope adları merchant-başına
+    ÇOĞALTILMAZ (scope = yetki türü, claim = kimlik).
+
+Deferred TODOs:
+  - TODO(AUTHZ_MODEL) [DARALTILDI, 012]: Makine düzlemi (011) + merchant-istemci düzlemi (012)
+    KARARLI. Açık kalan yalnız: insan/rol düzlemi (G3 — login + RBAC + merchant'a bağlı
+    kullanıcılar); kendi spec döngüsünde amendment ile kapatılacak.
+
+--- v1.2.0 raporu (2026-08-07) ---
 Version change: 1.1.0 → 1.2.0
 Bump rationale: MINOR — yeni bölüm eklendi: "E2E Testing (Playwright)". ECommerce anayasası
   v1.8.0'daki bölümün bu repoya uyarlanmış taşıması (kullanıcı isteği, 2026-08-07). Kritik
@@ -126,8 +146,15 @@ Kimlik doğrulama merkezîdir ve hiçbir korunması gereken uç açıkta bırak�
   sorgular tenant sınırıyla filtrelenir.
 - Makine (M2M) düzleminde yetki modeli KARARLIDIR (011): client_credentials + scope-tabanlı
   policy; kural GET → `<bc>.read`, durum değiştiren → `<bc>.write`; access token'da scope
-  claim'i JSON dizisidir. İnsan/rol düzlemi (G3) ve merchant-istemci düzlemi (G2) için
-  bkz. TODO(AUTHZ_MODEL) — karar netleştiğinde amendment ile işlenir.
+  claim'i JSON dizisidir.
+- Merchant-istemci düzlemi KARARLIDIR (012): merchant = client_credentials istemcisi
+  (`client_id = merchantId`, `client_secret = MerchantKey`; üçüncü sır üretilmez). MerchantKey
+  yalnız `connect/token`'a gider, BC API'lerine taşınMAZ. Token 15 dk ömürlü, merchant
+  istemcilerinde `merchant_id` claim'i taşır; verme statü-kapılıdır (yalnız Active). Tenant
+  enforcement claim-tabanlıdır: `merchant_id` claim'i route'daki `{merchantId}` ile eşleşmek
+  zorundadır (yoksa fail-closed RET, uyuşmazlıkta 403); admin-düzlemi uçları `AdminPlaneOnly`
+  ile claim'li token'a kapalıdır. Scope adları merchant-başına çoğaltılmaz.
+- İnsan/rol düzlemi (G3) için bkz. TODO(AUTHZ_MODEL) — karar netleştiğinde amendment ile işlenir.
 
 Gerekçe: Ödeme sistemi için yetki, sonradan eklenen değil baştan tasarlanan bir kısıttır;
 modelin ayrıntısını ertelemek, "her erişim açıkça yetki gerektirir" kuralını ertelemez.
@@ -216,4 +243,4 @@ sağlar; anayasa bu akışa tutarlılık zemini verir.
 - Ertelenen kararlar (TODO) Sync Impact Report'ta takip edilir ve karar netleştiğinde
   amendment ile kapatılır.
 
-**Version**: 1.2.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-08-07
+**Version**: 1.3.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-08-07
