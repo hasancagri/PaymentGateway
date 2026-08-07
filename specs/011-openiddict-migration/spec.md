@@ -46,7 +46,7 @@ token'ın issuer/scope/claim içeriği beklenen şekildedir. Duende'ye ait hiçb
 
 ### User Story 2 - BC API'leri açık yetkiyle korunur (Priority: P2)
 
-İşletici olarak, ödeme/merchant/komisyon/referans verilerine yalnız yetkili istemcilerin erişmesini istiyorum;
+İşletici olarak, ödeme/merchant/komisyon verilerine yalnız yetkili istemcilerin erişmesini istiyorum;
 böylece ödeme sistemi verisi "varsayılan açık" uç üzerinden sızamaz.
 
 **Why this priority**: İlke V'in fiili uygulaması; motor (US1) olmadan yapılamaz, ama migrasyonun asıl iş değeri
@@ -102,11 +102,12 @@ kimliği bilinçli olarak sonraki fazlara (G2/G3, merchant kimliği) bırakılm�
 - **FR-001**: Kimlik sunucusu OpenIddict motoruna geçer; kullanıcı deposu olarak ASP.NET Identity KALIR.
 - **FR-002**: Ticari lisanslı kimlik sunucu bileşenleri (Duende server paketleri) çözümden tamamen çıkarılır.
 - **FR-003**: Scope seti bu repo'nun BC'lerine göre tanımlanır: `payment.read/write`, `merchant.read/write`,
-  `commission.read/write`, `reference.read/write`. ECommerce'e ait scope seti silinir.
+  `commission.read/write`. ECommerce'e ait scope seti silinir. (Reference BC'nin HTTP yüzeyi yoktur —
+  010'da event-only pivotu; scope tanımlanmaz.)
 - **FR-004**: İki iç makine istemcisi tanımlanır: Admin arayüzü (BFF) ve Payment ajanı; her biri yalnız ihtiyaç
   duyduğu scope'ları alabilir (least-privilege).
-- **FR-005**: Dört BC API'si (Payment, Merchant, Commission, Reference) gelen istekte kimlik doğrular; durum
-  değiştiren veya hassas veri döndüren her uç gereken scope'u açıkça beyan eder.
+- **FR-005**: HTTP yüzeyi olan üç BC API'si (Payment, Merchant, Commission) gelen istekte kimlik doğrular;
+  durum değiştiren veya hassas veri döndüren her uç gereken scope'u açıkça beyan eder.
 - **FR-006**: Admin arayüzü API çağrılarına makine token'ı ekler; mevcut tüm ekran akışları davranış değişmeden
   çalışır. İnsan login'i ve rol tabanlı yetki bu feature'ın DIŞINDADIR (ayrı feature).
 - **FR-007**: Payment ajanının iç araç çağrıları makine token'ı taşır; A2A taksit akışı (007/024) uçtan uca
