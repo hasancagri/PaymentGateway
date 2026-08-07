@@ -89,7 +89,7 @@ public static class CreateSettlementAccountEndpoint
                 })
             .WithName("CreateSettlementAccount")
             .MapToApiVersion(1, 0)
-            .RequireAuthorization(AuthorizationScopes.MerchantWrite)
+            .RequireAuthorization(AuthorizationScopes.MerchantWrite, AuthorizationPolicies.MerchantScoped)
             .Produces<CreateSettlementAccount.CreateSettlementAccountResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

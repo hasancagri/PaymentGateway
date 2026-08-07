@@ -68,17 +68,18 @@ public static class GetMerchantQueryEndpoint
 {
     public static RouteGroupBuilder GetMerchantGroupItemEndpoint(this RouteGroupBuilder group)
     {
-        group.MapGet("/{id:guid}",
-                async (Guid id, IMessageBus bus) =>
+        // 012: route parametresi {merchantId} — MerchantScoped policy tek anahtardan okur (D7).
+        group.MapGet("/{merchantId:guid}",
+                async (Guid merchantId, IMessageBus bus) =>
                 {
                     var result = await bus
                         .InvokeAsync<FeatureObjectResultModel<GetMerchant.GetMerchantResponse>>(
-                            new GetMerchant.GetMerchantQuery(id));
+                            new GetMerchant.GetMerchantQuery(merchantId));
                     return result.IsSuccess ? Results.Ok(result.Data) : Results.NotFound(result);
                 })
             .WithName("GetMerchant")
             .MapToApiVersion(1, 0)
-            .RequireAuthorization(AuthorizationScopes.MerchantRead)
+            .RequireAuthorization(AuthorizationScopes.MerchantRead, AuthorizationPolicies.MerchantScoped)
             .Produces<GetMerchant.GetMerchantResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

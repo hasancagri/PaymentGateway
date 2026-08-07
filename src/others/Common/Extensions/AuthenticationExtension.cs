@@ -1,5 +1,8 @@
 using Common.Options;
+using Common.Utils.Authorization;
+using Common.Utils.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -36,6 +39,11 @@ public static class AuthenticationExtension
                 options.RefreshInterval = TimeSpan.FromSeconds(30);
             });
 
+        // 012: tenant policy handler'ları route değerine erişir.
+        services.AddHttpContextAccessor();
+        services.AddSingleton<IAuthorizationHandler, MerchantScopeAuthorizationHandler>();
+        services.AddSingleton<IAuthorizationHandler, AdminPlaneOnlyAuthorizationHandler>();
+
         services.AddAuthorization(options =>
         {
             // Her scope icin policy: gecerli (authenticated) token + ilgili "scope" claim'i.
@@ -45,6 +53,18 @@ public static class AuthenticationExtension
                     policy.RequireAuthenticatedUser();
                     policy.RequireClaim("scope", scope);
                 });
+
+            // 012: claim-tabanlı tenant policy'leri — uçlar scope policy'sinin YANINA açıkça beyan eder.
+            options.AddPolicy(AuthorizationPolicies.MerchantScoped, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.AddRequirements(new MerchantScopeRequirement());
+            });
+            options.AddPolicy(AuthorizationPolicies.AdminPlaneOnly, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.AddRequirements(new AdminPlaneOnlyRequirement());
+            });
         });
 
         return services;

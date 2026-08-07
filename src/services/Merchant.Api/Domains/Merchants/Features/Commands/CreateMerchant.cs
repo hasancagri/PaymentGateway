@@ -25,6 +25,7 @@ public static class CreateMerchant
         public async Task<FeatureObjectResultModel<CreateMerchantResponse>> Handle(
             CreateMerchantCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             // 1) Benzersiz merchantKey üret (gateway mint eder; istemcinin gönderdiği değer yok sayılır).
@@ -61,6 +62,11 @@ public static class CreateMerchant
                 return FeatureObjectResultModel<CreateMerchantResponse>.Error(errors);
 
             session.Store(result.Data!);
+
+            // 012: Identity.Server tüketir → OpenIddict istemci kaydı (client_id=merchantId,
+            // secret=MerchantKey). Marten+Wolverine outbox'ı commit ile birlikte yayınlar.
+            await bus.PublishAsync(new Shared.IntegrationEvents.MerchantCreated(
+                result.Data!.Id, result.Data!.MerchantKey, result.Data!.Status.ToString()));
 
             return FeatureObjectResultModel<CreateMerchantResponse>.Ok(new CreateMerchantResponse
             {
@@ -107,7 +113,7 @@ public static class CreateMerchantCommandEndpoint
                 })
             .WithName("CreateMerchant")
             .MapToApiVersion(1, 0)
-            .RequireAuthorization(AuthorizationScopes.MerchantWrite)
+            .RequireAuthorization(AuthorizationScopes.MerchantWrite, AuthorizationPolicies.MerchantScoped)
             .Produces<CreateMerchant.CreateMerchantResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

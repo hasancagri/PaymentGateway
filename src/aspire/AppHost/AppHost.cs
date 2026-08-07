@@ -19,9 +19,12 @@ var identityDb = postgres.AddDatabase("identityDb");
 
 // 011: OpenIddict IdP — sabit https://localhost:5101 (launchSettings https profili; issuer birebir).
 // BC API'leri token'ı JWKS ile doğrular; Admin/Agent client_credentials token'ı buradan alır.
+// 012: merchant.lifecycle fanout'unu tüketir (merchant → OpenIddict istemci senkronu).
 var identityServer = builder.AddProject<Projects.Identity_Server>("identity-server", launchProfileName: "https")
     .WithReference(identityDb)
-    .WaitFor(identityDb);
+    .WithReference(rabbit)
+    .WaitFor(identityDb)
+    .WaitFor(rabbit);
 
 var paymentApi = builder.AddProject<Projects.Payment_Api>("payment-api")
     .WithReference(paymentDb)

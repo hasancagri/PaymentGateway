@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Identity.Server.EventHandlers;
 using Microsoft.AspNetCore;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
@@ -17,7 +18,8 @@ public static class TokenEndpoint
 
     private static async Task<IResult> HandleAsync(
         HttpContext context,
-        IOpenIddictScopeManager scopeManager)
+        IOpenIddictScopeManager scopeManager,
+        IOpenIddictApplicationManager applicationManager)
     {
         var request = context.GetOpenIddictServerRequest()
             ?? throw new InvalidOperationException("OIDC token isteği çözülemedi.");
@@ -30,6 +32,14 @@ public static class TokenEndpoint
             TokenValidationParameters.DefaultAuthenticationType, Claims.Name, Claims.Role);
 
         identity.SetClaim(Claims.Subject, request.ClientId);
+
+        // 012 (D6): merchant istemcilerinde application Properties'teki merchant_id access token'a
+        // claim olarak girer; statik istemcilerde (admin-ui, payment-agent) property yok → claim yok.
+        var application = await applicationManager.FindByClientIdAsync(request.ClientId!)
+            ?? throw new InvalidOperationException("İstemci kaydı bulunamadı.");
+        var properties = await applicationManager.GetPropertiesAsync(application);
+        if (properties.TryGetValue(MerchantClientEventHandler.MerchantIdProperty, out var merchantId))
+            identity.SetClaim(MerchantClientEventHandler.MerchantIdProperty, merchantId.GetString());
 
         identity.SetScopes(request.GetScopes());
 

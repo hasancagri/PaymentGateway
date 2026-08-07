@@ -52,6 +52,14 @@ builder.Host.UseWolverine(opts =>
 
     opts.ListenToRabbitQueue("merchant.reference-sync").UseDurableInbox();
 
+    // 012: merchant yaşam döngüsü yayını — Identity.Server tüketir (OpenIddict istemci senkronu).
+    rabbit.DeclareExchange(RabbitMqConstants.MerchantLifecycle.Exchange,
+        e => { e.ExchangeType = ExchangeType.Fanout; });
+    opts.PublishMessage<Shared.IntegrationEvents.MerchantCreated>()
+        .ToRabbitExchange(RabbitMqConstants.MerchantLifecycle.Exchange);
+    opts.PublishMessage<Shared.IntegrationEvents.MerchantStatusChanged>()
+        .ToRabbitExchange(RabbitMqConstants.MerchantLifecycle.Exchange);
+
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
 });

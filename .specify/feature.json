@@ -1,1 +1,3 @@
-{"feature_directory":"specs/011-openiddict-migration"}
+{
+  "feature_directory": "specs/012-merchant-oauth-client"
+}

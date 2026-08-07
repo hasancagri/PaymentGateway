@@ -91,7 +91,7 @@ public static class UpdateSettlementAccountEndpoint
                 })
             .WithName("UpdateSettlementAccount")
             .MapToApiVersion(1, 0)
-            .RequireAuthorization(AuthorizationScopes.MerchantWrite)
+            .RequireAuthorization(AuthorizationScopes.MerchantWrite, AuthorizationPolicies.MerchantScoped)
             .Produces<UpdateSettlementAccount.UpdateSettlementAccountResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);
