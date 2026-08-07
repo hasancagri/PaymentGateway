@@ -53,6 +53,7 @@ public static class UpdateMerchantCommissionCommandEndpoint
                 })
             .WithName("UpdateMerchantCommission")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.CommissionWrite)
             .Produces<UpdateMerchantCommission.UpdateMerchantCommissionResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)

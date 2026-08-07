@@ -10,18 +10,24 @@ builder.Services.AddRazorPages();
 builder.Services.AddMvc(opt => opt.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
 
 // Typed HttpClient'lar — BaseAddress Aspire service discovery adı (WithReference ile enjekte edilen
-// services__<ad>__http__0). Yetki bu dilimde yok; token eklenmez (OIDC sonraki dilim).
+// services__<ad>__http__0). 011: her istek AdminTokenHandler ile Bearer taşır (client_credentials).
+builder.Services.AddTransient<AdminTokenHandler>();
+
 builder.Services.AddHttpClient<IMerchantApiClient, MerchantApiClient>(client =>
-    client.BaseAddress = new Uri("http://merchant-api"));
+        client.BaseAddress = new Uri("http://merchant-api"))
+    .AddHttpMessageHandler<AdminTokenHandler>();
 
 builder.Services.AddHttpClient<ICommissionApiClient, CommissionApiClient>(client =>
-    client.BaseAddress = new Uri("http://commission-api"));
+        client.BaseAddress = new Uri("http://commission-api"))
+    .AddHttpMessageHandler<AdminTokenHandler>();
 
 builder.Services.AddHttpClient<ISettlementAccountApiClient, SettlementAccountApiClient>(client =>
-    client.BaseAddress = new Uri("http://merchant-api"));
+        client.BaseAddress = new Uri("http://merchant-api"))
+    .AddHttpMessageHandler<AdminTokenHandler>();
 
 builder.Services.AddHttpClient<IBinCardApiClient, BinCardApiClient>(client =>
-    client.BaseAddress = new Uri("http://payment-api"));
+        client.BaseAddress = new Uri("http://payment-api"))
+    .AddHttpMessageHandler<AdminTokenHandler>();
 
 var app = builder.Build();
 

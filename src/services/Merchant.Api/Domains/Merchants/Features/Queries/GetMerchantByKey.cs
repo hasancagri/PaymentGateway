@@ -81,6 +81,7 @@ public static class GetMerchantByKeyQueryEndpoint
                 })
             .WithName("GetMerchantByKey")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.MerchantRead)
             .Produces<GetMerchantByKey.GetMerchantByKeyResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

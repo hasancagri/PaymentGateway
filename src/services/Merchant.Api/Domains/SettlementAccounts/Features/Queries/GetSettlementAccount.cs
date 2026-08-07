@@ -68,6 +68,7 @@ public static class GetSettlementAccountQueryEndpoint
                 })
             .WithName("GetSettlementAccount")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.MerchantRead)
             .Produces<GetSettlementAccount.GetSettlementAccountResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

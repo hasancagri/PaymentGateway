@@ -127,6 +127,7 @@ public static class BulkUpsertBankCommissionsCommandEndpoint
                 })
             .WithName("BulkUpsertBankCommissions")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.CommissionWrite)
             .Produces<BulkUpsertBankCommissions.BulkUpsertBankCommissionsResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

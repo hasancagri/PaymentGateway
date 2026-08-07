@@ -74,6 +74,7 @@ public static class CreatePosAccountCommandEndpoint
                 })
             .WithName("CreatePosAccount")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.PaymentWrite)
             .Produces<CreatePosAccount.CreatePosAccountResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

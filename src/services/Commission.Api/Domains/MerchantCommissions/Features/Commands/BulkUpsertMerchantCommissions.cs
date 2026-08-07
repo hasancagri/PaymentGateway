@@ -100,6 +100,7 @@ public static class BulkUpsertMerchantCommissionsCommandEndpoint
                 })
             .WithName("BulkUpsertMerchantCommissions")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.CommissionWrite)
             .Produces<BulkUpsertMerchantCommissions.BulkUpsertMerchantCommissionsResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

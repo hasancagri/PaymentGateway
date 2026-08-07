@@ -1,4 +1,5 @@
 using Common.Exceptions;
+using Common.Extensions;
 using Commission.Api.Domains.BankCommissions;
 using Commission.Api.Domains.Banks;
 using Commission.Api.Domains.MerchantCommissions;
@@ -64,10 +65,17 @@ builder.Services.AddApiVersioning(options =>
     options.ApiVersionReader = new UrlSegmentApiVersionReader();
 });
 
+// 011: JWT bearer (Identity.Server JWKS) + scope policy'leri; endpoint'ler policy'yi açıkça beyan eder.
+builder.Services.AddAuthenticationAndAuthorizationExtension(
+    builder.Configuration,
+    AuthorizationScopes.CommissionRead,
+    AuthorizationScopes.CommissionWrite);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
 var app = builder.Build();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapDefaultEndpoints();
 app.MapScalarDocumentation();
 

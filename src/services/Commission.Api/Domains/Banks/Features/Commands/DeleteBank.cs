@@ -68,6 +68,7 @@ public static class DeleteBankCommandEndpoint
                 })
             .WithName("DeleteBank")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.CommissionWrite)
             .Produces<DeleteBank.DeleteBankResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

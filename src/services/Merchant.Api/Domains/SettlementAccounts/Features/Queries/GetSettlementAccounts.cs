@@ -69,6 +69,7 @@ public static class GetSettlementAccountsQueryEndpoint
                 })
             .WithName("GetSettlementAccounts")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.MerchantRead)
             .Produces<GetSettlementAccounts.GetSettlementAccountsResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

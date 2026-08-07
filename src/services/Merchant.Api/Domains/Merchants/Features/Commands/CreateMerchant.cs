@@ -107,6 +107,7 @@ public static class CreateMerchantCommandEndpoint
                 })
             .WithName("CreateMerchant")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.MerchantWrite)
             .Produces<CreateMerchant.CreateMerchantResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

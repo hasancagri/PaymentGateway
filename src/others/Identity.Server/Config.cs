@@ -1,135 +1,63 @@
-using Duende.IdentityServer.Models;
-
 namespace Identity.Server;
 
+// Seed sabitleri: scope registry + istemci listesi. SeedHostedService açılışta OpenIddict
+// application/scope manager'larına idempotent yazar (yalnız BU statik liste — G2'nin çalışma
+// anında ekleyeceği merchant client'larına dokunulmaz).
 public static class Config
 {
-    // Servislerin token'da bekledigi ekstra claim'ler (role/email policy'leri icin).
-    private static readonly string[] ApiUserClaims = ["role", "email", "name"];
+    // Scope → audience (resource) haritası. Token üretiminde ListResourcesAsync bu eşlemeden
+    // 'aud' claim'ini üretir; servisler kendi adını (merchant.api...) ValidateAudience ile arar.
+    // G2/G5 genişlemesi (cards.write, charge) buraya eklenir.
+    public static readonly IReadOnlyDictionary<string, string> ScopeResources =
+        new Dictionary<string, string>
+        {
+            ["payment.read"] = "payment.api",
+            ["payment.write"] = "payment.api",
+            ["merchant.read"] = "merchant.api",
+            ["merchant.write"] = "merchant.api",
+            ["commission.read"] = "commission.api",
+            ["commission.write"] = "commission.api",
+        };
 
-    public static IEnumerable<IdentityResource> IdentityResources =>
+    public static IEnumerable<string> AllApiScopes => ScopeResources.Keys;
+
+    // İstemci kayıtları. Secret'lar koda GÖMÜLMEZ (FR-011): Clients:<id>:Secret anahtarından okunur
+    // (appsettings dev varsayılanı + user-secrets/env override); store hash'leyerek saklar.
+    public static IReadOnlyList<ClientSeed> Clients(IConfiguration configuration) =>
     [
-        new IdentityResources.OpenId(),
-        new IdentityResources.Profile(),
-        new IdentityResources.Email(),
-        // id_token/userinfo'ya role claim'i tasimak icin.
-        new IdentityResource("roles", "Roller", ["role"]),
-    ];
-
-    // ApiScope = servis basina read/write yetki birimi.
-    // read = liste/detay/sorgu, write = olustur/guncelle/sil.
-    public static IEnumerable<ApiScope> ApiScopes =>
-    [
-        // catalog.api (okuma anonim — scope yok; yalnizca yazma korunur)
-        new ApiScope("catalog.write", "Catalog API - yazma (olustur/guncelle/sil)"),
-
-        // basket.api
-        new ApiScope("basket.read", "Basket API - okuma"),
-        new ApiScope("basket.write", "Basket API - yazma"),
-
-        // order.api
-        new ApiScope("order.read", "Order API - okuma"),
-        new ApiScope("order.write", "Order API - yazma"),
-
-        // payment.api
-        new ApiScope("payment.read", "Payment API - okuma"),
-        new ApiScope("payment.write", "Payment API - yazma"),
-
-        // stock.api
-        new ApiScope("stock.write", "Stock API - yazma (artir/azalt)"),
-        // 012: Basket/Order -> Stock gRPC rezervasyonu (SetReservedQuantity/Release/Commit).
-        new ApiScope("stock.reserve", "Stock API - rezervasyon (sepet/siparis)"),
-
-        // file.api: gorsel upload MCP tool'unu korur.
-        new ApiScope("file.write", "File API - yazma (gorsel upload)"),
-
-        // storefront.api: herkese acik urun-vitrin gorunumu (yine de anonim-M2M scope ister).
-        new ApiScope("storefront.read", "Storefront API - okuma (urun vitrin gorunumu)"),
-
-        // identity: UserKey (ApiKeys) yonetim yetkisi — admin issue/revoke uclarini korur.
-        new ApiScope("apikeys.manage", "API Key yonetimi (admin issue/revoke)"),
-    ];
-
-    // ApiResource adi = servisin dogruladigi Audience (appsettings IdentityOption.Audience).
-    // Token'in 'aud' claim'i bu ada esitlenir; uyusmazsa servis token'i reddeder.
-    public static IEnumerable<ApiResource> ApiResources =>
-    [
-        new ApiResource("catalog.api", "Catalog API")
+        // Admin BFF m2m: tüm yönetim ekranları (AdminTokenHandler 6 scope'la token alır).
+        new ClientSeed
         {
-            Scopes = { "catalog.write" },
-            UserClaims = ApiUserClaims,
-        },
-        new ApiResource("basket.api", "Basket API")
-        {
-            Scopes = { "basket.read", "basket.write" },
-            UserClaims = ApiUserClaims,
-        },
-        new ApiResource("order.api", "Order API")
-        {
-            Scopes = { "order.read", "order.write" },
-            UserClaims = ApiUserClaims,
-        },
-        new ApiResource("payment.api", "Payment API")
-        {
-            Scopes = { "payment.read", "payment.write" },
-            UserClaims = ApiUserClaims,
-        },
-        new ApiResource("stock.api", "Stock API")
-        {
-            Scopes = { "stock.write", "stock.reserve" },
-            UserClaims = ApiUserClaims,
-        },
-        // file.api: MCP upload yuzeyi file.write scope'uyla korunur.
-        new ApiResource("file.api", "File API")
-        {
-            Scopes = { "file.write" },
-            UserClaims = ApiUserClaims,
-        },
-        new ApiResource("storefront.api", "Storefront API")
-        {
-            Scopes = { "storefront.read" },
-            UserClaims = ApiUserClaims,
-        },
-    ];
-
-    public static IEnumerable<Client> Clients =>
-    [
-        // Admin m2m: UserKey issue/revoke uclarini cagirmak icin apikeys.manage tasir.
-        // (v1'de uclar X-Internal-Secret ile korunur; bu client uretim scope-korumasi icin hazir.)
-        new Client
-        {
-            ClientId = "apikeys.admin",
-            ClientName = "API Key admin (m2m)",
-            AllowedGrantTypes = GrantTypes.ClientCredentials,
-            ClientSecrets = { new Secret("apikeys-admin-secret".Sha256()) },
-            AllowedScopes = { "apikeys.manage" },
-        },
-        // WebApp (Razor Pages BFF): kullanici login'i icin Authorization Code,
-        // anonim okuma icin de Client Credentials.
-        new Client
-        {
-            ClientId = "ecommerce.bff",
-            ClientName = "ECommerce (Razor Pages BFF)",
-            AllowedGrantTypes = GrantTypes.CodeAndClientCredentials,
-            ClientSecrets = { new Secret("webshop-secret".Sha256()) },
-            // WebApp'in calistigi URL (launchSettings https profili). Aspire farkli port
-            // atarsa buraya o URL'i de eklemek gerekir; OIDC redirect birebir eslesmeli.
-            RedirectUris = { "https://localhost:7042/signin-oidc" },
-            PostLogoutRedirectUris = { "https://localhost:7042/signout-callback-oidc" },
-            RequireConsent = false,
-            AllowOfflineAccess = true,
-            // role/email/name claim'lerini id_token'a koy ki WebApp principal'inda olsun.
-            AlwaysIncludeUserClaimsInIdToken = true,
-            AllowedScopes =
-            {
-                "openid", "profile", "email", "roles",
-                "catalog.write",
-                "basket.read", "basket.write",
-                "order.read", "order.write",
+            ClientId = "admin-ui",
+            ClientSecret = RequireSecret(configuration, "admin-ui"),
+            DisplayName = "Admin BFF (m2m)",
+            Scopes =
+            [
+                "merchant.read", "merchant.write",
+                "commission.read", "commission.write",
                 "payment.read", "payment.write",
-                "stock.write", "stock.reserve",
-                "storefront.read",
-            },
+            ],
+        },
+        // Payment.Agent m2m: MCP tool çağrıları (yüzey tek policy: payment.write).
+        new ClientSeed
+        {
+            ClientId = "payment-agent",
+            ClientSecret = RequireSecret(configuration, "payment-agent"),
+            DisplayName = "Payment agent (m2m)",
+            Scopes = ["payment.read", "payment.write"],
         },
     ];
+
+    private static string RequireSecret(IConfiguration configuration, string clientId) =>
+        configuration[$"Clients:{clientId}:Secret"]
+        ?? throw new InvalidOperationException($"Clients:{clientId}:Secret yapılandırılmamış.");
+}
+
+// Tek istemci seed tanımı. 011'de tek grant: client_credentials (insan akışı yok — D1).
+public sealed class ClientSeed
+{
+    public required string ClientId { get; init; }
+    public required string ClientSecret { get; init; }
+    public required string DisplayName { get; init; }
+    public string[] Scopes { get; init; } = [];
 }

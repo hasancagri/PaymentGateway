@@ -85,6 +85,7 @@ public static class CreateMerchantCommissionCommandEndpoint
                 })
             .WithName("CreateMerchantCommission")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.CommissionWrite)
             .Produces<CreateMerchantCommission.CreateMerchantCommissionResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

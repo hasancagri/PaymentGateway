@@ -1,12 +1,9 @@
-using Duende.IdentityServer.EntityFramework.DbContexts;
 using Identity.Server;
-using Identity.Server.ApiKeys;
+using Identity.Server.Connect;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddRazorPages();
 
 // Aspire çalışma anında enjekte eder; design-time (migration üretimi) için fallback.
 var connectionString = builder.Configuration.GetConnectionString("identityDb")
@@ -15,57 +12,47 @@ var connectionString = builder.Configuration.GetConnectionString("identityDb")
 var migrationsAssembly = typeof(Program).Assembly.GetName().Name;
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString, sql => sql.MigrationsAssembly(migrationsAssembly)));
+{
+    options.UseNpgsql(connectionString, sql => sql.MigrationsAssembly(migrationsAssembly));
+    // OpenIddict EF Core store'ları aynı context'i kullanır.
+    options.UseOpenIddict();
+});
 
+// Kullanıcı deposu şimdiden kurulur (kullanıcı seed edilmez) — G3/RBAC zemini + tek Initial migration (D2).
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-builder.Services.AddScoped<ApiKeyService>();
-
-// "Beni hatırla" işaretlenince persistent cookie bu süre kadar yaşar (varsayılan 14 gün yerine).
-builder.Services.ConfigureApplicationCookie(options =>
-    options.ExpireTimeSpan = Identity.Server.Pages.Login.LoginOptions.RememberMeLoginDuration);
-
-builder.Services.AddIdentityServer(options =>
+builder.Services.AddOpenIddict()
+    .AddCore(options =>
+        options.UseEntityFrameworkCore().UseDbContext<ApplicationDbContext>())
+    .AddServer(options =>
     {
-        // WebApp "Sign Up" akisi authorize istegine prompt=create gonderir.
-        // CreateAccountUrl set edilince Duende "create" prompt mode'unu destekler
-        // (PromptValuesSupported'a eklenir) ve istegi dogrudan bu sayfaya yonlendirir;
-        // aksi halde authorize/PAR dogrulamasi "Unsupported prompt mode" (400) ile reddeder.
-        options.UserInteraction.CreateAccountUrl = "/Account/Create";
-    })
-    .AddInMemoryIdentityResources(Config.IdentityResources)
-    .AddInMemoryApiScopes(Config.ApiScopes)
-    .AddInMemoryApiResources(Config.ApiResources)
-    .AddInMemoryClients(Config.Clients)
-    .AddOperationalStore(options =>
-        options.ConfigureDbContext = b =>
-            b.UseNpgsql(connectionString, sql => sql.MigrationsAssembly(migrationsAssembly)))
-    .AddAspNetIdentity<ApplicationUser>();
+        // Sabit issuer — tüm servislerin IdentityOption:Address değeriyle birebir (D6).
+        // 5001 ECommerce Identity'de; A2A senaryosunda iki sistem aynı anda koşar.
+        options.SetIssuer(new Uri("https://localhost:5101"));
 
-// Admin API uclari (issue/revoke) icin kendi token'larimizi dogrulayan JWT bearer.
-// Default sema (cookie, UI) degismez; policy Bearer semasini acikca ister.
-var apiAuthority = builder.Configuration["ApiKeyAuth:Authority"] ?? "https://localhost:5001";
-builder.Services.AddAuthentication()
-    .AddJwtBearer("Bearer", options =>
-    {
-        options.Authority = apiAuthority;
-        options.RequireHttpsMetadata = false;
-        options.MapInboundClaims = false;
-        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-        {
-            ValidateAudience = false,
-        };
+        // Yalnız token ucu + client_credentials (insan akışı yok — D1).
+        options.SetTokenEndpointUris("connect/token");
+        options.AllowClientCredentialsFlow();
+
+        options.RegisterScopes([.. Config.AllApiScopes]);
+
+        options.AddDevelopmentEncryptionCertificate()
+               .AddDevelopmentSigningCertificate();
+
+        // Access token düz imzalı JWT olsun ki servislerin JwtBearer'ı çözebilsin.
+        options.DisableAccessTokenEncryption();
+
+        // R3: access token scope claim'ini JSON dizisine çevir (029 tuzağı — D3).
+        options.AddEventHandler(ScopeClaimArrayHandler.Descriptor);
+
+        options.UseAspNetCore()
+               .EnableTokenEndpointPassthrough();
     });
 
-builder.Services.AddAuthorization(options =>
-    options.AddPolicy("apikeys.manage", policy =>
-    {
-        policy.AddAuthenticationSchemes("Bearer");
-        policy.RequireAuthenticatedUser();
-        policy.RequireClaim("scope", "apikeys.manage");
-    }));
+// Açılışta idempotent client + scope seed.
+builder.Services.AddHostedService<SeedHostedService>();
 
 var app = builder.Build();
 
@@ -73,15 +60,11 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
-    await scope.ServiceProvider.GetRequiredService<PersistedGrantDbContext>().Database.MigrateAsync();
 }
 
-app.UseStaticFiles();
 app.UseRouting();
-app.UseIdentityServer();
-app.UseAuthorization();
 
-app.MapRazorPages().RequireAuthorization();
-app.MapApiKeyEndpoints();
+// Tek uç: /connect/token (OpenIddict passthrough ile ASP.NET Core'da işlenir).
+app.MapTokenEndpoint();
 
 app.Run();

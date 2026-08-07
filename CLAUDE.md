@@ -11,7 +11,8 @@ Aspire + Marten + Wolverine.
 
 Mevcut BC'ler: **Payment** (CP.VPOS sanal POS), **Merchant** (onboarding + settlement
 hesapları), **Commission** (banka referansı + komisyon grid). Ayrıca **Admin** (Razor Pages
-BFF) iki API'yi service discovery ile tüketir. Her BC kendi spec döngüsüyle (spec-kit,
+BFF) API'leri service discovery ile tüketir; **Identity.Server** (OpenIddict, BC değil —
+altyapı servisi) makine token'ı verir. Her BC kendi spec döngüsüyle (spec-kit,
 `specs/<NNN>/`) eklendi.
 
 ## Komutlar
@@ -64,12 +65,23 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   Henüz tüketici yok; Order BC gelince bağlanır.
 - Ortak yapı taşları `src/others/Common`'da: domain base tipleri, Result pattern, DI marker'ları,
   auth, caching, exception handler.
+- `src/others/Identity.Server` — OpenIddict tabanlı minimal M2M IdP (011). Sabit issuer
+  `https://localhost:5101` (ECommerce Identity 5001'de; A2A'da iki sistem aynı anda koşar);
+  tek uç `connect/token`, yalnız client_credentials. Scope claim'i JSON dizisi
+  (`ScopeClaimArrayHandler` — tek-string'te policy'ler sessizce 403 verir, dokunma). Seed
+  idempotent: 6 scope + 2 istemci (admin-ui, payment-agent); secret'lar config'ten
+  (`Clients:<id>:Secret`). Kendi `identityDb`'si (EF Core — anayasanın izole-altyapı istisnası).
+- Auth modeli (011): BC API'leri `AddAuthenticationAndAuthorizationExtension` (JwtBearer + scope
+  policy) kullanır; her endpoint policy'yi AÇIKÇA beyan eder (`RequireAuthorization` — GET →
+  `<bc>.read`, mutasyon → `<bc>.write`; sabitler `AuthorizationScopes`). Payment `/mcp` yüzeyi
+  tek policy: `payment.write`. Admin BFF (`AdminTokenHandler`) ve Payment.Agent
+  (`AgentTokenHandler`) client_credentials token'ını cache'ler (−30 sn yenileme). Merchant'ın
+  istemcileşmesi (client_id=merchantId, secret=MerchantKey) G2'de; insan login + RBAC G3'te.
 - Handler'lar `[Transactional]` + `IDocumentSession` (repository yok); sonuçlar
   `FeatureObjectResultModel<T>`/`ResultDomain` (exception değil).
 
 ## Bilinçli ertelemeler
 
-- Yetkilendirme yok (Identity BC ile gelecek); endpoint'ler ve Admin BFF şimdilik korumasız.
 - Test: saf domain birim testleri var (`tests/Merchant.Api.Tests`, `tests/Commission.Api.Tests`).
   Handler/HTTP/Razor Pages entegrasyonu test edilmez — quickstart senaryolarıyla elle doğrulanır.
 - Diğer BC'ler (Catalog, Order, Supplier...) tasarım gereği henüz yok; her biri kendi

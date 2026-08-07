@@ -73,6 +73,7 @@ public static class GetBankCommissionsQueryEndpoint
                 })
             .WithName("GetBankCommissions")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.CommissionRead)
             .Produces<GetBankCommissions.GetBankCommissionsResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);
