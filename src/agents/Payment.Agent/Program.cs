@@ -31,7 +31,14 @@ var paymentApiBase = builder.Configuration["services:payment-api:http:0"]
                      ?? "http://payment-api";
 var mcpEndpoint = $"{paymentApiBase.TrimEnd('/')}/mcp";
 
-var tools = await McpToolProvider.DiscoverToolsAsync(mcpEndpoint, bootstrapLogger);
+// 011: /mcp artık payment.write ister — MCP trafiği AgentTokenHandler'lı HttpClient'la Bearer taşır.
+// Client tool çağrıları boyunca yaşamalı → dispose edilmez (McpToolProvider.KeepAlive ile aynı ömür).
+var mcpHttpClient = new HttpClient(new AgentTokenHandler(builder.Configuration)
+{
+    InnerHandler = new HttpClientHandler()
+});
+
+var tools = await McpToolProvider.DiscoverToolsAsync(mcpEndpoint, mcpHttpClient, bootstrapLogger);
 
 // --- Router agent (ECommerce ChatClientAgent deseni): LLM sırayı kurar, domain kararları vermez.
 AIAgent agent = new ChatClientAgent(

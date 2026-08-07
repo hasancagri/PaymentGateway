@@ -58,6 +58,7 @@ public static class GetAllMerchantsQueryEndpoint
                 })
             .WithName("GetAllMerchants")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.MerchantRead)
             .Produces<GetAllMerchants.GetAllMerchantsResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

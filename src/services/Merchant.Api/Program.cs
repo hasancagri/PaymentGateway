@@ -1,4 +1,5 @@
 using Common.Exceptions;
+using Common.Extensions;
 using Merchant.Api.ReadModels;
 using Shared;
 using Shared.Utils.Constants;
@@ -63,10 +64,17 @@ builder.Services.AddApiVersioning(options =>
     options.ApiVersionReader = new UrlSegmentApiVersionReader();
 });
 
+// 011: JWT bearer (Identity.Server JWKS) + scope policy'leri; endpoint'ler policy'yi açıkça beyan eder.
+builder.Services.AddAuthenticationAndAuthorizationExtension(
+    builder.Configuration,
+    AuthorizationScopes.MerchantRead,
+    AuthorizationScopes.MerchantWrite);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
 var app = builder.Build();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapDefaultEndpoints();
 app.MapScalarDocumentation();
 

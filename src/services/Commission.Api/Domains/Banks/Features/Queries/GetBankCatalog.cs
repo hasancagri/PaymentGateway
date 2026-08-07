@@ -67,6 +67,7 @@ public static class GetBankCatalogQueryEndpoint
                 })
             .WithName("GetBankCatalog")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.CommissionRead)
             .Produces<GetBankCatalog.GetBankCatalogResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

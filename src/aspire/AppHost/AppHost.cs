@@ -15,12 +15,21 @@ var paymentDb = postgres.AddDatabase("paymentDb");
 var merchantDb = postgres.AddDatabase("merchantDb");
 var commissionDb = postgres.AddDatabase("commissionDb");
 var referenceDb = postgres.AddDatabase("referenceDb");
+var identityDb = postgres.AddDatabase("identityDb");
+
+// 011: OpenIddict IdP — sabit https://localhost:5101 (launchSettings https profili; issuer birebir).
+// BC API'leri token'ı JWKS ile doğrular; Admin/Agent client_credentials token'ı buradan alır.
+var identityServer = builder.AddProject<Projects.Identity_Server>("identity-server", launchProfileName: "https")
+    .WithReference(identityDb)
+    .WaitFor(identityDb);
 
 var paymentApi = builder.AddProject<Projects.Payment_Api>("payment-api")
     .WithReference(paymentDb)
     .WithReference(rabbit)
+    .WithReference(identityServer)
     .WaitFor(paymentDb)
-    .WaitFor(rabbit);
+    .WaitFor(rabbit)
+    .WaitFor(identityServer);
 
 // Referans veri kaynak-of-truth BC. HTTP yüzeyi yok — katalog verisini yalnız ReferenceDataUpdated
 // fanout event'iyle yayar; Merchant/Commission durable queue ile tüketir (yerel read-model).
@@ -33,30 +42,38 @@ builder.AddProject<Projects.Reference_Api>("reference-api")
 var merchantApi = builder.AddProject<Projects.Merchant_Api>("merchant-api")
     .WithReference(merchantDb)
     .WithReference(rabbit)
+    .WithReference(identityServer)
     .WaitFor(merchantDb)
-    .WaitFor(rabbit);
+    .WaitFor(rabbit)
+    .WaitFor(identityServer);
 
 var commissionApi = builder.AddProject<Projects.Commission_Api>("commission-api")
     .WithReference(commissionDb)
     .WithReference(rabbit)
+    .WithReference(identityServer)
     .WaitFor(commissionDb)
-    .WaitFor(rabbit);
+    .WaitFor(rabbit)
+    .WaitFor(identityServer);
 
 // 007 A2A: Payment.Agent — A2A host + LLM router + MCP client. BC değil, stateless delivery
 // adaptörü. payment-api'nin MCP endpoint'ini (http://payment-api/mcp) service discovery ile bulur.
 // Chat model anahtarı agent'ın kendi config'inden (OpenAI:ApiKey / user-secrets) — ECommerce deseni.
 builder.AddProject<Projects.Payment_Agent>("payment-agent")
     .WithReference(paymentApi)
-    .WaitFor(paymentApi);
+    .WithReference(identityServer)
+    .WaitFor(paymentApi)
+    .WaitFor(identityServer);
 
-// Admin BFF (Razor Pages) — iki API'yi service discovery ile çağırır (http://merchant-api,
-// http://commission-api). Yetki bu dilimde yok.
+// Admin BFF (Razor Pages) — üç API'yi service discovery ile çağırır; 011: her istek
+// AdminTokenHandler ile makine token'ı taşır (admin-ui client'ı, Identity.Server'dan).
 builder.AddProject<Projects.Admin>("admin-web")
     .WithReference(merchantApi)
     .WithReference(commissionApi)
     .WithReference(paymentApi)
+    .WithReference(identityServer)
     .WaitFor(merchantApi)
     .WaitFor(commissionApi)
-    .WaitFor(paymentApi);
+    .WaitFor(paymentApi)
+    .WaitFor(identityServer);
 
 builder.Build().Run();

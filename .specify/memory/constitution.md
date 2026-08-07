@@ -1,24 +1,25 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (template) → 1.0.0
-Bump rationale: İlk onay (initial ratification) — anayasa şablondan somut ilkelerle dolduruldu.
+Version change: 1.0.0 → 1.1.0
+Bump rationale: MINOR — İlke V rehberliği belirgin genişledi: kimlik motoru somutlandı
+  (Duende IdentityServer → OpenIddict tabanlı merkezi Identity servisi, 011) ve makine
+  düzlemi yetki modeli KARARLI hâle geldi (scope-tabanlı). İlke kaldırılmadı/uyumsuz
+  yeniden tanımlanmadı → MAJOR değil.
 
-Modified principles: (yok — ilk sürüm)
-Added sections:
-  - Core Principles: I. Bounded Context İzolasyonu, II. Zengin Domain Modeli,
-    III. Vertical Slice + CQRS, IV. Result Pattern, V. Merkezi Kimlik & Açık Yetki,
-    VI. Spec-Driven Development
-  - Teknoloji ve Alan Kısıtları
-  - Geliştirme Akışı
-  - Governance
+Modified principles:
+  - V. Merkezi Kimlik ve Açık Yetki: motor adı güncellendi (OpenIddict); TODO(AUTHZ_MODEL)
+    daraltıldı — makine (M2M) düzlemi scope-tabanlı olarak sabitlendi; insan/rol düzlemi ve
+    merchant-istemci düzlemi (G2/G3) açık kaldı.
+Added sections: (yok)
 Removed sections: (yok)
 
 Deferred TODOs:
-  - TODO(AUTHZ_MODEL): Yetki modelinin kesin biçimi (scope-tabanlı / rol-tabanlı / hibrit)
-    henüz kararlaştırılmadı. İlke V şu an yalnızca "merkezi kimlik + her erişim açıkça
-    yetki gerektirir" seviyesinde bağlayıcı. Kesin model, Identity ve Merchant bounded
-    context'lerinin spec'inde (/speckit-specify) belirlenip buraya amendment ile işlenecek.
+  - TODO(AUTHZ_MODEL) [DARALTILDI, 011]: Makine düzlemi KARARLI — client_credentials +
+    scope-tabanlı policy (kural: GET → <bc>.read, mutasyon → <bc>.write; endpoint policy'yi
+    açıkça beyan eder). Açık kalanlar: (a) insan/rol düzlemi (G3 — login + RBAC),
+    (b) merchant-istemci düzlemi (G2 — client_id=merchantId, client_secret=MerchantKey,
+    status-gated scope). Bu iki düzlem kendi spec döngüsünde amendment ile kapatılacak.
 
 Templates/commands: Bağımlı şablonlar (plan/spec/tasks) anayasayı çalışma anında okur;
   bu güncellemeyle senkronizasyon gerektiren bir tutarsızlık yok.
@@ -105,14 +106,17 @@ akışının exception'lara bağlanmasını önler.
 
 Kimlik doğrulama merkezîdir ve hiçbir korunması gereken uç açıkta bırakılMAZ.
 
-- Kimlik, merkezi bir Identity servisi (Duende IdentityServer) tarafından verilir; servisler
-  bu otoriteye göre kimlik doğrular.
+- Kimlik, OpenIddict tabanlı merkezi Identity servisi (`Identity.Server`, sabit issuer
+  `https://localhost:5101`) tarafından verilir; servisler bu otoriteye göre (JWKS üzerinden,
+  paylaşılan DB olmadan) kimlik doğrular.
 - Durum değiştiren veya hassas veri döndüren her endpoint ve mesaj handler'ı, erişim için
   gereken yetkiyi AÇIKÇA beyan etmek ZORUNDADIR; "varsayılan açık" uç bırakılMAZ.
 - Multitenant izolasyon korunur: bir merchant'ın verisi başka bir merchant'a asla sızmaz;
   sorgular tenant sınırıyla filtrelenir.
-- Yetkinin kesin biçimi (scope-tabanlı, rol-tabanlı veya hibrit) bu sürümde bağlayıcı DEĞİLDİR
-  — bkz. TODO(AUTHZ_MODEL). Model kararlaştırıldığında bu ilke amendment ile güncellenir.
+- Makine (M2M) düzleminde yetki modeli KARARLIDIR (011): client_credentials + scope-tabanlı
+  policy; kural GET → `<bc>.read`, durum değiştiren → `<bc>.write`; access token'da scope
+  claim'i JSON dizisidir. İnsan/rol düzlemi (G3) ve merchant-istemci düzlemi (G2) için
+  bkz. TODO(AUTHZ_MODEL) — karar netleştiğinde amendment ile işlenir.
 
 Gerekçe: Ödeme sistemi için yetki, sonradan eklenen değil baştan tasarlanan bir kısıttır;
 modelin ayrıntısını ertelemek, "her erişim açıkça yetki gerektirir" kuralını ertelemez.
@@ -177,4 +181,4 @@ sağlar; anayasa bu akışa tutarlılık zemini verir.
 - Ertelenen kararlar (TODO) Sync Impact Report'ta takip edilir ve karar netleştiğinde
   amendment ile kapatılır.
 
-**Version**: 1.0.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-07-29
+**Version**: 1.1.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-08-07

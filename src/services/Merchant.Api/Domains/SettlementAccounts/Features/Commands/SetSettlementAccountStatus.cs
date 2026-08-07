@@ -57,6 +57,7 @@ public static class SetSettlementAccountStatusEndpoint
                 })
             .WithName("SetSettlementAccountStatus")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.MerchantWrite)
             .Produces<SetSettlementAccountStatus.SetSettlementAccountStatusResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

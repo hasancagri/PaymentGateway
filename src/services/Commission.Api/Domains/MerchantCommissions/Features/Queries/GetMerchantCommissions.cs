@@ -134,6 +134,7 @@ public static class GetMerchantCommissionsQueryEndpoint
                 })
             .WithName("GetMerchantCommissions")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.CommissionRead)
             .Produces<GetMerchantCommissions.GetMerchantCommissionsResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

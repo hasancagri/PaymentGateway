@@ -74,6 +74,7 @@ public static class UpdatePosAccountCommandEndpoint
                 })
             .WithName("UpdatePosAccount")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.PaymentWrite)
             .Produces<UpdatePosAccount.UpdatePosAccountResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

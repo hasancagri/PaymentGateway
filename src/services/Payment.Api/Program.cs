@@ -1,4 +1,5 @@
 using Common.Exceptions;
+using Common.Extensions;
 using Shared;
 using Shared.Utils.Constants;
 using Wolverine.RabbitMQ;
@@ -62,6 +63,11 @@ builder.Services.AddApiVersioning(options =>
     options.ApiVersionReader = new UrlSegmentApiVersionReader();
 });
 
+// 011: JWT bearer (Identity.Server JWKS) + scope policy'leri; endpoint'ler policy'yi açıkça beyan eder.
+builder.Services.AddAuthenticationAndAuthorizationExtension(
+    builder.Configuration,
+    AuthorizationScopes.PaymentRead,
+    AuthorizationScopes.PaymentWrite);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
@@ -73,6 +79,8 @@ builder.Services
     .WithToolsFromAssembly();
 
 var app = builder.Build();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapDefaultEndpoints();
 app.MapScalarDocumentation();
 
@@ -85,6 +93,8 @@ app.AddPosAccountGroupEndpointExtension(apiVersionSet);
 app.AddBinCardGroupEndpointExtension(apiVersionSet);
 
 // 007 A2A: MCP endpoint (Streamable HTTP) — Payment.Agent MCP client buraya bağlanır.
-app.MapMcp("/mcp");
+// 011: yüzey tek policy ile korunur (payment.write) — tool'lar session açar/değiştirir;
+// tek çağıran payment-agent zaten write taşır (ince ayrım gerekirse tool-başına policy sonraki feature).
+app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.PaymentWrite);
 
 await app.RunAsync();

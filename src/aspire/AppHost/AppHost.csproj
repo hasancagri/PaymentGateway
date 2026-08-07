@@ -16,6 +16,7 @@
       <ProjectReference Include="..\..\services\Commission.Api\Commission.Api.csproj" />
       <ProjectReference Include="..\..\services\Reference.Api\Reference.Api.csproj" />
       <ProjectReference Include="..\..\ui\Admin\Admin.csproj" />
+      <ProjectReference Include="..\..\others\Identity.Server\Identity.Server.csproj" />
     </ItemGroup>
 
     <ItemGroup>

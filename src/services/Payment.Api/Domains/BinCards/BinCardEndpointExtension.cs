@@ -31,6 +31,7 @@ public static class BinCardEndpointExtension
                 })
             .WithName("ListBinCards")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.PaymentRead)
             .Produces<ListBinCards.BinCardListResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 
@@ -44,6 +45,7 @@ public static class BinCardEndpointExtension
                 })
             .WithName("GetBinCardDetail")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.PaymentRead)
             .Produces<GetBinCardDetail.BinCardDetailResponse>()
             .Produces(StatusCodes.Status404NotFound);
 
@@ -57,6 +59,7 @@ public static class BinCardEndpointExtension
                 })
             .WithName("ImportBinCards")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.PaymentWrite)
             .Produces<ImportBinCards.ImportBinCardsResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

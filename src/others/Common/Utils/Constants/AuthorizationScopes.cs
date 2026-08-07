@@ -1,30 +1,18 @@
 namespace Common.Utils.Constants;
 
+// 011: gateway scope seti (Identity.Server Config.ScopeResources ile birebir).
+// Kural: GET → <bc>.read, durum değiştiren → <bc>.write. G2/G5 genişlemesi (cards.write, charge) buraya.
 public static class AuthorizationScopes
 {
-    // catalog.api (okuma anonim — read scope'u yok)
-    public const string CatalogWrite = "catalog.write";
-
-    // basket.api
-    public const string BasketRead = "basket.read";
-    public const string BasketWrite = "basket.write";
-
-    // order.api
-    public const string OrderRead = "order.read";
-    public const string OrderWrite = "order.write";
-
     // payment.api
     public const string PaymentRead = "payment.read";
     public const string PaymentWrite = "payment.write";
 
-    // stock.api
-    public const string StockWrite = "stock.write";
-    // 012: sepete ekleme/siparis aninda Basket/Order -> Stock gRPC rezervasyonu icin.
-    public const string StockReserve = "stock.reserve";
+    // merchant.api
+    public const string MerchantRead = "merchant.read";
+    public const string MerchantWrite = "merchant.write";
 
-    // file.api
-    public const string FileWrite = "file.write";
-
-    // storefront.api
-    public const string StorefrontRead = "storefront.read";
+    // commission.api
+    public const string CommissionRead = "commission.read";
+    public const string CommissionWrite = "commission.write";
 }

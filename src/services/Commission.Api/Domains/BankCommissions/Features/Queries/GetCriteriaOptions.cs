@@ -44,6 +44,7 @@ public static class GetCriteriaOptionsQueryEndpoint
                 })
             .WithName("GetCriteriaOptions")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.CommissionRead)
             .Produces<GetCriteriaOptions.GetCriteriaOptionsResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);

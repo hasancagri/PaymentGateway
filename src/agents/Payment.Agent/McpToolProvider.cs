@@ -11,17 +11,21 @@ public static class McpToolProvider
     // MCP client, tool çağrıları için app-ömrü boyunca canlı kalmalı → dispose edilmez (statik tutulur).
     private static readonly List<McpClient> KeepAlive = new();
 
-    public static async Task<IList<AITool>> DiscoverToolsAsync(string mcpEndpoint, ILogger logger, CancellationToken ct = default)
+    // 011: httpClient AgentTokenHandler'lı gelir — her MCP isteği Bearer taşır (/mcp payment.write ister).
+    public static async Task<IList<AITool>> DiscoverToolsAsync(
+        string mcpEndpoint, HttpClient httpClient, ILogger logger, CancellationToken ct = default)
     {
         try
         {
             var client = await McpClient.CreateAsync(
                 new HttpClientTransport(new HttpClientTransportOptions
-                {
-                    Name = "payment-api",
-                    Endpoint = new Uri(mcpEndpoint),
-                    TransportMode = HttpTransportMode.StreamableHttp
-                }),
+                    {
+                        Name = "payment-api",
+                        Endpoint = new Uri(mcpEndpoint),
+                        TransportMode = HttpTransportMode.StreamableHttp
+                    },
+                    httpClient,
+                    ownsHttpClient: false),
                 cancellationToken: ct);
 
             KeepAlive.Add(client);

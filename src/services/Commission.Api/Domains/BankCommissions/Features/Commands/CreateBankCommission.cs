@@ -75,6 +75,7 @@ public static class CreateBankCommissionCommandEndpoint
                 })
             .WithName("CreateBankCommission")
             .MapToApiVersion(1, 0)
+            .RequireAuthorization(AuthorizationScopes.CommissionWrite)
             .Produces<CreateBankCommission.CreateBankCommissionResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);
