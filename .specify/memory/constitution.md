@@ -1,18 +1,29 @@
 <!--
 SYNC IMPACT REPORT
 ==================
+Version change: 1.1.0 → 1.2.0
+Bump rationale: MINOR — yeni bölüm eklendi: "E2E Testing (Playwright)". ECommerce anayasası
+  v1.8.0'daki bölümün bu repoya uyarlanmış taşıması (kullanıcı isteği, 2026-08-07). Kritik
+  Admin BFF akışları için otomatik regression güvencesi; business logic unit'te kalır.
+
+Modified principles: (yok — 1.1.0'daki İlke V amendment'ı korunuyor)
+Added sections:
+  - E2E Testing (Playwright): kapsam yalnız kritik kullanıcıya-dönük akışlar (Admin BFF
+    ekran akışları + kritik hata senaryoları); TDD döngüsü dışı, feature-sonrası; web-first
+    assertions zorunlu, Thread.Sleep yasak, data-testid öncelikli; LLM-bağımlı A2A/agent
+    akışı E2E dışı. Harness tests/E2E'de İLK İHTİYAÇLA kurulur (henüz yok).
+Removed sections: (yok)
+
+--- v1.1.0 raporu (2026-08-07) ---
 Version change: 1.0.0 → 1.1.0
 Bump rationale: MINOR — İlke V rehberliği belirgin genişledi: kimlik motoru somutlandı
   (Duende IdentityServer → OpenIddict tabanlı merkezi Identity servisi, 011) ve makine
   düzlemi yetki modeli KARARLI hâle geldi (scope-tabanlı). İlke kaldırılmadı/uyumsuz
   yeniden tanımlanmadı → MAJOR değil.
-
 Modified principles:
   - V. Merkezi Kimlik ve Açık Yetki: motor adı güncellendi (OpenIddict); TODO(AUTHZ_MODEL)
     daraltıldı — makine (M2M) düzlemi scope-tabanlı olarak sabitlendi; insan/rol düzlemi ve
     merchant-istemci düzlemi (G2/G3) açık kaldı.
-Added sections: (yok)
-Removed sections: (yok)
 
 Deferred TODOs:
   - TODO(AUTHZ_MODEL) [DARALTILDI, 011]: Makine düzlemi KARARLI — client_credentials +
@@ -168,6 +179,30 @@ sağlar; anayasa bu akışa tutarlılık zemini verir.
 - **Runtime rehberi:** CLAUDE.md günlük *nasıl uygulanır* rehberidir ve anayasaya tabidir;
   ikisi çakışırsa anayasa kazanır.
 
+## E2E Testing (Playwright)
+
+- E2E testler Microsoft.Playwright + xUnit ile yazılır; Aspire.Hosting.Testing üzerinden
+  tam stack (PostgreSQL, RabbitMQ, Identity.Server, BC API'leri, Admin BFF) ayağa
+  kaldırılarak koşulur.
+- Kapsam SADECE kritik kullanıcıya-dönük akışlarla sınırlıdır:
+  - Admin BFF ekran akışları: merchant oluştur/listele, settlement hesabı ekle,
+    banka + komisyon grid düzenle, bin-card liste/tekil çözüm
+  - Kritik hata senaryoları (API erişilemezken dostça hata, geçersiz form doğrulama
+    mesajları, korumalı uca token'sız erişimin 401 ile reddi)
+- Business logic (aggregate invariant'ları, IBAN mod-97, komisyon grid kuralları,
+  BankRouter hesabı) E2E ile DEĞİL, saf domain birim testleriyle doğrulanır —
+  mevcut test konvansiyonu aynen geçerli.
+- E2E testler TDD döngüsüne dahil değildir; feature tamamlandıktan sonra regression
+  güvencesi olarak yazılır. Quickstart canlı doğrulaması spec kanıtı olarak kalır;
+  E2E onun otomatikleştirilebilir alt kümesini kalıcılaştırır.
+- Assertion'larda web-first assertions (`Expect` + `ToBeVisibleAsync` vb.) kullanılır;
+  `Thread.Sleep` / manuel bekleme yasaktır.
+- Selector stratejisi: `data-testid` öncelikli; CSS class veya text tabanlı
+  selector'lardan kaçınılır.
+- Identity.Server HTTPS (dev cert) olduğundan Playwright `IgnoreHTTPSErrors` kullanır;
+  LLM-bağımlı A2A/agent akışı E2E dışıdır (quickstart ile elle doğrulanır).
+  Harness `tests/E2E`'de, ilk kullanıcıya-dönük ihtiyaçla kurulur (henüz yok).
+
 ## Governance
 
 - Bu anayasa diğer tüm pratiklerin üstündedir. Bir uygulama kararı anayasayla çelişemez.
@@ -181,4 +216,4 @@ sağlar; anayasa bu akışa tutarlılık zemini verir.
 - Ertelenen kararlar (TODO) Sync Impact Report'ta takip edilir ve karar netleştiğinde
   amendment ile kapatılır.
 
-**Version**: 1.1.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-08-07
+**Version**: 1.2.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-08-07
