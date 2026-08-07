@@ -27,9 +27,11 @@ src/
 ├── services/
 │   ├── Payment.Api   Ödeme BC (CP.VPOS sanal POS + BinCard katalog + A2A ödeme oturumu/MCP)
 │   ├── Merchant.Api  Merchant BC (onboarding + settlement hesapları)
-│   └── Commission.Api Komisyon BC (banka + komisyon)
-├── ui/Admin          Razor Pages yönetim arayüzü
+│   ├── Commission.Api Komisyon BC (banka + komisyon)
+│   └── Reference.Api Referans veri BC (event-only, HTTP yüzeyi yok — 010)
+├── ui/Admin          Razor Pages yönetim arayüzü (makine token'ıyla API çağırır)
 └── others/           Common (domain base, Result, auth) + Shared (integration event)
+                      + Identity.Server (OpenIddict M2M IdP — 011)
 ```
 
 Bir feature = bir static class (record command/query + Response + Handler + endpoint). Handler'lar
@@ -160,6 +162,32 @@ agent'ı ise Payment.Agent'a **A2A** ile bağlanır. Agent Card skill'leri: **`i
 > Preview paketler (A2A / Agent Framework) `Directory.Packages.props`'ta pin'lidir. Payment.Agent
 > chat anahtarını kendi config'inden alır (`OpenAI:ApiKey`, user-secrets).
 
+## Kimlik ve yetki (feature 011)
+
+**Identity.Server** (`src/others/Identity.Server`) — OpenIddict 7.6 tabanlı minimal **yalnız-makine
+IdP**. Tek uç `connect/token`, yalnız `client_credentials`; sabit issuer **`https://localhost:5101`**
+(dev cert). Kendi `identityDb`'si (EF Core + tek Initial migration). Açılışta idempotent seed:
+6 scope + 2 istemci (`admin-ui`, `payment-agent`); secret'lar `Clients:<id>:Secret` config
+anahtarından (koda gömülü değil). Access token düz imzalı JWT; **`scope` claim'i JSON dizisidir**
+(`ScopeClaimArrayHandler` — tek-string yazımda servislerin scope policy'leri sessizce 403 verir).
+
+**BC API koruması** — üç API JWT bearer (JWKS keşfi + audience) doğrular; her endpoint yetkisini
+açıkça beyan eder: `GET → <bc>.read`, mutasyon → `<bc>.write` (`RequireAuthorization`, sabitler
+`AuthorizationScopes`). Payment'ın `/mcp` yüzeyi tek policy ile korunur: `payment.write`.
+Reference.Api'nin HTTP yüzeyi yok — kapsam dışı. Sağlık/doc uçları anonim.
+
+| Scope | Audience | Kullanan |
+|-------|----------|----------|
+| `merchant.read/.write` | `merchant.api` | admin-ui |
+| `commission.read/.write` | `commission.api` | admin-ui |
+| `payment.read/.write` | `payment.api` | admin-ui, payment-agent |
+
+**İstemciler** — Admin BFF (`AdminTokenHandler`) ve Payment.Agent (`AgentTokenHandler`):
+client_credentials token'ı static cache'lenir, süresine 30 sn kala (veya dolmuşsa anında)
+yenilenir; token edinilemezse hata yüzeye çıkar (sessiz başarı yok). Merchant'ın istemcileşmesi
+(`client_id=merchantId`, `client_secret=MerchantKey`, status-gated scope) sonraki dilimde (G2);
+011 zeminini hazırlar (DB-tabanlı client store, `sub=client_id`, genişletilebilir scope registry).
+
 ## Test
 
 Saf domain birim testleri; handler/HTTP/Razor Pages/A2A/MCP/LLM entegrasyonu test edilmez (quickstart ile elle).
@@ -177,5 +205,9 @@ artefaktları `specs/<NNN-feature>/`. Yorumlar, mesaj kodları ve commit'ler Tü
 
 ## Bilinçli ertelemeler
 
-- Yetkilendirme yok (Identity BC ile gelecek); endpoint'ler şimdilik korumasız.
+- Makine düzlemi yetki (011) kararlı. Ertelenen iki kimlik düzlemi: **G2** — merchant'ın
+  sunucusu işlem için istemcileşir (`client_id=merchantId`, `client_secret=MerchantKey`;
+  MerchantKey yalnız token exchange'de, istek başına taşınmaz); **G3** — gateway portalına
+  insan girişi (authorization_code + PKCE, `sub=userId`, rol + `merchant_id` claim'i;
+  MerchantKey insan akışında hiç kullanılmaz). ASP.NET Identity deposu G3 için hazır (boş).
 - Diğer BC'ler (Catalog, Order, Supplier…) tasarım gereği henüz yok; her biri kendi spec döngüsüyle eklenir.
