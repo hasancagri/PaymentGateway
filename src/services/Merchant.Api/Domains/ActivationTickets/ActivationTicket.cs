@@ -1,4 +1,4 @@
-namespace Merchant.Api.Domains.Merchants;
+namespace Merchant.Api.Domains.ActivationTickets;
 
 /// <summary>
 /// Tek-kullanımlık, süreli key-teslim bileti (013 D4). Onayla merchant oluşunca üretilir; Identity
@@ -20,13 +20,14 @@ public class ActivationTicket : AggregateRoot
     public ActivationTicketStatus Status { get; private set; } = ActivationTicketStatus.Issued;
     public DateTime? RedeemedAtUtc { get; private set; }
 
-    public static ActivationTicket Issue(Guid merchantId) => new()
-    {
-        MerchantId = merchantId,
-        Token = Guid.NewGuid().ToString("N"),
-        ExpiresAtUtc = DateTime.UtcNow.AddHours(TtlHours),
-        Status = ActivationTicketStatus.Issued
-    };
+    public static ResultDomain<ActivationTicket> Issue(Guid merchantId) =>
+        ResultDomain<ActivationTicket>.Ok(new()
+        {
+            MerchantId = merchantId,
+            Token = Guid.NewGuid().ToString("N"),
+            ExpiresAtUtc = DateTime.UtcNow.AddHours(TtlHours),
+            Status = ActivationTicketStatus.Issued
+        });
 
     /// <summary>
     /// Bileti kullanır: süre + tek-kullanım. Başarı → Redeemed (key bir kez teslim). İkinci redeem

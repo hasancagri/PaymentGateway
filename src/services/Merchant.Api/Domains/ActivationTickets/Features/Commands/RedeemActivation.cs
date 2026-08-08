@@ -1,6 +1,6 @@
 using MerchantAggregate = Merchant.Api.Domains.Merchants.Merchant;
 
-namespace Merchant.Api.Domains.Merchants.Features.Commands;
+namespace Merchant.Api.Domains.ActivationTickets.Features.Commands;
 
 /// <summary>
 /// US3 — aktivasyon bileti kullanımı (Identity aktivasyon sayfasından senkron çağrılır). Bilet

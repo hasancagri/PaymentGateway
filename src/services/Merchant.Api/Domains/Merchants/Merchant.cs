@@ -175,21 +175,22 @@ public class Merchant : AggregateRoot
 
     /// <summary>
     /// Saf iç değerlendirme (013 D10): 3 koşul (settlement + gridReady + ReturnUrl) doluysa
-    /// Provisioning→Active geçer. İdempotent — zaten Active ya da koşul eksikse <c>false</c>.
-    /// Geçiş gerçekleştiyse <c>true</c> döner (handler <c>MerchantStatusChanged(Active)</c> yayınlar).
+    /// Provisioning→Active geçer. İdempotent — zaten Active ya da koşul eksikse <c>Error</c>
+    /// (geçiş yok = beklenen no-op, HTTP hatası değil). Geçiş gerçekleştiyse <c>Ok</c> döner
+    /// (handler <c>IsSuccess</c> ile <c>MerchantStatusChanged(Active)</c> yayınlar).
     /// </summary>
-    public bool TryActivate()
+    public ResultDomain TryActivate()
     {
         if (Status != MerchantStatus.Provisioning)
-            return false;
+            return ResultDomain.Error(InvalidOperation());
 
         if (!HasSettlementAccount || !CommissionGridReady || string.IsNullOrWhiteSpace(ReturnUrl))
-            return false;
+            return ResultDomain.Error(InvalidOperation());
 
         Status = MerchantStatus.Active;
         IsActive = true;
         UpdatedTime = DateTime.UtcNow;
-        return true;
+        return ResultDomain.Ok();
     }
 
     /// <summary>Profil bilgilerini günceller (aynı format doğrulaması).</summary>
@@ -285,6 +286,12 @@ public class Merchant : AggregateRoot
     {
         Property = property,
         Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_FORMAT
+    };
+
+    private static MessageItem InvalidOperation() => new()
+    {
+        Property = nameof(Status),
+        Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR
     };
 }
 

@@ -1,5 +1,6 @@
 using Common.Mail;
 using Merchant.Api.Domains.Merchants;
+using Merchant.Api.Domains.OnboardingNotifications;
 using MerchantAggregate = Merchant.Api.Domains.Merchants.Merchant;
 
 namespace Merchant.Api.Domains.RegisterRequests.Features.Commands;
@@ -54,7 +55,7 @@ public static class ApproveRegisterRequest
             session.Update(request);
 
             // 3) Aktivasyon bileti + link.
-            var ticket = ActivationTicket.Issue(merchant.Id);
+            var ticket = ActivationTicket.Issue(merchant.Id).Data!;
             session.Store(ticket);
 
             // 4) Aktivasyon maili (deterministik) → contactEmail; OnboardingNotification kaydı (FR-019).
@@ -77,7 +78,7 @@ public static class ApproveRegisterRequest
             var body = "Başvurunuz onaylandı. Aşağıdaki tek kullanımlık linkten hesabınızı etkinleştirip " +
                        $"MerchantKey'inizi (yalnız bir kez gösterilir) alın:\n{link}";
 
-            var notification = OnboardingNotification.Create(NotificationKind.Activation, contactEmail, subject, merchantId);
+            var notification = OnboardingNotification.Create(NotificationKind.Activation, contactEmail, subject, merchantId).Data!;
 
             var send = await mail.SendAsync(contactEmail, subject, body, ct: ct);
             if (send.IsSuccess)

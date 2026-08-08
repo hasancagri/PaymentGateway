@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Merchant.Api.Domains.RegisterRequests;
+namespace Merchant.Api.Domains.RegisterRequests.ValueObjects;
 
 /// <summary>
 /// Aday sitenin <c>/.well-known/merchant-descriptor.json</c> beyanının doğrulanmış kopyası (VO —

@@ -115,6 +115,29 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   Commission `ReadModels/ReferenceBankReadModel.cs`. Canlı doğrulama: consumer log'unda
   "Successfully processed message" var, "No known handler" yok.
 
+## Kod standartları
+
+- **Sonuç sözleşmesi (014)**: Handler'dan (Command/Query slice) çağrılan aggregate davranış/fabrika
+  metotları `ResultDomain` / `ResultDomain<T>` döner — **void mutator dahil** (durum değiştiren ama
+  ham dönen metotlar da sarılır; ör. `Merchant.TryActivate()` → `ResultDomain`, çağıran
+  `merchant.TryActivate().IsSuccess`). Fabrikalar başarısız olmasa bile `Ok(data)` sarılır (tek-tip
+  imza, ileride doğrulama eklenince kırılmaz): `DomainControlChallenge.Issue`, `ActivationTicket.Issue`,
+  `OnboardingNotification.Create` → `ResultDomain<T>.Ok(...)`; çağıran `.Data!` açar. Çok-durumlu
+  domain sonucu (outcome-enum) `Ok(outcome)` olarak sarılır, "başarısız" enum değerleri `Error`'a
+  eşlenmez (retry-able Failed teknik hata değil): örnek `DomainControlChallenge.Verify` →
+  `ResultDomain<ChallengeOutcome>.Ok(outcome)`; çağıran `.Data!` ile enum'u alır. **Muaf**: saf
+  getter/sorgu/lookup (property, `bool Is...`, hesap) handler'dan çağrılsa bile ham değer döner —
+  ör. `PosAccount.GetCommissionRate(int) : decimal?`. `MessageItem` inşası için referans:
+  `SettlementAccount.UpdateDetails`.
+- **Aggregate-klasör**: `Domains/` hemen altındaki her klasör **tek** `: AggregateRoot` içerir; iç içe
+  aggregate yok. İstisna (aggregate kökünde durabilir): `SharedKernel/`, domain-service (ör.
+  `BankRouter`), seeder (ör. `BinCardSeeder`), MCP tool (ör. `PaymentSessionMcpTools`), endpoint
+  extension, aggregate'e ait enum/status/mapping. Doğrulama:
+  `grep -rlE "class .*: AggregateRoot" src/*/*/Domains` → her klasör tek dosya.
+- **ValueObjects**: aggregate'e ait standalone value object (class/record, AggregateRoot değil) →
+  `<Aggregate>/ValueObjects/` altına konur, aggregate kökünde durmaz. Örnek:
+  `RegisterRequests/ValueObjects/MerchantDescriptor.cs`.
+
 ## Bilinçli ertelemeler
 
 - Test: saf domain birim testleri var (`tests/Merchant.Api.Tests`, `tests/Commission.Api.Tests`).

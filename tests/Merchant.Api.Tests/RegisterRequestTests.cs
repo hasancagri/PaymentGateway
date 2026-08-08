@@ -1,4 +1,6 @@
 using Merchant.Api.Domains.RegisterRequests;
+using Merchant.Api.Domains.RegisterRequests.ValueObjects;
+using Merchant.Api.Domains.DomainControlChallenges;
 using Xunit;
 
 namespace Merchant.Api.Tests;

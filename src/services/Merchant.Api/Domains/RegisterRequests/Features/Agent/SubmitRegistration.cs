@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Common.Mail;
+using Merchant.Api.Domains.OnboardingNotifications;
 
 namespace Merchant.Api.Domains.RegisterRequests.Features.Agent;
 
@@ -81,7 +82,7 @@ public static class SubmitRegistration
 
             if (challenge is null || challenge.ExpiresAtUtc <= DateTime.UtcNow)
             {
-                challenge = DomainControlChallenge.Issue(domain);
+                challenge = DomainControlChallenge.Issue(domain).Data!;
                 session.Store(challenge);
             }
 
@@ -89,7 +90,10 @@ public static class SubmitRegistration
             var challengeUrl = $"{descriptorUri.Scheme}://{descriptorUri.Authority}" +
                                $"/.well-known/merchant-challenge/{challenge.Token}";
             var fetched = await FetchChallengeValueAsync(challengeUrl, ct);
-            var outcome = challenge.Verify(fetched, DateTime.UtcNow);
+            var verifyResult = challenge.Verify(fetched, DateTime.UtcNow);
+            if (!verifyResult.IsSuccess)
+                return FeatureObjectResultModel<SubmitRegistrationResponse>.Error(verifyResult.Messages);
+            var outcome = verifyResult.Data!;
             session.Store(challenge); // Store = upsert (yeni bilet Update'te NonExistentDocument verirdi)
 
             if (outcome != ChallengeOutcome.Passed)
@@ -134,7 +138,7 @@ public static class SubmitRegistration
             var body = $"'{domain}' alan adı için yeni bir kayıt başvurusu alındı (talep {requestId}). " +
                        "Admin panelinden inceleyip onaylayın/reddedin.";
 
-            var notification = OnboardingNotification.Create(NotificationKind.AdminNewRequest, adminEmail, subject);
+            var notification = OnboardingNotification.Create(NotificationKind.AdminNewRequest, adminEmail, subject).Data!;
 
             var send = await mail.SendAsync(adminEmail, subject, body, ct: ct);
             if (send.IsSuccess)

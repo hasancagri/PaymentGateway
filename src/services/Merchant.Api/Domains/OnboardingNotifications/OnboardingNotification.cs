@@ -1,4 +1,4 @@
-namespace Merchant.Api.Domains.RegisterRequests;
+namespace Merchant.Api.Domains.OnboardingNotifications;
 
 /// <summary>
 /// Deterministik mail gönderim kaydı (FR-019). Mail çökse akış sessizce "başarılı" saymaz; admin
@@ -19,16 +19,16 @@ public class OnboardingNotification : AggregateRoot
     public int Attempts { get; private set; }
     public string? LastError { get; private set; }
 
-    public static OnboardingNotification Create(
+    public static ResultDomain<OnboardingNotification> Create(
         NotificationKind kind, string recipient, string subject, Guid? merchantId = null) =>
-        new()
+        ResultDomain<OnboardingNotification>.Ok(new()
         {
             Kind = kind,
             Recipient = recipient,
             Subject = subject,
             MerchantId = merchantId,
             Status = NotificationStatus.Pending
-        };
+        });
 
     public void MarkSent()
     {

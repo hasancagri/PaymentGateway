@@ -1,4 +1,4 @@
-namespace Merchant.Api.Domains.RegisterRequests;
+namespace Merchant.Api.Domains.DomainControlChallenges;
 
 /// <summary>
 /// Tek-kullanımlık, süreli domain-control kanıtı bileti (HTTP-01 tarzı — 013 D3). RegisterRequest'ten
@@ -25,16 +25,16 @@ public class DomainControlChallenge : AggregateRoot
     /// Yeni bilet üretir. Token = challenge dosya adı (URL-güvenli tek-kullanım); ExpectedValue = adayın
     /// o yolda yayınlayacağı rastgele değer. Aday değeri yayınlayabiliyorsa siteyi kontrol ediyordur.
     /// </summary>
-    public static DomainControlChallenge Issue(string domain)
+    public static ResultDomain<DomainControlChallenge> Issue(string domain)
     {
-        return new DomainControlChallenge
+        return ResultDomain<DomainControlChallenge>.Ok(new DomainControlChallenge
         {
             Domain = Normalize(domain),
             Token = Guid.NewGuid().ToString("N"),
             ExpectedValue = Guid.NewGuid().ToString("N"),
             ExpiresAtUtc = DateTime.UtcNow.AddHours(TtlHours),
             Status = ChallengeStatus.Issued
-        };
+        });
     }
 
     /// <summary>
@@ -42,18 +42,18 @@ public class DomainControlChallenge : AggregateRoot
     /// <see cref="ChallengeOutcome.Passed"/>. Süre dolmuş → Expired. Değer yok/yanlış → Failed (bilet
     /// Issued kalır, aday yayınlayıp tekrar deneyebilir). Consumed/Expired tekrar doğrulanamaz.
     /// </summary>
-    public ChallengeOutcome Verify(string? fetchedValue, DateTime nowUtc)
+    public ResultDomain<ChallengeOutcome> Verify(string? fetchedValue, DateTime nowUtc)
     {
         if (Status == ChallengeStatus.Consumed)
-            return ChallengeOutcome.Passed;
+            return ResultDomain<ChallengeOutcome>.Ok(ChallengeOutcome.Passed);
         if (Status == ChallengeStatus.Expired)
-            return ChallengeOutcome.Expired;
+            return ResultDomain<ChallengeOutcome>.Ok(ChallengeOutcome.Expired);
 
         if (nowUtc > ExpiresAtUtc)
         {
             Status = ChallengeStatus.Expired;
             UpdatedTime = DateTime.UtcNow;
-            return ChallengeOutcome.Expired;
+            return ResultDomain<ChallengeOutcome>.Ok(ChallengeOutcome.Expired);
         }
 
         if (!string.IsNullOrWhiteSpace(fetchedValue) &&
@@ -61,10 +61,10 @@ public class DomainControlChallenge : AggregateRoot
         {
             Status = ChallengeStatus.Consumed;
             UpdatedTime = DateTime.UtcNow;
-            return ChallengeOutcome.Passed;
+            return ResultDomain<ChallengeOutcome>.Ok(ChallengeOutcome.Passed);
         }
 
-        return ChallengeOutcome.Failed;
+        return ResultDomain<ChallengeOutcome>.Ok(ChallengeOutcome.Failed);
     }
 
     private static string Normalize(string domain) => domain.Trim().ToLowerInvariant();
