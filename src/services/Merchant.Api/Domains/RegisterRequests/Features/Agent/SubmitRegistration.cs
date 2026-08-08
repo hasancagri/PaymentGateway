@@ -90,7 +90,7 @@ public static class SubmitRegistration
                                $"/.well-known/merchant-challenge/{challenge.Token}";
             var fetched = await FetchChallengeValueAsync(challengeUrl, ct);
             var outcome = challenge.Verify(fetched, DateTime.UtcNow);
-            session.Update(challenge);
+            session.Store(challenge); // Store = upsert (yeni bilet Update'te NonExistentDocument verirdi)
 
             if (outcome != ChallengeOutcome.Passed)
             {
