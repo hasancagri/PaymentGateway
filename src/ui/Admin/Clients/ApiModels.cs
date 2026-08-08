@@ -71,6 +71,32 @@ public class MerchantListItem
     public string Status { get; set; } = string.Empty;
 }
 
+// ---- Merchant.Api (013 onboarding — RegisterRequest) ----
+
+public class RegisterRequestsResponse
+{
+    public List<RegisterRequestListItem> Items { get; set; } = new();
+}
+
+public class RegisterRequestListItem
+{
+    public Guid Id { get; set; }
+    public string Domain { get; set; } = string.Empty;
+    public string LegalName { get; set; } = string.Empty;
+    public string ContactEmail { get; set; } = string.Empty;
+    public string ChallengeResult { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedTime { get; set; }
+}
+
+public record ReviewRequest(string? Note);
+
+public class ApproveRegisterResult
+{
+    public Guid MerchantId { get; set; }
+    public Guid RequestId { get; set; }
+}
+
 // ---- Merchant.Api (settlement hesapları) ----
 
 public record CreateSettlementAccountRequest(
@@ -237,6 +263,13 @@ public class BulkUpsertResult
 public class MerchantCommissionsResponse
 {
     public List<MerchantCommissionItem> Items { get; set; } = new();
+}
+
+public record FinalizeGridRequest(Guid MerchantId);
+
+public class GridStatusResult
+{
+    public string Status { get; set; } = string.Empty;
 }
 
 /// <summary>Enriched grid satırı: merchant oranı + banka aralığı (min/max) + tavan-altı işareti (read-time).</summary>

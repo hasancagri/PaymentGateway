@@ -20,4 +20,13 @@ public static class IntegrationEvents
     public record MerchantCreated(Guid MerchantId, string MerchantKey, string Status);
 
     public record MerchantStatusChanged(Guid MerchantId, string NewStatus);
+
+    // 013: aktivasyon anında (key teslim) yayınlanır — Identity.Server tüketir (OpenIddict istemci
+    // provision: Provisioning demeti). Onboarding'de MerchantCreated'ın yerini alır; MerchantKey
+    // (istemci sırrı) yalnız burada taşınır, yalnız Identity'ye gider. Status = "Provisioning".
+    public record MerchantProvisioned(Guid MerchantId, string MerchantKey, string Status);
+
+    // 013: Commission.Api grid'i finalize edip Ready olunca yayınlar; Merchant.Api tüketir
+    // (Active koşulu #2). Sır taşımaz; tek-yön (ready olunca ready kalır).
+    public record MerchantCommissionGridReady(Guid MerchantId);
 }

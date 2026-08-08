@@ -31,6 +31,25 @@ public class IndexModel : BasePageModel
             await LoadRowsAsync(id, ct);
     }
 
+    // 013 US4 — grid'i finalize et (Draft→Ready): bütünlük geçerse Ready + MerchantCommissionGridReady
+    // event'i (Active koşulu #2). Bütünlük eksikse API hata döner (UI gösterir).
+    public async Task<IActionResult> OnPostFinalizeAsync(Guid merchantId, CancellationToken ct)
+    {
+        var result = await _commissionApi.FinalizeMerchantCommissionGridAsync(merchantId, ct);
+        if (result.IsSuccess)
+        {
+            Flash = "Komisyon grid'i finalize edildi (Ready).";
+            return RedirectToPage(new { MerchantId = merchantId });
+        }
+
+        // Bütünlük hatası → sayfada göster (redirect'te List kaybolur; yeniden yükle).
+        AddErrors(result.Messages);
+        MerchantId = merchantId;
+        await LoadMerchantsAsync(ct);
+        await LoadRowsAsync(merchantId, ct);
+        return Page();
+    }
+
     private async Task LoadMerchantsAsync(CancellationToken ct)
     {
         var result = await _merchantApi.GetAllAsync(ct);

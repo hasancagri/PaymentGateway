@@ -10,6 +10,13 @@
 
 <div class="actions">
     <a class="btn" asp-page="Create">Merchant Komisyon Grid</a>
+    @if (Model.MerchantId is { } fid && fid != Guid.Empty)
+    {
+        <form method="post" style="display:inline">
+            <input type="hidden" name="merchantId" value="@fid" />
+            <button class="btn" asp-page-handler="Finalize">Grid'i Finalize Et (Ready)</button>
+        </form>
+    }
 </div>
 
 <form method="get">

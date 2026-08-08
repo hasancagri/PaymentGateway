@@ -28,6 +28,10 @@ builder.Services.AddMarten(opts =>
         opts.Schema.For<MerchantCommission>();
         opts.Schema.For<Bank>();
 
+        // 013: merchant grid başlık kaydı (Draft/Ready) — kimlik = MerchantId.
+        opts.Schema.For<Commission.Api.Domains.MerchantCommissions.MerchantCommissionGrid>()
+            .Identity(x => x.MerchantId);
+
         // Reference.Api banka kataloğunun yerel read-model izdüşümü (id = Code). Event ile beslenir.
         opts.Schema.For<ReferenceBank>().Identity(x => x.Code);
     })
@@ -53,6 +57,13 @@ builder.Host.UseWolverine(opts =>
 
     opts.ListenToRabbitQueue("commission.reference-sync").UseDurableInbox();
 
+    // 013: grid finalize → Merchant.Api tüketir (Active koşulu #2). Fanout exchange; event state
+    // değişikliğiyle aynı [Transactional] commit'te outbox'a yazılır (dual-write yok — D13).
+    rabbit.DeclareExchange(RabbitMqConstants.MerchantCommission.Exchange,
+        e => { e.ExchangeType = ExchangeType.Fanout; });
+    opts.PublishMessage<Shared.IntegrationEvents.MerchantCommissionGridReady>()
+        .ToRabbitExchange(RabbitMqConstants.MerchantCommission.Exchange);
+
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
 });
@@ -73,6 +84,12 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
+// 013 US4: MCP server — komisyon Excel orkestrasyonu için get_merchant_commission_grid ([McpServerToolType]).
+builder.Services
+    .AddMcpServer()
+    .WithHttpTransport(o => o.Stateless = true)
+    .WithToolsFromAssembly();
+
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -87,5 +104,8 @@ var apiVersionSet = app.NewApiVersionSet()
 app.AddBankGroupEndpointExtension(apiVersionSet);
 app.AddBankCommissionGroupEndpointExtension(apiVersionSet);
 app.AddMerchantCommissionGroupEndpointExtension(apiVersionSet);
+
+// 013 US4: MCP endpoint (harici LLM/MCP client, commission.read).
+app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.CommissionRead);
 
 await app.RunAsync();

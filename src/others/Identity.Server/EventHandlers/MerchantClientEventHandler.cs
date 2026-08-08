@@ -33,6 +33,27 @@ public static class MerchantClientEventHandler
         }
     }
 
+    // 013: aktivasyon anında (key teslim) client provision — Provisioning demeti (merchant.read/write;
+    // charge HARİÇ). "Aktivasyon öncesi token yok" = bu event gelmeden client YOK (fail-closed).
+    // Onboarding'de MerchantCreated'ın yerini alır (aynı idempotent upsert mantığı).
+    public static async Task Handle(MerchantProvisioned e, IOpenIddictApplicationManager apps, ILogger logger)
+    {
+        var clientId = e.MerchantId.ToString();
+        var descriptor = BuildDescriptor(clientId, e.MerchantKey, e.Status);
+
+        var existing = await apps.FindByClientIdAsync(clientId);
+        if (existing is null)
+        {
+            await apps.CreateAsync(descriptor);
+            logger.LogInformation("Merchant istemcisi provision edildi: {ClientId} (status: {Status})", clientId, e.Status);
+        }
+        else
+        {
+            await apps.UpdateAsync(existing, descriptor);
+            logger.LogInformation("Merchant istemcisi güncellendi (provision, yeniden teslim): {ClientId}", clientId);
+        }
+    }
+
     public static async Task Handle(MerchantStatusChanged e, IOpenIddictApplicationManager apps, ILogger logger)
     {
         var clientId = e.MerchantId.ToString();
@@ -50,7 +71,7 @@ public static class MerchantClientEventHandler
         await apps.PopulateAsync(descriptor, existing);
 
         descriptor.Permissions.Clear();
-        if (IsActive(e.NewStatus))
+        if (GrantsToken(e.NewStatus))
             AddMerchantPermissions(descriptor);
 
         await apps.UpdateAsync(existing, descriptor);
@@ -70,14 +91,14 @@ public static class MerchantClientEventHandler
 
         descriptor.Properties[MerchantIdProperty] = JsonSerializer.SerializeToElement(clientId);
 
-        if (IsActive(status))
+        if (GrantsToken(status))
             AddMerchantPermissions(descriptor);
 
         return descriptor;
     }
 
-    // Status-gate (FR-003): yalnız Active izin taşır; izinsiz istemcinin token isteğini
-    // OpenIddict reddeder (unauthorized_client).
+    // 013 kademeli yetki: token yalnız Provisioning + Active statüde verilir (charge hiçbir alt-statüde
+    // — henüz yok; demetler bugün eşdeğer, gate kurulur). Passive/Suspended → izinsiz (unauthorized_client).
     private static void AddMerchantPermissions(OpenIddictApplicationDescriptor descriptor)
     {
         descriptor.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
@@ -86,6 +107,7 @@ public static class MerchantClientEventHandler
         descriptor.Permissions.Add(Permissions.Prefixes.Scope + "merchant.write");
     }
 
-    private static bool IsActive(string status) =>
-        string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase);
+    private static bool GrantsToken(string status) =>
+        string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(status, "Provisioning", StringComparison.OrdinalIgnoreCase);
 }

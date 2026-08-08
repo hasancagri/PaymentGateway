@@ -12,6 +12,8 @@ public static class MerchantEndpointExtension
             .GetMerchantGroupItemEndpoint()
             .GetMerchantByKeyGroupItemEndpoint()
             .GetAllMerchantsGroupItemEndpoint()
-            .SetMerchantStatusGroupItemEndpoint();
+            .SetMerchantStatusGroupItemEndpoint()
+            .RedeemActivationGroupItemEndpoint()
+            .SetReturnUrlGroupItemEndpoint();
     }
 }

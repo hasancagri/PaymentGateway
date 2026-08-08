@@ -12,6 +12,7 @@ public static class MerchantCommissionEndpointExtension
             .CreateMerchantCommissionGroupItemEndpoint()
             .UpdateMerchantCommissionGroupItemEndpoint()
             .BulkUpsertMerchantCommissionsGroupItemEndpoint()
-            .GetMerchantCommissionsGroupItemEndpoint();
+            .GetMerchantCommissionsGroupItemEndpoint()
+            .FinalizeMerchantCommissionGridGroupItemEndpoint();
     }
 }

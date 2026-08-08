@@ -25,6 +25,10 @@ builder.Services.AddHttpClient<ISettlementAccountApiClient, SettlementAccountApi
         client.BaseAddress = new Uri("http://merchant-api"))
     .AddHttpMessageHandler<AdminTokenHandler>();
 
+builder.Services.AddHttpClient<IRegisterRequestApiClient, RegisterRequestApiClient>(client =>
+        client.BaseAddress = new Uri("http://merchant-api"))
+    .AddHttpMessageHandler<AdminTokenHandler>();
+
 builder.Services.AddHttpClient<IBinCardApiClient, BinCardApiClient>(client =>
         client.BaseAddress = new Uri("http://payment-api"))
     .AddHttpMessageHandler<AdminTokenHandler>();

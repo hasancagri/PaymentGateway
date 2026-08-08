@@ -18,6 +18,7 @@ public interface ICommissionApiClient
     Task<ApiResult<IdResult>> UpdateMerchantCommissionAsync(Guid id, UpdateMerchantCommissionRequest request, CancellationToken ct = default);
     Task<ApiResult<BulkUpsertResult>> BulkUpsertMerchantCommissionsAsync(BulkUpsertMerchantCommissionsRequest request, CancellationToken ct = default);
     Task<ApiResult<MerchantCommissionsResponse>> GetMerchantCommissionsAsync(Guid merchantId, CancellationToken ct = default);
+    Task<ApiResult<GridStatusResult>> FinalizeMerchantCommissionGridAsync(Guid merchantId, CancellationToken ct = default);
 }
 
 public class CommissionApiClient : ApiClientBase, ICommissionApiClient
@@ -72,4 +73,7 @@ public class CommissionApiClient : ApiClientBase, ICommissionApiClient
 
     public Task<ApiResult<MerchantCommissionsResponse>> GetMerchantCommissionsAsync(Guid merchantId, CancellationToken ct = default) =>
         SendAsync<MerchantCommissionsResponse>(() => Http.GetAsync($"/api/v1/merchant-commissions?merchantId={merchantId}", ct), ct);
+
+    public Task<ApiResult<GridStatusResult>> FinalizeMerchantCommissionGridAsync(Guid merchantId, CancellationToken ct = default) =>
+        SendAsync<GridStatusResult>(() => Http.PostAsJsonAsync("/api/v1/merchant-commissions/finalize", new FinalizeGridRequest(merchantId), ct), ct);
 }

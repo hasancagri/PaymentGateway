@@ -1,0 +1,45 @@
+@page "/activation"
+@model Identity.Server.Pages.Activation.IndexModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hesap Etkinleştirme — DropShop</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+        .key { font-family: monospace; font-size: 1.1rem; background: #f4f4f4; padding: 12px; border-radius: 6px; word-break: break-all; }
+        .warn { color: #b00; font-weight: 600; }
+        .err { color: #b00; }
+        button { padding: 10px 18px; font-size: 1rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>DropShop Hesap Etkinleştirme</h1>
+
+    @if (Model.Redeemed)
+    {
+        <p>Hesabınız etkinleştirildi. Merchant kimliğiniz:</p>
+        <p class="key">@Model.MerchantId</p>
+        <p>MerchantKey'iniz (OAuth <code>client_secret</code>):</p>
+        <p class="key">@Model.MerchantKey</p>
+        <p class="warn">Bu değer bir daha GÖSTERİLMEYECEK. Şimdi kopyalayıp güvenli bir yerde saklayın.</p>
+    }
+    else if (Model.Error is not null)
+    {
+        <p class="err">@Model.Error</p>
+    }
+    else
+    {
+        <p>Hesabınızı etkinleştirmek ve MerchantKey'inizi (yalnız bir kez gösterilir) almak için onaylayın.</p>
+        <form method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="token" value="@Model.Token" />
+            <button type="submit">Etkinleştir ve MerchantKey'i Göster</button>
+        </form>
+    }
+</body>
+</html>

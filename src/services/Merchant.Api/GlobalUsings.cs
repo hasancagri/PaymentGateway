@@ -9,6 +9,7 @@ global using Marten;
 global using Marten.Newtonsoft;
 global using Merchant.Api.Dependencies;
 global using Merchant.Api.Domains.Merchants;
+global using Merchant.Api.Domains.RegisterRequests;
 global using Merchant.Api.Domains.SettlementAccounts;
 global using Microsoft.AspNetCore.Mvc;
 global using Newtonsoft.Json;

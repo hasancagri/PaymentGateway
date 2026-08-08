@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/src/agents/">
     <Project Path="src/agents/Payment.Agent/Payment.Agent.csproj" />
+    <Project Path="src/agents/Merchant.Agent/Merchant.Agent.csproj" />
   </Folder>
   <Folder Name="/src/aspire/">
     <Project Path="src/aspire/AppHost/AppHost.csproj" />
@@ -12,6 +13,8 @@
   </Folder>
   <Folder Name="/src/others/">
     <Project Path="src/others/Common/Common.csproj" />
+    <Project Path="src/others/Mail.Mcp/Mail.Mcp.csproj" />
+    <Project Path="src/others/Excel.Mcp/Excel.Mcp.csproj" />
     <Project Path="src/others/Identity.Server/Identity.Server.csproj" />
     <Project Path="src/others/Shared/Shared.csproj" />
     <Project Path="src/others/SharedKernel/SharedKernel.csproj" />
