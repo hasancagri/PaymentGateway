@@ -85,9 +85,10 @@ Merchant, e-postadaki tek kullanımlık bağlantıya tıklayarak gateway'in akti
 sayfasını açar ve MerchantKey'ini yalnız orada, bir kez görür. MerchantKey e-posta,
 sohbet veya agent kanalında asla düz metin taşınmaz. Key teslim edildiğinde merchant
 **Provisioning** statüsüne geçer: artık kimlik edinebilir (token alabilir) ama yetkisi
-sınırlıdır — kendi kaydını okuma/tamamlama, settlement hesabı yönetimi, komisyon
-şartlarını görme/yanıtlama ve kart-saklama hazırlığı açık; ödeme çekimi (charge)
-kapalıdır. Bağlantı ikinci kez kullanılamaz ve süresi dolunca geçersizleşir.
+sınırlıdır — kendi kaydını okuma/tamamlama, settlement hesabı yönetimi, ReturnUrl bildirme
+ve kart-saklama hazırlığı açık; ödeme çekimi (charge) kapalıdır. (Komisyonu merchant
+belirlemez/yanıtlamaz — gateway-otoriter; yalnız Excel ile bilgilendirilir.) Bağlantı ikinci
+kez kullanılamaz ve süresi dolunca geçersizleşir.
 
 **Why this priority**: Kimlik bilgisinin güvenli (out-of-band) teslimi senaryonun
 güvenlik omurgası; key olmadan merchant hiçbir makine işlemi yapamaz.
@@ -113,54 +114,57 @@ doğrulanır.
 
 ---
 
-### User Story 4 - Komisyon onay sonrası belirlenir; merchant agent'ı üzerinden görür, kabul eder veya reddeder (Priority: P2)
+### User Story 4 - Komisyon onay sonrası gateway-otoriter belirlenir; merchant Excel ile bilgilendirilir (Priority: P2)
 
-Onaydan sonra admin, merchant'a özel komisyon tablosunu tanımlar; tablo hazır olduğunda
-merchant'a "komisyon şartların hazır" bilgilendirme maili gider. Merchant'ın agent'ı,
-gateway'in onboarding agent'ına "komisyon şartlarımı göster" diye sorar; gateway kendi
-iç araçlarıyla tabloyu getirir ve agent'a iletir (dış taraf gateway'in iç araçlarına
-doğrudan bağlanmaz). Tablo henüz tanımlanmamışsa agent "şartlar hazırlanıyor" yanıtı
-alır; kabul/ret yapılamaz. Merchant kabul ederse kabul, tablonun o anki sürümüne
-bağlanarak kayıt altına alınır. Reddederse gerekçesiyle birlikte admin'e bildirim maili
-gider; admin tabloyu revize eder, merchant "şartların güncellendi" maili alır ve
-agent'ı yeniden sorup kabul edebilir (müzakere döngüsü). Kabulden sonra tablo değişirse
-yeniden kabul gerekmez; merchant yalnız bilgilendirilir.
+Onaydan sonra admin, merchant'a özel komisyon tablosunu (grid) mevcut yönetim ekranından
+tanımlar. Grid önce **Draft** aşamasındadır: admin hücreleri kademeli doldurur (kısmi olabilir).
+Komisyon **gateway'in belirlediğidir**; merchant pazarlık edemez, kendi oranını öneremez,
+kabul/ret etmez — gateway'in dediği oranların dışına çıkamaz. Grid, ilgili bankaların
+desteklediği **tüm taksit sayılarını** kapsar. Admin grid'i **finalize** ettiğinde (bütünlük:
+tüm servis-edilebilir kombinasyonlar fiyatlı, banka tabanı altında hücre yok) grid **Ready**
+olur ve sistem "komisyon grid hazır" koşulunu (Active'e giden üç koşuldan biri) sağlar; bu
+koşul ayrı context'te (Commission) gerçekleştiğinden Merchant'a **olay (event)** ile taşınır.
 
-**Why this priority**: Kabul, Active'e geçişin üç koşulundan biri — ama US1-US3 hattı
-tamamlanmadan anlamı yok; kendi başına bağımsız gösterilebilir ikinci halka.
+Merchant, Ready grid'i bilgi olarak **Excel eki içeren bir e-posta** ile alır (bağlayıcı
+değil; kabul aksiyonu yoktur). Excel'in üretilip gönderilmesi gateway'in açtığı MCP yüzeyleri
+üzerinden orkestre edilir (merchant bilgisi + grid okuma + Excel üretme + mail atma ayrı
+generic MCP araçlarıdır); orkestrayı süren harici LLM/MCP client seçimi bu sürümün kapsamı
+dışındadır (araçlar tek tek doğrulanır). Draft grid'den Excel üretilmez / event atılmaz.
 
-**Independent Test**: Provisioning'de bir merchant için önce tablo tanımsızken
-"hazırlanıyor" yanıtı, tablo tanımlanınca "hazır" maili ve agent üzerinden sunum;
-kabul kaydının tablo sürümüyle bağlandığı, ret yolunda admin mailinin gittiği ve
-revizyon sonrası yeniden sunumun çalıştığı bağımsız doğrulanır.
+**Why this priority**: "Komisyon grid hazır" Active'e geçişin üç koşulundan biri — ama
+US1-US3 hattı tamamlanmadan anlamı yok. Pazarlık/kabul/ret akışı bu sürümde YOK; gerçek
+müzakere (e-posta cevabı + niyet sınıflandırma) ayrı bir sürüme (014) bırakıldı.
+
+**Independent Test**: Provisioning'de bir merchant için grid tanımsızken Excel üretilemediği
+ve koşulun sağlanmadığı; admin grid'i tanımlayınca "grid hazır" koşulunun event ile Merchant'a
+ulaştığı; MCP araçlarıyla grid'in tüm taksit satırlarıyla Excel'e döküldüğü ve mailin ekiyle
+gönderilebildiği bağımsız doğrulanır.
 
 **Acceptance Scenarios**:
 
-1. **Given** komisyon tablosu henüz tanımlanmamış Provisioning'de bir merchant,
-   **When** agent'ı şartları sorar, **Then** "şartlar hazırlanıyor" yanıtı döner;
-   kabul/ret yapılamaz.
-2. **Given** Provisioning'de bir merchant, **When** admin komisyon tablosunu tanımlar,
-   **Then** merchant'a "komisyon şartların hazır" bilgilendirme maili gider.
-3. **Given** tanımlı komisyon tablosu, **When** agent şartları sorar, **Then**
-   merchant'a özel tablo sunulur.
-4. **Given** sunulmuş şartlar, **When** merchant kabul eder, **Then** kabul, tablonun o
-   anki sürümüne bağlı olarak kaydedilir ve Active koşullarından biri tamamlanır.
-5. **Given** sunulmuş şartlar, **When** merchant gerekçeyle reddeder, **Then** ret
-   gerekçesiyle kaydedilir ve admin'e bildirim maili gider; merchant Provisioning'de
-   kalır.
-6. **Given** reddedilmiş şartlar ve revize edilmiş tablo, **When** revizyon tamamlanır,
-   **Then** merchant'a güncelleme maili gider ve agent'ı şartları yeniden sorup kabul
-   edebilir.
-7. **Given** kabul edilmiş şartlar, **When** admin tabloyu sonradan değiştirir, **Then**
-   yeniden kabul istenmez; merchant'a yalnız bilgilendirme maili gider.
+1. **Given** komisyon grid'i Draft (veya hiç tanımlanmamış) Provisioning'de bir merchant,
+   **When** grid okuma aracı çağrılır, **Then** "hazır değil (Draft)" döner; Excel üretilmez,
+   koşul sağlanmaz.
+2. **Given** Draft grid'i bütünlüklü doldurulmuş bir merchant, **When** admin grid'i finalize
+   eder (Ready), **Then** "komisyon grid hazır" koşulu event ile Merchant'a ulaşır (Active
+   koşulu #2).
+3. **Given** Ready komisyon grid'i, **When** MCP araçları sırayla çağrılır (merchant bilgisi
+   → grid oku → Excel üret → mail at), **Then** merchant'ın iletişim adresine grid'in tüm
+   taksit satırlarını içeren Excel ekli mail gider.
+4. **Given** kabul/ret akışı YOK, **When** merchant komisyonu değiştirmeye/pazarlığa
+   çalışır, **Then** böyle bir uç yoktur; komisyon gateway-otoriter kalır.
+5. **Given** Ready grid sonradan değiştirilir, **When** yeni değerler girilir, **Then** koşul
+   zaten sağlanmıştır (tek-yön); merchant istenirse yeni Excel ile bilgilendirilebilir.
 
 ---
 
 ### User Story 5 - Koşullar tamamlanınca merchant otomatik Active olur (Priority: P2)
 
 Merchant, sınırlı yetkisiyle eksiklerini tamamlar: payout banka hesabını (settlement
-account) tanımlar, komisyon şartlarını kabul eder ve ödeme dönüş adresini (ReturnUrl)
-bildirir. Üç koşulun üçü de tamamlandığı anda sistem merchant'ı kendiliğinden **Active**
+account) tanımlar ve ödeme dönüş adresini (ReturnUrl) bildirir; üçüncü koşul olan **komisyon
+grid'inin hazır olması** admin tarafından sağlanır ve Merchant'a event ile ulaşır (merchant
+aksiyonu değil — komisyon gateway-otoriter). Üç koşulun üçü de tamamlandığı anda sistem
+merchant'ı kendiliğinden **Active**
 statüsüne geçirir; bundan sonra alınan token'lar tam yetkiyi (ödeme çekimi dahil) taşır.
 Koşullardan herhangi biri eksikken ödeme çekimi yetkisi hiçbir koşulda verilmez.
 
@@ -225,11 +229,12 @@ sorgu yanıtında aynen döndüğü bağımsız doğrulanır.
 - Aktivasyon öncesi (key teslim edilmemişken) token isteği → ret (statü-kapılı verme).
 - Provisioning'de charge yetkisi gerektiren istek → ret; koşul eksikken hiçbir yoldan
   charge yetkisi verilmez (fail-closed).
-- Komisyon tablosu tanımlandıktan sonra silinir/boşaltılırsa → agent sorgusu yeniden
-  "hazırlanıyor" döner; mevcut kabul kaydı (sürüme bağlı) korunur.
-- Kabul, eski tablo sürümüne bağlıyken tablo değişmişse → kabul kaydı hangi sürüme
-  verildiğini korur; yeniden kabul istenmez, bilgilendirme gider.
-- Ret gerekçesi boş olabilir (gerekçe opsiyonel); döngü yine işler.
+- Komisyon grid'i Draft'ken (finalize edilmemiş) → grid okuma "hazır değil" döner, Excel
+  üretilmez, "grid hazır" koşulu sağlanmaz.
+- "Komisyon grid hazır" koşulu tek-yöndür: bir kez sağlanınca (Ready) geri alınmaz;
+  Active'e geçmiş merchant sonraki grid düzenlemesinden etkilenmez.
+- Komisyon gateway-otoriterdir: merchant kabul/ret/pazarlık YAPAMAZ; böyle bir uç yoktur.
+  (Müzakere — e-posta cevabı + niyet sınıflandırma — ayrı sürüme, 014'e bırakıldı.)
 
 ## Requirements *(mandatory)*
 
@@ -266,30 +271,33 @@ sorgu yanıtında aynen döndüğü bağımsız doğrulanır.
   MerchantKey e-posta, sohbet, A2A veya agent kanallarında düz metin TAŞINMAZ.
 - **FR-010**: Key teslimi merchant'ı **Provisioning** statüsüne geçirir. Provisioning
   token'ı sınırlı yetki demeti taşır: kendi kaydını okuma/tamamlama, settlement hesabı
-  yönetimi, komisyon şartlarını görme/yanıtlama ve kart-saklama hazırlığı; ödeme çekimi
-  yetkisi İÇERMEZ. Aktivasyon öncesi token verilMEZ. (012'nin "yalnız Active token alır"
-  kuralı "Provisioning sınırlı, Active tam" olarak genişler — anayasa amendment'ı
-  gerektirir.)
-- **FR-011**: Komisyon tablosu onaydan SONRA admin tarafından tanımlanır; merchant için
-  ilk kez tanımlandığında merchant'a "komisyon şartların hazır" bilgilendirme maili
-  gönderilir.
-- **FR-012**: Merchant'ın agent'ı komisyon şartlarını A2A üzerinden sorabilir, kabul
-  veya (opsiyonel gerekçeyle) reddedebilir. Gateway'in iç araç yüzeyi
-  (şartları getir / kabul et / reddet) dış tarafa KAPALIDIR; yalnız gateway'in kendi
-  onboarding agent'ı tüketir.
-- **FR-013**: Komisyon kabulü, tablonun kabul anındaki sürümüne bağlanarak kalıcı
-  kaydedilir. Tablo tanımlı değilken sorgu "şartlar hazırlanıyor" yanıtı döner;
-  kabul/ret işlemi yapılamaz (fail-closed).
-- **FR-014**: Komisyon reddi admin'e gerekçeli bildirim maili üretir; tablo revize
-  edilince merchant'a güncelleme maili gider ve şartlar yeniden sunulabilir. Kabul
-  SONRASI tablo değişikliği yeniden kabul GEREKTİRMEZ; merchant'a bilgilendirme maili
-  gider.
+  yönetimi, ReturnUrl bildirme ve kart-saklama hazırlığı; ödeme çekimi yetkisi İÇERMEZ.
+  Aktivasyon öncesi token verilMEZ. (012'nin "yalnız Active token alır" kuralı
+  "Provisioning sınırlı, Active tam" olarak genişler — anayasa amendment'ı gerektirir.)
+- **FR-011**: Komisyon grid'i onaydan SONRA admin tarafından mevcut yönetim ekranından
+  tanımlanır. Grid önce **Draft**'tır (kademeli doldurulur, kısmi olabilir) ve ilgili
+  bankaların desteklediği **tüm taksit sayılarını** kapsar. Komisyon **gateway-otoriterdir**;
+  merchant kendi oranını belirleyemez / pazarlık edemez.
+- **FR-012**: Admin grid'i **finalize** ettiğinde grid **Ready** olur; finalize bütünlük
+  gerektirir (tüm servis-edilebilir kombinasyonlar fiyatlı, banka tabanı altında hücre yok).
+  Ready anında `MerchantCommissionGridReady` olayı yayınlanır (Active koşulu #2). Draft
+  grid'den olay atılmaz, Excel üretilmez (fail-closed).
+- **FR-013**: Merchant komisyon **kabul/ret/pazarlık YAPMAZ**; komisyon gateway'in dediğidir.
+  Merchant grid'i yalnız **bilgi olarak** (Excel eki içeren e-posta) alır; bu e-posta bağlayıcı
+  değildir ve bir kabul aksiyonu içermez. (Kabul/ret + e-posta cevabı + niyet sınıflandırma
+  ayrı sürüme — 014 — bırakılmıştır.)
+- **FR-014**: Komisyon Excel'inin üretilip mail'lenmesi gateway'in açtığı **MCP yüzeyleri**
+  üzerinden orkestre edilir (merchant bilgisi okuma + grid okuma + Excel üretme + mail atma =
+  ayrı generic MCP araçları). Orkestrayı süren harici LLM/MCP client seçimi bu sürümün
+  kapsamı DIŞINDADIR; MCP yüzeyleri tek tek doğrulanır. Bu yüzeyler dışa/merchant'a kapalıdır
+  (admin-düzlemi token, scope-korumalı).
 - **FR-015**: Merchant, sınırlı yetkisiyle ödeme dönüş adresini (ReturnUrl)
   tanımlayabilir/güncelleyebilir; değer geçerli bir HTTPS adresi olmalıdır.
 - **FR-016**: Şu üç koşulun üçü de sağlandığında sistem merchant'ı insan müdahalesi
   olmadan **Active** statüsüne geçirir: (1) en az bir settlement hesabı tanımlı,
-  (2) komisyon şartları kabul edilmiş, (3) ReturnUrl tanımlı. Komisyon kabulü ayrı
-  context'te gerçekleştiğinden koşul bilgisi olay (event) ile taşınır.
+  (2) komisyon grid'i **Ready** (finalize edilmiş), (3) ReturnUrl tanımlı. Koşul #2 ayrı
+  context'te (Commission) gerçekleştiğinden bilgisi olay (event) ile taşınır. Koşul #2
+  merchant aksiyonu DEĞİL — gateway-otoriter (admin finalize).
 - **FR-017**: Active statüsü mevcut statü-kapılı kimlik mekanizmasıyla tam yetki
   demetini açar (ödeme çekimi dahil). Mevcut Passive/Suspended davranışı ve
   admin/merchant düzlem ayrımı (AdminPlaneOnly/MerchantScoped) DEĞİŞMEZ.
@@ -316,10 +324,12 @@ sorgu yanıtında aynen döndüğü bağımsız doğrulanır.
   bileti; hangi alan adı için üretildiğini ve sonucunu tutar.
 - **Aktivasyon Bileti**: Tek kullanımlık, süreli key-teslim bileti; kullanım anı ve
   durumu tutulur.
-- **Komisyon Kabul Kaydı**: Merchant'ın hangi komisyon tablosu sürümünü ne zaman kabul
-  (veya gerekçeyle ret) ettiği; Active koşulunun kaynağı.
-- **Onboarding Bildirimleri (mail kayıtları)**: Admin bildirim, aktivasyon,
-  şartlar-hazır, ret/revizyon ve bilgilendirme mailleri; gönderim durumu izlenebilir.
+- **Komisyon Grid'i (mevcut, durum eklenir)**: Merchant'a özel oran grid'i; durum
+  **Draft/Ready** (finalize ile Ready). Ready = Active koşulu #2 kaynağı (event ile taşınır).
+  Kabul/sürüm/ret kaydı YOK (gateway-otoriter; müzakere 014).
+- **Onboarding Bildirimleri (mail kayıtları)**: Yalnız **deterministik** mailler — admin
+  "yeni başvuru" bildirimi ve aktivasyon maili; gönderim durumu izlenebilir (FR-019). Komisyon
+  Excel maili agentik/harici LLM olduğundan domain kaydı tutmaz.
 
 ## Success Criteria *(mandatory)*
 
@@ -339,15 +349,20 @@ sorgu yanıtında aynen döndüğü bağımsız doğrulanır.
   denemelerinin %100'ü reddedilir.
 - **SC-007**: Üç koşulun sonuncusu tamamlandıktan sonra merchant 1 dakika içinde
   kendiliğinden Active olur ve yeni token'ı tam yetki taşır.
-- **SC-008**: Komisyon hazır/ret/revizyon bildirimleri otomatik gider; müzakere döngüsü
-  insan eliyle mail yazılmasına gerek kalmadan tamamlanır.
+- **SC-008**: Admin komisyon grid'ini finalize eder etmez "grid hazır" koşulu (Active #2)
+  event ile Merchant'a ulaşır; komisyon grid'i MCP araçlarıyla tüm taksit satırlarıyla Excel'e
+  dökülüp merchant'a mail'lenebilir. Draft grid'den event/Excel üretilmez.
 
 ## Assumptions
 
 - Ortam geliştirme/öğrenme ortamıdır: aday site canlı doğrulamada simüle edilir (lokal
   olarak descriptor + challenge dosyası sunan basit bir host yeterlidir).
-- Mail altyapısı: SMTP-backed mail MCP server (Gmail SMTP + uygulama şifresi arkalı,
-  lokal çalıştırılan); admin bildirim adresi yapılandırmadan gelir.
+- Mail altyapısı: **kendi generic `Mail.Mcp`** (SMTP-backed; dev'de Mailpit catch-all, gerçekte
+  Gmail SMTP) + belge üretimi için generic **`Excel.Mcp`** (ClosedXML). İkisi de altyapı, BC
+  değil, domain bilmez. Deterministik mailler `Common.IMailSender` ile BC'den; komisyon Excel
+  maili harici LLM/MCP orkestrasyon. Admin bildirim adresi yapılandırmadan gelir.
+- Komisyon = **gateway-otoriter (B)**: merchant kabul/ret/pazarlık yapmaz; grid Draft→Ready
+  (admin finalize); kabul/sürüm/müzakere YOK (014'e bırakıldı).
 - Doğrulama bileti ve aktivasyon bağlantısı süreleri yapılandırılabilir; makul
   varsayılanlar sırasıyla ~1 saat ve ~24 saattir.
 - MerchantKey üretimi mevcut davranışıyla korunur (merchant oluşturma anında üretilir —
@@ -361,6 +376,6 @@ sorgu yanıtında aynen döndüğü bağımsız doğrulanır.
   E1) bu spec'in kapsamı dışında ayrı bağımlılıktır; canlı doğrulamada simüle edilir.
 - Kapsam dışı: Admin RBAC (ayrı spec; yönetim ekranı şimdilik kimliksiz dev statükosunda),
   gerçek kart vault + ödeme çekimi (G5), DB-per-tenant (G4), MerchantKey rotasyonu.
-- Anayasa etkisi: İlke V'teki "verme statü-kapılıdır (yalnız Active)" kuralı bu
-  feature'la "Provisioning sınırlı demet, Active tam demet" olarak genişleyecek; plan
-  aşamasında amendment yapılır.
+- Anayasa etkisi: İlke V'teki "verme statü-kapılıdır (yalnız Active)" kuralı bu feature'la
+  "Provisioning sınırlı demet, Active tam demet" olarak genişletildi — **amendment YAPILDI
+  (anayasa v1.4.0, 2026-08-08)**.

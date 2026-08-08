@@ -61,6 +61,11 @@ builder.Services.AddOpenIddict()
 // Açılışta idempotent client + scope seed.
 builder.Services.AddHostedService<SeedHostedService>();
 
+// 013: aktivasyon Razor sayfası + Merchant.Api redeem istemcisi (service discovery: merchant-api).
+builder.Services.AddRazorPages();
+builder.Services.AddHttpClient<Identity.Server.Activation.MerchantActivationClient>(client =>
+    client.BaseAddress = new Uri("http://merchant-api"));
+
 // 012: merchant.lifecycle fanout tüketimi — Merchant BC olayları OpenIddict istemci kaydına
 // izdüşürülür (MerchantClientEventHandler). Message store YOK (D1): durable inbox kullanılamaz;
 // kuyruk RabbitMQ tarafında durable, handler idempotent → inline işleme (ack handler bitince) yeterli.
@@ -99,5 +104,8 @@ app.UseRouting();
 
 // Tek uç: /connect/token (OpenIddict passthrough ile ASP.NET Core'da işlenir).
 app.MapTokenEndpoint();
+
+// 013: aktivasyon sayfası (/activation).
+app.MapRazorPages();
 
 app.Run();

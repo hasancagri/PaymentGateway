@@ -17,6 +17,9 @@ public static class Config
             ["merchant.write"] = "merchant.api",
             ["commission.read"] = "commission.api",
             ["commission.write"] = "commission.api",
+            // 013: altyapı MCP yüzeyleri (Mail.Mcp / Excel.Mcp).
+            ["mail.send"] = "mail.mcp",
+            ["document.generate"] = "excel.mcp",
         };
 
     public static IEnumerable<string> AllApiScopes => ScopeResources.Keys;
@@ -25,7 +28,8 @@ public static class Config
     // (appsettings dev varsayılanı + user-secrets/env override); store hash'leyerek saklar.
     public static IReadOnlyList<ClientSeed> Clients(IConfiguration configuration) =>
     [
-        // Admin BFF m2m: tüm yönetim ekranları (AdminTokenHandler 6 scope'la token alır).
+        // Admin BFF m2m: tüm yönetim ekranları + 013 komisyon Excel orkestrasyonu (harici LLM/MCP
+        // client admin-düzlemi token). mail.send + document.generate eklendi (merchant_id claim'siz).
         new ClientSeed
         {
             ClientId = "admin-ui",
@@ -36,6 +40,7 @@ public static class Config
                 "merchant.read", "merchant.write",
                 "commission.read", "commission.write",
                 "payment.read", "payment.write",
+                "mail.send", "document.generate",
             ],
         },
         // Payment.Agent m2m: MCP tool çağrıları (yüzey tek policy: payment.write).
@@ -45,6 +50,40 @@ public static class Config
             ClientSecret = RequireSecret(configuration, "payment-agent"),
             DisplayName = "Payment agent (m2m)",
             Scopes = ["payment.read", "payment.write"],
+        },
+        // 013: Merchant.Agent m2m — başvuru MCP tool'ları (Merchant.Api /mcp, merchant.write).
+        new ClientSeed
+        {
+            ClientId = "merchant-agent",
+            ClientSecret = RequireSecret(configuration, "merchant-agent"),
+            DisplayName = "Merchant agent (m2m)",
+            Scopes = ["merchant.read", "merchant.write"],
+        },
+        // 013: Merchant.Api m2m — deterministik mailler (IMailSender → Mail.Mcp, mail.send).
+        new ClientSeed
+        {
+            ClientId = "merchant-api",
+            ClientSecret = RequireSecret(configuration, "merchant-api"),
+            DisplayName = "Merchant API (m2m, mail)",
+            Scopes = ["mail.send"],
+        },
+        // 013: Identity aktivasyon sayfası → Merchant.Api redeem (sanksiyonlu senkron çağrı).
+        // Claim'siz (AdminPlaneOnly geçer); merchant.write ile bileti kullanır.
+        new ClientSeed
+        {
+            ClientId = "identity-activation",
+            ClientSecret = RequireSecret(configuration, "identity-activation"),
+            DisplayName = "Identity activation page (m2m)",
+            Scopes = ["merchant.write"],
+        },
+        // 013 E1: harici aday site (ECommerce) → Merchant.Api /mcp submit_registration otomatik sürüşü.
+        // Claim'siz makine token'ı; merchant.write ile başvuru yapar.
+        new ClientSeed
+        {
+            ClientId = "ecommerce-onboarding",
+            ClientSecret = RequireSecret(configuration, "ecommerce-onboarding"),
+            DisplayName = "ECommerce onboarding client (m2m)",
+            Scopes = ["merchant.read", "merchant.write"],
         },
     ];
 

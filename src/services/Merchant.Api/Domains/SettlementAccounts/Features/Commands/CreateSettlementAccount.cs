@@ -24,6 +24,7 @@ public static class CreateSettlementAccount
         public async Task<FeatureObjectResultModel<CreateSettlementAccountResponse>> Handle(
             CreateSettlementAccountCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             // 1) Saf format doğrulaması aggregate'te (IBAN normalize + mod-97 dahil).
@@ -58,6 +59,20 @@ public static class CreateSettlementAccount
                 return FeatureObjectResultModel<CreateSettlementAccountResponse>.Error(errors);
 
             session.Store(result.Data!);
+
+            // 013 US5 — Active koşulu #1 (BC-içi kanca). Settlement eklenince merchant'ı işaretle +
+            // TryActivate (idempotent). 3 koşul dolduysa Provisioning→Active + event (aynı [Transactional]).
+            var merchant = await session.LoadAsync<MerchantAggregate>(cmd.MerchantId, ct);
+            if (merchant is not null)
+            {
+                merchant.MarkSettlementAccountPresent();
+                var activated = merchant.TryActivate();
+                session.Update(merchant);
+
+                if (activated)
+                    await bus.PublishAsync(new Shared.IntegrationEvents.MerchantStatusChanged(
+                        merchant.Id, Merchant.Api.Domains.Merchants.MerchantStatus.Active.ToString()));
+            }
 
             return FeatureObjectResultModel<CreateSettlementAccountResponse>.Ok(new CreateSettlementAccountResponse
             {

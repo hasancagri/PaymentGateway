@@ -7,6 +7,8 @@
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.3.5" />
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="9.3.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.23.0" />
+    <!-- 013: Excel.Mcp — .xlsx üretimi (generic doc-gen MCP). MIT; Excel kurulumu gerektirmez. -->
+    <PackageVersion Include="ClosedXML" Version="0.104.2" />
     <PackageVersion Include="Marten" Version="9.5.0" />
     <PackageVersion Include="Marten.Newtonsoft" Version="9.5.0" />
     <PackageVersion Include="MassTransit.RabbitMQ" Version="8.3.5" />

@@ -22,4 +22,12 @@ public static class RabbitMqConstants
         public const string Exchange = "merchant.lifecycle";
         public const string IdentityQueue = "identity.merchant-sync";
     }
+
+    // 013: komisyon grid-hazır fanout. Commission.Api yayınlar; Merchant.Api durable queue ile tüketir
+    // (Active koşulu #2 — MerchantCommissionGridReady).
+    public static class MerchantCommission
+    {
+        public const string Exchange = "merchant.commission";
+        public const string MerchantQueue = "merchant.commission-ready";
+    }
 }

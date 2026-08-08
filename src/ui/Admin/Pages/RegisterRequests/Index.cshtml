@@ -1,0 +1,45 @@
+@page
+@model Admin.Pages.RegisterRequests.IndexModel
+@{
+    ViewData["Title"] = "Merchant Talepleri";
+}
+
+<partial name="_Messages" />
+
+@if (Model.Requests.Count == 0)
+{
+    <p class="muted">Bekleyen başvuru yok.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Alan Adı</th><th>Ünvan</th><th>İletişim</th><th>Kanıt</th><th>Tarih</th><th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model.Requests)
+            {
+                <tr>
+                    <td>@r.Domain</td>
+                    <td>@r.LegalName</td>
+                    <td>@r.ContactEmail</td>
+                    <td>@r.ChallengeResult</td>
+                    <td>@r.CreatedTime.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <form method="post" style="display:inline">
+                            <input type="hidden" name="id" value="@r.Id" />
+                            <button class="btn" asp-page-handler="Approve">Onayla</button>
+                        </form>
+                        <form method="post" style="display:inline">
+                            <input type="hidden" name="id" value="@r.Id" />
+                            <input type="text" name="note" placeholder="Not (opsiyonel)" />
+                            <button class="btn" asp-page-handler="Reject">Reddet</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

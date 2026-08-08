@@ -1,6 +1,33 @@
 <!--
 SYNC IMPACT REPORT
 ==================
+Version change: 1.3.0 → 1.4.0
+Bump rationale: MINOR — İlke V rehberliği genişledi: token verme kuralı "yalnız Active"ten
+  KADEMELİ yetkiye çıktı (013 merchant onboarding). Yeni Provisioning statüsü sınırlı demet
+  (charge hariç), Active tam demet (charge dahil) alır; charge hiçbir alt-statüde verilmez
+  (fail-closed). Ayrıca yeni mail.send (+ opsiyonel document.generate) scope. İlke
+  kaldırılmadı/uyumsuz yeniden tanımlanmadı → MAJOR değil.
+
+Modified principles:
+  - V. Merkezi Kimlik ve Açık Yetki: (a) merchant token verme "yalnız Active" → "kademeli":
+    Provisioning sınırlı demet (merchant.read/write; kendi kaydı + settlement + ReturnUrl;
+    charge HARİÇ), Active tam demet (charge dahil); charge fail-closed. (b) OpenIddict client
+    aktivasyon (MerchantProvisioned event) anında provision edilir; aktivasyon öncesi token
+    verilmez (client yokluğu + Provisioning birlikte fail-closed). (c) Yeni mail.send (+
+    opsiyonel document.generate) scope; mail atan BC başına Identity client; generic Mail.Mcp/
+    Excel.Mcp = altyapı servisleri (BC değil, domain bilmez).
+
+Added sections: (yok)
+Removed sections: (yok)
+
+Deferred TODOs:
+  - TODO(AUTHZ_MODEL) [hâlâ açık]: İnsan/rol düzlemi (G3 — login + RBAC + merchant'a bağlı
+    kullanıcılar). Makine (011) + merchant-istemci (012) + kademeli statü-yetki (013) KARARLI.
+
+Templates/commands: Bağımlı şablonlar (plan/spec/tasks) anayasayı çalışma anında okur;
+  senkron gerektiren tutarsızlık yok.
+
+--- v1.3.0 raporu (2026-08-07) ---
 Version change: 1.2.0 → 1.3.0
 Bump rationale: MINOR — İlke V rehberliği belirgin genişledi: merchant-istemci düzlemi (G2)
   KARARLI hâle geldi (012). TODO(AUTHZ_MODEL)'in G2 kolu kapandı; açık kalan yalnız insan/rol
@@ -150,10 +177,22 @@ Kimlik doğrulama merkezîdir ve hiçbir korunması gereken uç açıkta bırak�
 - Merchant-istemci düzlemi KARARLIDIR (012): merchant = client_credentials istemcisi
   (`client_id = merchantId`, `client_secret = MerchantKey`; üçüncü sır üretilmez). MerchantKey
   yalnız `connect/token`'a gider, BC API'lerine taşınMAZ. Token 15 dk ömürlü, merchant
-  istemcilerinde `merchant_id` claim'i taşır; verme statü-kapılıdır (yalnız Active). Tenant
-  enforcement claim-tabanlıdır: `merchant_id` claim'i route'daki `{merchantId}` ile eşleşmek
-  zorundadır (yoksa fail-closed RET, uyuşmazlıkta 403); admin-düzlemi uçları `AdminPlaneOnly`
-  ile claim'li token'a kapalıdır. Scope adları merchant-başına çoğaltılmaz.
+  istemcilerinde `merchant_id` claim'i taşır; verme statü-kapılıdır ve KADEMELİDİR (bkz.
+  aşağıdaki kademeli-yetki maddesi). Tenant enforcement claim-tabanlıdır: `merchant_id` claim'i
+  route'daki `{merchantId}` ile eşleşmek zorundadır (yoksa fail-closed RET, uyuşmazlıkta 403);
+  admin-düzlemi uçları `AdminPlaneOnly` ile claim'li token'a kapalıdır. Scope adları
+  merchant-başına çoğaltılmaz.
+- Kademeli statü-yetki KARARLIDIR (013): merchant token verme statü-kapılı ve KADEMELİDİR.
+  **Provisioning** statüsü sınırlı demet alır (`merchant.read`/`merchant.write`: kendi kaydı +
+  settlement hesabı + ReturnUrl; **charge HARİÇ**); **Active** statüsü tam demet alır (**charge
+  dahil**). Ödeme çekimi (charge) yetkisi hiçbir alt-statüde verilMEZ — fail-closed. OpenIddict
+  client'ı yalnız aktivasyon (`MerchantProvisioned` event) anında provision edilir; aktivasyon
+  öncesi token verilMEZ (client yokluğu + Provisioning statüsü birlikte fail-closed). Passive/
+  Suspended mevcut davranışı (token verilmez) korunur. Scope adları statü-başına çoğaltılmaz —
+  yetki statü ile açılır, scope adı üretilmez.
+- Altyapı MCP servisleri (Mail.Mcp, Excel.Mcp) BC DEĞİLDİR ve domain bilmez; generic tool
+  yüzeyleri (`send_email`, `generate_spreadsheet`) scope-korumalıdır. Yeni `mail.send` (+
+  opsiyonel `document.generate`) scope; mail atan BC başına Identity client (izlenebilir).
 - İnsan/rol düzlemi (G3) için bkz. TODO(AUTHZ_MODEL) — karar netleştiğinde amendment ile işlenir.
 
 Gerekçe: Ödeme sistemi için yetki, sonradan eklenen değil baştan tasarlanan bir kısıttır;
@@ -243,4 +282,4 @@ sağlar; anayasa bu akışa tutarlılık zemini verir.
 - Ertelenen kararlar (TODO) Sync Impact Report'ta takip edilir ve karar netleştiğinde
   amendment ile kapatılır.
 
-**Version**: 1.3.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-08-07
+**Version**: 1.4.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-08-08

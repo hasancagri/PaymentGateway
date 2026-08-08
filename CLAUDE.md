@@ -12,8 +12,9 @@ Aspire + Marten + Wolverine.
 Mevcut BC'ler: **Payment** (CP.VPOS sanal POS), **Merchant** (onboarding + settlement
 hesapları), **Commission** (banka referansı + komisyon grid). Ayrıca **Admin** (Razor Pages
 BFF) API'leri service discovery ile tüketir; **Identity.Server** (OpenIddict, BC değil —
-altyapı servisi) makine token'ı verir. Her BC kendi spec döngüsüyle (spec-kit,
-`specs/<NNN>/`) eklendi.
+altyapı servisi) makine token'ı verir. 013: **Merchant.Agent** (A2A başvuru host'u, BC değil),
+**Mail.Mcp** + **Excel.Mcp** (generic MCP altyapı servisleri, BC değil), **Mailpit** (dev SMTP
+catch-all). Her BC kendi spec döngüsüyle (spec-kit, `specs/<NNN>/`) eklendi.
 
 ## Komutlar
 
@@ -35,6 +36,21 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
 - `src/services/Merchant.Api` — Merchant BC. `Merchant` aggregate (onboarding) + `MerchantSettlementAccount`
   aggregate (payout banka hesabı; IBAN mod-97 saf doğrulama, yerel `BankCatalog` kopyası, endpoint'ler
   merchant-scoped `merchants/{merchantId}/settlement-accounts`). Aynı vertical slice deseni.
+  013 onboarding: `RegisterRequest` aggregate (başvuru — merchant'tan AYRI, onayla doğar) +
+  `DomainControlChallenge` (HTTP-01 tarzı sahiplik bileti) + `ActivationTicket` (tek-kullanım key
+  teslim bileti) + `OnboardingNotification` (deterministik mail kaydı, FR-019). `Merchant`'a
+  **Provisioning** statüsü + `ReturnUrl`/`ExternalRef`/`HasSettlementAccount`/`CommissionGridReady` +
+  `TryActivate()` (3-koşul idempotent → Active). `/mcp` yüzeyi (`submit_registration`,
+  `registration_status`, `get_merchant`; policy `merchant.write`). `merchant.commission` fanout tüketir
+  (`MerchantCommissionGridReadyHandler` tekil — Active koşulu #2). Redeem ucu
+  `POST merchants/activation/redeem` (AdminPlaneOnly; `MerchantProvisioned` yayınlar, key bir kez döner).
+- `src/agents/Merchant.Agent` — 013 A2A başvuru host'u (Payment.Agent şablonu). BC değil, stateless.
+  013 skill'leri: `register` + `registration_status`; Merchant.Api `/mcp`'yi kendi client'ıyla
+  (`merchant-agent`, `merchant.write`) tüketir. Komisyon/pazarlık YOK (014).
+- `src/others/Mail.Mcp` + `src/others/Excel.Mcp` — generic altyapı MCP server'ları (BC değil, domain
+  bilmez). `send_email` (System.Net.Mail → dev Mailpit) / `generate_spreadsheet` (ClosedXML → .xlsx
+  base64). Scope-korumalı: `mail.send` / `document.generate`. Deterministik mailler Common `IMailSender`
+  (→ `MailMcpClient`) üzerinden; komisyon Excel maili harici LLM/MCP orkestrasyon (013 client sabitlemez).
 - `src/services/Commission.Api` — Commission BC. `Bank` aggregate (katalogdan kod+ad) + banka/merchant
   komisyon grid'leri (kombinasyon-bazlı, atomik toplu upsert). Banka seed yok.
 - `src/agents/Payment.Agent` — A2A host + LLM router + MCP client (007). Payment BC **DEĞİL** —

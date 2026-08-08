@@ -40,6 +40,24 @@ public class Merchant : AggregateRoot
 
     public MerchantStatus Status { get; private set; } = MerchantStatus.Active;
 
+    /// <summary>Opak beyan (taxId gibi). Onboarding'de descriptor'dan kopyalanır.</summary>
+    public string? TaxId { get; private set; }
+
+    /// <summary>Ödeme dönüş adresi (geçerli HTTPS). Active koşulu #3.</summary>
+    public string? ReturnUrl { get; private set; }
+
+    /// <summary>Opak dış referans; gateway anlamlandırmaz, aynen döner (FR-018).</summary>
+    public string? ExternalRef { get; private set; }
+
+    /// <summary>Active koşulu #1 — en az bir settlement hesabı eklenince set (BC-içi).</summary>
+    public bool HasSettlementAccount { get; private set; }
+
+    /// <summary>Active koşulu #2 — komisyon grid hazır event'i gelince set (cross-BC).</summary>
+    public bool CommissionGridReady { get; private set; }
+
+    /// <summary>Key teslim (aktivasyon) anı; Provisioning'e geçişte set.</summary>
+    public DateTime? ActivatedAtUtc { get; private set; }
+
     /// <summary>
     /// Saf format doğrulaması. Varlık (lookup) doğrulaması handler'da. <paramref name="merchantKey"/>
     /// handler tarafından üretilip (benzersizlik denetlenmiş) geçirilir; burada yalnız boş-değil kontrolü.
@@ -73,6 +91,105 @@ public class Merchant : AggregateRoot
             WebhookUrl = webhookUrl,
             Status = MerchantStatus.Active
         });
+    }
+
+    /// <summary>
+    /// Onboarding hattı fabrikası (013): merchant onayla <b>Provisioning</b> statüsünde doğar.
+    /// Yalnız descriptor'dan gelen alanlar doğrulanır (ad + e-posta biçimi + HTTPS webhook); profil
+    /// (telefon/ülke/şehir/MCC) merchant kendi token'ıyla sonradan tamamlar. Charge yetkisi yok.
+    /// </summary>
+    public static ResultDomain<Merchant> CreateForOnboarding(
+        string merchantKey,
+        string name,
+        string email,
+        string webhookUrl,
+        string? taxId,
+        string? externalRef)
+    {
+        if (string.IsNullOrWhiteSpace(merchantKey))
+            return ResultDomain<Merchant>.Error(Required(nameof(MerchantKey)));
+        if (string.IsNullOrWhiteSpace(name))
+            return ResultDomain<Merchant>.Error(Required(nameof(Name)));
+        if (string.IsNullOrWhiteSpace(email) || !EmailRegex.IsMatch(email))
+            return ResultDomain<Merchant>.Error(InvalidFormat(nameof(Email)));
+        if (!IsHttpsUrl(webhookUrl))
+            return ResultDomain<Merchant>.Error(InvalidFormat(nameof(WebhookUrl)));
+
+        return ResultDomain<Merchant>.Ok(new Merchant
+        {
+            MerchantKey = merchantKey,
+            Name = name,
+            Email = email,
+            WebhookUrl = webhookUrl,
+            TaxId = taxId?.Trim(),
+            ExternalRef = string.IsNullOrWhiteSpace(externalRef) ? null : externalRef.Trim(),
+            Status = MerchantStatus.Provisioning,
+            IsActive = false
+        });
+    }
+
+    /// <summary>
+    /// Aktivasyon bileti kullanılınca (key teslim anı). Statüyü Provisioning'de sabitler,
+    /// <see cref="ActivatedAtUtc"/> set eder. İdempotent: zaten set ise no-op.
+    /// </summary>
+    public void Provision()
+    {
+        ActivatedAtUtc ??= DateTime.UtcNow;
+        if (Status == MerchantStatus.Active)
+            return; // zaten Active — geri almaz
+        Status = MerchantStatus.Provisioning;
+        UpdatedTime = DateTime.UtcNow;
+    }
+
+    /// <summary>Ödeme dönüş adresi (HTTPS zorunlu). Active koşulu #3.</summary>
+    public ResultDomain SetReturnUrl(string returnUrl)
+    {
+        if (!IsHttpsUrl(returnUrl))
+            return ResultDomain.Error(InvalidFormat(nameof(ReturnUrl)));
+
+        ReturnUrl = returnUrl;
+        UpdatedTime = DateTime.UtcNow;
+        return ResultDomain.Ok();
+    }
+
+    /// <summary>Active koşulu #1 (settlement hesabı eklendi). İdempotent.</summary>
+    public void MarkSettlementAccountPresent()
+    {
+        HasSettlementAccount = true;
+        UpdatedTime = DateTime.UtcNow;
+    }
+
+    /// <summary>Active koşulu #2 (komisyon grid hazır). İdempotent; tek-yön (ready kalır).</summary>
+    public void MarkCommissionGridReady()
+    {
+        CommissionGridReady = true;
+        UpdatedTime = DateTime.UtcNow;
+    }
+
+    /// <summary>Opak externalRef günceller (FR-018).</summary>
+    public void SetExternalRef(string? externalRef)
+    {
+        ExternalRef = string.IsNullOrWhiteSpace(externalRef) ? null : externalRef.Trim();
+        UpdatedTime = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Saf iç değerlendirme (013 D10): 3 koşul (settlement + gridReady + ReturnUrl) doluysa
+    /// Provisioning→Active geçer. İdempotent — zaten Active ya da koşul eksikse <c>false</c>.
+    /// Geçiş gerçekleştiyse <c>true</c> döner (handler <c>MerchantStatusChanged(Active)</c> yayınlar).
+    /// </summary>
+    public bool TryActivate()
+    {
+        if (Status != MerchantStatus.Provisioning)
+            return false;
+
+        if (!HasSettlementAccount || !CommissionGridReady || string.IsNullOrWhiteSpace(ReturnUrl))
+            return false;
+
+        Status = MerchantStatus.Active;
+        IsActive = true;
+        UpdatedTime = DateTime.UtcNow;
+        return true;
     }
 
     /// <summary>Profil bilgilerini günceller (aynı format doğrulaması).</summary>
@@ -155,6 +272,9 @@ public class Merchant : AggregateRoot
         Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
         (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
+    private static bool IsHttpsUrl(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
+
     private static MessageItem Required(string property) => new()
     {
         Property = property,
@@ -176,7 +296,10 @@ public enum MerchantStatus
 {
     Active = 1,
     Passive = 2,
-    Suspended = 3
+    Suspended = 3,
+
+    /// <summary>013: onboarding'de merchant onayla doğar; sınırlı yetki (charge hariç), key teslim edildi.</summary>
+    Provisioning = 4
 }
 
 /// <summary>
