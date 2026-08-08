@@ -27,7 +27,13 @@ public static class SubmitRegistration
     [Transactional]
     public class SubmitRegistrationCommandHandler
     {
-        private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(10) };
+        // Dev: aday site (ECommerce) https self-signed dev cert kullanır → sertifikayı doğrulama
+        // (yalnız descriptor/challenge okuması; prod'da gerçek cert). Timeout kısa.
+        private static readonly HttpClient Http = new(new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        })
+        { Timeout = TimeSpan.FromSeconds(10) };
 
         public async Task<FeatureObjectResultModel<SubmitRegistrationResponse>> Handle(
             SubmitRegistrationCommand cmd,

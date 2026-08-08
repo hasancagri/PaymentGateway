@@ -98,6 +98,10 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
+// 013: IMailSender (Common) — Scrutor FromApplicationDependencies bu marker'ı Common assembly'sinden
+// güvenilir keşfetmiyor; açıkça kaydet (deterministik mailler: aktivasyon + admin bildirim).
+builder.Services.AddSingleton<Common.Mail.IMailSender, Common.Mail.MailMcpClient>();
+
 // 013: MCP server — Merchant.Agent'a başvuru tool'larını sunar ([McpServerToolType]). Stateless HTTP.
 builder.Services
     .AddMcpServer()
