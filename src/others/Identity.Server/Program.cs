@@ -63,8 +63,10 @@ builder.Services.AddHostedService<SeedHostedService>();
 
 // 013: aktivasyon Razor sayfası + Merchant.Api redeem istemcisi (service discovery: merchant-api).
 builder.Services.AddRazorPages();
+// Merchant.Api'ye doğrudan (sabit port 5202) — service discovery DNS'ine bağlı kalma (aktivasyon
+// sayfası tek senkron redeem çağrısı). Config'ten override edilebilir.
 builder.Services.AddHttpClient<Identity.Server.Activation.MerchantActivationClient>(client =>
-    client.BaseAddress = new Uri("http://merchant-api"));
+    client.BaseAddress = new Uri(builder.Configuration["MerchantApi:BaseUrl"] ?? "http://localhost:5202"));
 
 // 012: merchant.lifecycle fanout tüketimi — Merchant BC olayları OpenIddict istemci kaydına
 // izdüşürülür (MerchantClientEventHandler). Message store YOK (D1): durable inbox kullanılamaz;
