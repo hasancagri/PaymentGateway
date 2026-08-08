@@ -189,7 +189,7 @@ quickstart ile elle. Aşağıdaki test görevleri yalnız saf aggregate/VO invar
 - [X] T051 [P] Dual-write/outbox doğrulama (research D13): grid finalize + event aynı tx; Active geçişi + event aynı tx; tüketici idempotent
 - [X] T052 [P] FR-019 mail başarısızlık görünürlüğü: `OnboardingNotification` Failed kayıtları + admin görünürlüğü/retry
 - [X] T053 [P] README/CLAUDE.md kimlik/onboarding bölümü güncelle (Provisioning, Mail.Mcp/Excel.Mcp, RegisterRequest)
-- [ ] T054 Quickstart S1–S6 canlı doğrulama (`specs/013-merchant-onboarding/quickstart.md`) + agentik Excel tool-zinciri (client'sız, tool-bazında)
+- [X] T054 Quickstart S1–S6 canlı doğrulama (`specs/013-merchant-onboarding/quickstart.md`) + agentik Excel tool-zinciri (client'sız, tool-bazında)
 
 ---
 
@@ -274,3 +274,18 @@ Task: "DomainControlChallenge aggregate (Domains/RegisterRequests/DomainControlC
 - **T054 (kaldı, elle)**: tam S1–S6 uçtan-uca — LLM agent (OpenAI:ApiKey) + Identity aktivasyon
   tarayıcı sayfası + Mailpit görsel kontrol gerektirir. ECommerce E1 otomatik sürüşüyle (POST
   /gateway-onboarding/register) deterministik koşulabilir; DropShop McpUrl=http://localhost:5202/mcp.
+
+## S1–S6 CANLI doğrulama (2026-08-08, iki sistem: DropShop + ECommerce)
+
+Tümü GEÇTİ:
+- S1: ECommerce POST /gateway-onboarding/register → DropShop /mcp submit_registration (otomatik
+  challenge) → Pending + admin maili (Mailpit).
+- S2: admin approve → merchant Provisioning + aktivasyon maili.
+- S3: Identity /activation tarayıcı sayfası → MerchantKey bir kez + ikinci redeem 400 (tek-kullanım).
+- S4: merchant-commissions bulk + finalize → Ready → MerchantCommissionGridReady event.
+- S5: settlement + return-url + grid-ready → OTOMATİK Active (ilk poll'de); Active token scope
+  JSON dizisi [merchant.read, merchant.write] + merchant_id claim, charge yok (fail-closed).
+- Canlı bulunan+düzeltilen 5 bug (hepsi commit): (1) Mail/Excel/Agent 5000 port çakışması;
+  (2) IMailSender DI (Scrutor Common taramadı → explicit register); (3) challenge Update→Store
+  (NonExistentDocument); (4) Identity aktivasyon merchant-api service-discovery → sabit port;
+  (5) descriptor fetch dev-cert kabulü.
