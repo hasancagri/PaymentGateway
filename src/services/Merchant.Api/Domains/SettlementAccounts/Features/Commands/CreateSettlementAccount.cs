@@ -66,7 +66,7 @@ public static class CreateSettlementAccount
             if (merchant is not null)
             {
                 merchant.MarkSettlementAccountPresent();
-                var activated = merchant.TryActivate();
+                var activated = merchant.TryActivate().IsSuccess;
                 session.Update(merchant);
 
                 if (activated)

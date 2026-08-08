@@ -58,7 +58,7 @@ public class MerchantOnboardingTests
         m.MarkCommissionGridReady();
         // ReturnUrl eksik
 
-        Assert.False(m.TryActivate());
+        Assert.False(m.TryActivate().IsSuccess);
         Assert.Equal(MerchantStatus.Provisioning, m.Status);
     }
 
@@ -72,7 +72,7 @@ public class MerchantOnboardingTests
 
         var activated = m.TryActivate();
 
-        Assert.True(activated);
+        Assert.True(activated.IsSuccess);
         Assert.Equal(MerchantStatus.Active, m.Status);
         Assert.True(m.IsActive);
     }
@@ -86,7 +86,7 @@ public class MerchantOnboardingTests
         m.SetReturnUrl("https://acme.com/return");
         m.TryActivate();
 
-        Assert.False(m.TryActivate());
+        Assert.False(m.TryActivate().IsSuccess);
         Assert.Equal(MerchantStatus.Active, m.Status);
     }
 

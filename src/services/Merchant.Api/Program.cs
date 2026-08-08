@@ -1,10 +1,3 @@
-using Common.Exceptions;
-using Common.Extensions;
-using Merchant.Api.ReadModels;
-using Shared;
-using Shared.Utils.Constants;
-using Wolverine.RabbitMQ;
-
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddOpenApiDocumentation();
@@ -25,10 +18,10 @@ builder.Services.AddMarten(opts =>
         opts.Schema.For<Merchant.Api.Domains.SettlementAccounts.SettlementAccount>();
 
         // 013 onboarding document'ları.
-        opts.Schema.For<Merchant.Api.Domains.RegisterRequests.RegisterRequest>();
-        opts.Schema.For<Merchant.Api.Domains.RegisterRequests.DomainControlChallenge>();
-        opts.Schema.For<Merchant.Api.Domains.RegisterRequests.OnboardingNotification>();
-        opts.Schema.For<Merchant.Api.Domains.Merchants.ActivationTicket>();
+        opts.Schema.For<RegisterRequest>();
+        opts.Schema.For<DomainControlChallenge>();
+        opts.Schema.For<OnboardingNotification>();
+        opts.Schema.For<ActivationTicket>();
 
         // Reference.Api katalog verisinin yerel read-model izdüşümü (id = Code). Event ile beslenir.
         opts.Schema.For<ReferenceCountry>().Identity(x => x.Code);

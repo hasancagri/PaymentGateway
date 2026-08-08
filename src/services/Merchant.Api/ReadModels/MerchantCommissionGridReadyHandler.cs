@@ -30,7 +30,7 @@ public static class MerchantCommissionGridReadyHandler
         }
 
         merchant.MarkCommissionGridReady();
-        var activated = merchant.TryActivate();
+        var activated = merchant.TryActivate().IsSuccess;
         session.Update(merchant);
 
         if (activated)

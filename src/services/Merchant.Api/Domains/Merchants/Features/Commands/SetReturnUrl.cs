@@ -34,7 +34,7 @@ public static class SetReturnUrl
             if (!set.IsSuccess)
                 return FeatureObjectResultModel<SetReturnUrlResponse>.Error(set.Messages);
 
-            var activated = merchant.TryActivate();
+            var activated = merchant.TryActivate().IsSuccess;
             session.Update(merchant);
 
             if (activated)
