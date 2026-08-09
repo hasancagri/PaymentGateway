@@ -1,4 +1,3 @@
-using Common.Dependencies;
 
 namespace Commission.Api.Dependencies;
 

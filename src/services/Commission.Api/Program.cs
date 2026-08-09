@@ -1,12 +1,3 @@
-using Common.Exceptions;
-using Common.Extensions;
-using Commission.Api.Domains.BankCommissions;
-using Commission.Api.Domains.Banks;
-using Commission.Api.Domains.MerchantCommissions;
-using Commission.Api.ReadModels;
-using Shared;
-using Shared.Utils.Constants;
-using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();

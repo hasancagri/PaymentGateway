@@ -1,6 +1,4 @@
-using System.ComponentModel;
-using ModelContextProtocol.Server;
-using Agent = Merchant.Api.Domains.Merchants.Features.Agent;
+using Agent = Merchant.Api.Domains.Merchants.Features.Agents;
 
 namespace Merchant.Api.Domains.Merchants;
 

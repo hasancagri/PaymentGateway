@@ -1,5 +1,3 @@
-using Common.Mail;
-using Merchant.Api.Domains.Merchants;
 using MerchantAggregate = Merchant.Api.Domains.Merchants.Merchant;
 
 namespace Merchant.Api.Domains.RegisterRequests.Features.Commands;

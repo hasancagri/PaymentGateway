@@ -1,7 +1,5 @@
-using Payment.Api.Domains.BinCards.Features.Queries;
-using Payment.Api.Domains.PosAccounts;
 
-namespace Payment.Api.Domains.PaymentSessions.Features.Agent;
+namespace Payment.Api.Domains.PaymentSessions.Features.Agents;
 
 /// <summary>
 /// BIN-bazlı taksit sorgusu — agent'a açık, <b>read-only</b> slice. Token/PAN/CVV YOK; yalnız

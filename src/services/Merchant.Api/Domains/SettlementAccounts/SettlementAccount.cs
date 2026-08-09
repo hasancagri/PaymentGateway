@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 
 namespace Merchant.Api.Domains.SettlementAccounts;
 
@@ -40,6 +39,7 @@ public class SettlementAccount : AggregateRoot
     /// Saf format doğrulaması + IBAN normalize. Merchant/BankCatalog/mükerrer IBAN kontrolü
     /// BURADA DEĞİL — handler'da.
     /// </summary>
+    /// <remarks>Handler: CreateSettlementAccountCommandHandler</remarks>
     public static ResultDomain<SettlementAccount> Create(
         Guid merchantId,
         string bankCode,
@@ -66,6 +66,7 @@ public class SettlementAccount : AggregateRoot
     }
 
     /// <summary>Hesap bilgilerini günceller (Create ile aynı saf doğrulama). MerchantId değişmez.</summary>
+    /// <remarks>Handler: UpdateSettlementAccountCommandHandler</remarks>
     public ResultDomain UpdateDetails(
         string bankCode,
         string iban,
@@ -87,6 +88,8 @@ public class SettlementAccount : AggregateRoot
         return ResultDomain.Ok();
     }
 
+    /// <summary>Hesabı aktif duruma alır (Status=Active, IsActive=true).</summary>
+    /// <remarks>Handler: SetSettlementAccountStatusCommandHandler</remarks>
     public void Activate()
     {
         Status = SettlementAccountStatus.Active;
@@ -95,6 +98,7 @@ public class SettlementAccount : AggregateRoot
     }
 
     /// <summary>Pasife alır (soft — kayıt silinmez).</summary>
+    /// <remarks>Handler: SetSettlementAccountStatusCommandHandler</remarks>
     public void Deactivate()
     {
         Status = SettlementAccountStatus.Passive;

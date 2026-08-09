@@ -1,5 +1,3 @@
-using Merchant.Api.Domains.SettlementAccounts.Features.Commands;
-using Merchant.Api.Domains.SettlementAccounts.Features.Queries;
 
 namespace Merchant.Api.Domains.SettlementAccounts;
 

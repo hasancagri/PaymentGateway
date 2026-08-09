@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Common.Dependencies;
+using Common.Options;
 using Common.Utils.Constants;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -13,7 +14,12 @@ namespace Common.Mail;
 /// (StreamableHttp + <see cref="MailMcpTokenHandler"/>) lazy kurar ve app-ömrü boyunca canlı tutar.
 /// Yalnız deterministik mailler (aktivasyon + admin bildirim) buradan gider.
 /// </summary>
-public sealed class MailMcpClient(IConfiguration config, ILogger<MailMcpClient> logger)
+public sealed class MailMcpClient(
+    IConfiguration config,
+    IdentityOption identity,
+    MailAuth mailAuth,
+    MailMcp mailMcp,
+    ILogger<MailMcpClient> logger)
     : IMailSender, ISingletonDependency
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -100,12 +106,12 @@ public sealed class MailMcpClient(IConfiguration config, ILogger<MailMcpClient> 
             if (_client is not null)
                 return _client;
 
-            var baseUrl = config["services:mail-mcp:http:0"]
-                          ?? config["MailMcp:BaseUrl"]
-                          ?? "http://mail-mcp";
+            // Aspire service discovery birincil; çözülemezse POCO BaseUrl fallback.
+            var baseUrl = config["services:mail-mcp:http:0"] ?? mailMcp.BaseUrl;
             var endpoint = $"{baseUrl.TrimEnd('/')}/mcp";
 
-            var http = new HttpClient(new MailMcpTokenHandler(config) { InnerHandler = new HttpClientHandler() });
+            var http = new HttpClient(
+                new MailMcpTokenHandler(identity, mailAuth) { InnerHandler = new HttpClientHandler() });
 
             _client = await McpClient.CreateAsync(
                 new HttpClientTransport(new HttpClientTransportOptions

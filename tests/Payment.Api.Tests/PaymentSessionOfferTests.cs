@@ -1,4 +1,3 @@
-using Payment.Api.Domains.PaymentSessions;
 
 namespace Payment.Api.Tests;
 

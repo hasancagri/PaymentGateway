@@ -1,4 +1,4 @@
-namespace Payment.Api.Domains.PaymentSessions.Features.Agent;
+namespace Payment.Api.Domains.PaymentSessions.Features.Agents;
 
 /// <summary>
 /// Faz 2 (select) — agent'a açık slice. Kullanıcının seçtiği taksiti oturuma yazar; seçim yalnız

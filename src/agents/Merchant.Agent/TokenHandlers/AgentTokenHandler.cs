@@ -1,12 +1,11 @@
-using System.Net.Http.Headers;
-using System.Text.Json;
+using Merchant.Agent.Options;
 
-namespace Merchant.Agent;
+namespace Merchant.Agent.TokenHandlers;
 
 // 013: Merchant.Agent makine kimliği (Payment.Agent AgentTokenHandler deseni — D6). MCP transport'un
 // HttpClient'ına takılır; client_credentials token'ı static cache'lenir, süresine 30 sn kala yenilenir.
 // Token edinilemezse istisna yüzeye çıkar (sessiz başarı yok) — tool çağrısı anlaşılır hata döner.
-public sealed class AgentTokenHandler(IConfiguration config) : DelegatingHandler
+public sealed class AgentTokenHandler(IdentityOption identity, AgentAuth agentAuth) : DelegatingHandler
 {
     private const string Scopes = "merchant.read merchant.write";
 
@@ -33,14 +32,14 @@ public sealed class AgentTokenHandler(IConfiguration config) : DelegatingHandler
             if (_token is not null && DateTimeOffset.UtcNow < _expiresAt.AddSeconds(-30))
                 return _token;
 
-            var authority = config["IdentityOption:Address"]!;
+            var authority = identity.Address;
             using var http = new HttpClient();
             using var response = await http.PostAsync($"{authority}/connect/token",
                 new FormUrlEncodedContent(new Dictionary<string, string>
                 {
                     ["grant_type"] = "client_credentials",
-                    ["client_id"] = config["AgentAuth:ClientId"]!,
-                    ["client_secret"] = config["AgentAuth:ClientSecret"]!,
+                    ["client_id"] = agentAuth.ClientId,
+                    ["client_secret"] = agentAuth.ClientSecret,
                     ["scope"] = Scopes
                 }), ct);
             response.EnsureSuccessStatusCode();

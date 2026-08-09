@@ -17,6 +17,8 @@ public class Country : AggregateRoot
     /// <summary>Ülke adı. Boş değil.</summary>
     public string Name { get; private set; } = string.Empty;
 
+    /// <summary>Kodu normalize edip (upper/trim) ve ad boş değilse yeni <see cref="Country"/> üretir; aksi halde Error.</summary>
+    /// <remarks>Handler: ReferenceSeeder</remarks>
     public static ResultDomain<Country> Create(string code, string name)
     {
         var normalized = Normalize(code);

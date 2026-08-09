@@ -1,4 +1,3 @@
-using Commission.Api.Domains.Banks;
 
 namespace Commission.Api.Domains.Banks.Features.Queries;
 

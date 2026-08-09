@@ -1,5 +1,5 @@
-using Merchant.Agent;
-using OpenAI;
+using Merchant.Agent.Options;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +7,14 @@ builder.AddServiceDefaults();
 
 // User-secrets'ı ortamdan bağımsız yükle (Aspire altında Development garanti değil; chat anahtarı buradan).
 builder.Configuration.AddUserSecrets<Program>(optional: true);
+
+// Config → strongly-typed POCO (runtime doğrudan IConfiguration okuması yasak; CLAUDE.md).
+builder.Services.AddOptions<IdentityOption>().BindConfiguration(nameof(IdentityOption))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<IdentityOption>(sp => sp.GetRequiredService<IOptions<IdentityOption>>().Value);
+builder.Services.AddOptions<AgentAuth>().BindConfiguration(nameof(AgentAuth))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<AgentAuth>(sp => sp.GetRequiredService<IOptions<AgentAuth>>().Value);
 
 // --- Chat client (LLM) — OpenAI-uyumlu (Payment.Agent deseni).
 string apiKey = builder.Configuration["OpenAI:ApiKey"]
@@ -31,7 +39,9 @@ var mcpEndpoint = $"{merchantApiBase.TrimEnd('/')}/mcp";
 
 // /mcp merchant.write ister — MCP trafiği AgentTokenHandler'lı HttpClient'la Bearer taşır.
 // Client tool çağrıları boyunca yaşamalı → dispose edilmez (McpToolProvider.KeepAlive ile aynı ömür).
-var mcpHttpClient = new HttpClient(new AgentTokenHandler(builder.Configuration)
+var identityOption = builder.Configuration.GetSection(nameof(IdentityOption)).Get<IdentityOption>()!;
+var agentAuth = builder.Configuration.GetSection(nameof(AgentAuth)).Get<AgentAuth>()!;
+var mcpHttpClient = new HttpClient(new AgentTokenHandler(identityOption, agentAuth)
 {
     InnerHandler = new HttpClientHandler()
 });

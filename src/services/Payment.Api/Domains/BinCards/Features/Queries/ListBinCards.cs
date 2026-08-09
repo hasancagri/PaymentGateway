@@ -1,4 +1,3 @@
-using Marten.Pagination;
 
 namespace Payment.Api.Domains.BinCards.Features.Queries;
 

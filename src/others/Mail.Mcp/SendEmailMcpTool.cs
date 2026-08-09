@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net;
 using System.Net.Mail;
+using Mail.Mcp.Options;
 using ModelContextProtocol.Server;
 
 namespace Mail.Mcp;
@@ -31,16 +32,16 @@ public static class SendEmailMcpTool
         [Description("Konu")] string subject,
         [Description("Gövde (düz metin veya HTML)")] string body,
         [Description("Gövde HTML mi?")] bool isHtml,
-        IConfiguration config,
+        Mail.Mcp.Options.Mail mail,
         CancellationToken ct,
         [Description("Opsiyonel ekler (fileName + base64 içerik + contentType)")]
         EmailAttachment[]? attachments = null)
     {
-        var host = config["Mail:Smtp:Host"] ?? "mailpit";
-        var port = int.TryParse(config["Mail:Smtp:Port"], out var p) ? p : 1025;
-        var from = config["Mail:Smtp:From"] ?? "onboarding@dropshop.local";
-        var user = config["Mail:Smtp:User"];
-        var password = config["Mail:Smtp:Password"];
+        var host = mail.Smtp.Host;
+        var port = mail.Smtp.Port;
+        var from = mail.Smtp.From;
+        var user = mail.Smtp.User;
+        var password = mail.Smtp.Password;
 
         try
         {
@@ -61,7 +62,7 @@ public static class SendEmailMcpTool
             if (!string.IsNullOrWhiteSpace(user))
             {
                 smtp.Credentials = new NetworkCredential(user, password);
-                smtp.EnableSsl = bool.TryParse(config["Mail:Smtp:EnableSsl"], out var ssl) && ssl;
+                smtp.EnableSsl = mail.Smtp.EnableSsl;
             }
 
             await smtp.SendMailAsync(message, ct);

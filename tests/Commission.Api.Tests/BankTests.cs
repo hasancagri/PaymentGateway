@@ -1,5 +1,3 @@
-using Commission.Api.Domains.Banks;
-using Xunit;
 
 namespace Commission.Api.Tests;
 

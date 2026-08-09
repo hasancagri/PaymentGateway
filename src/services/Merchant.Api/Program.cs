@@ -92,6 +92,20 @@ builder.Services.AddAllDependencies();
 // güvenilir keşfetmiyor; açıkça kaydet (deterministik mailler: aktivasyon + admin bildirim).
 builder.Services.AddSingleton<Common.Mail.IMailSender, Common.Mail.MailMcpClient>();
 
+// Mail akışı POCO'ları (runtime doğrudan IConfiguration okuması yasak; CLAUDE.md).
+builder.Services.AddOptions<Common.Options.IdentityOption>().BindConfiguration(nameof(Common.Options.IdentityOption))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<Common.Options.IdentityOption>(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Common.Options.IdentityOption>>().Value);
+builder.Services.AddOptions<Common.Options.MailAuth>().BindConfiguration(nameof(Common.Options.MailAuth))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<Common.Options.MailAuth>(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Common.Options.MailAuth>>().Value);
+builder.Services.AddOptions<Common.Options.MailMcp>().BindConfiguration(nameof(Common.Options.MailMcp))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<Common.Options.MailMcp>(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Common.Options.MailMcp>>().Value);
+
 // 013: MCP server — Merchant.Agent'a başvuru tool'larını sunar ([McpServerToolType]). Stateless HTTP.
 builder.Services
     .AddMcpServer()

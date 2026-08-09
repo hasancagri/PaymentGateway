@@ -1,6 +1,8 @@
 using System.Globalization;
 using Admin.Clients;
+using Admin.Options;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +10,14 @@ builder.AddServiceDefaults();
 
 builder.Services.AddRazorPages();
 builder.Services.AddMvc(opt => opt.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
+
+// Config → strongly-typed POCO (runtime doğrudan IConfiguration okuması yasak; CLAUDE.md).
+builder.Services.AddOptions<IdentityOption>().BindConfiguration(nameof(IdentityOption))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<IdentityOption>(sp => sp.GetRequiredService<IOptions<IdentityOption>>().Value);
+builder.Services.AddOptions<AdminAuth>().BindConfiguration(nameof(AdminAuth))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<AdminAuth>(sp => sp.GetRequiredService<IOptions<AdminAuth>>().Value);
 
 // Typed HttpClient'lar — BaseAddress Aspire service discovery adı (WithReference ile enjekte edilen
 // services__<ad>__http__0). 011: her istek AdminTokenHandler ile Bearer taşır (client_credentials).

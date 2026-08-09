@@ -1,5 +1,3 @@
-using Payment.Api.Domains.BinCards.Features.Commands;
-using Payment.Api.Domains.BinCards.Features.Queries;
 
 namespace Payment.Api.Domains.BinCards;
 

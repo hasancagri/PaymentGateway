@@ -1,12 +1,13 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Admin.Options;
 
 namespace Admin.Clients;
 
 // 011: Admin BFF makine kimliği (SagaTokenHandler deseni — D7). Typed HttpClient'lara takılır;
 // client_credentials token'ı static cache'lenir, süresine 30 sn kala yenilenir. Token edinilemezse
 // istisna yüzeye çıkar (sessiz başarı yok) — ekran ApiResult hatası gösterir.
-public sealed class AdminTokenHandler(IConfiguration config) : DelegatingHandler
+public sealed class AdminTokenHandler(IdentityOption identity, AdminAuth adminAuth) : DelegatingHandler
 {
     // Admin ekranlarının tamamı: üç BC'nin read+write scope'ları (least-privilege istemci kaydıyla birebir).
     private const string Scopes =
@@ -35,14 +36,14 @@ public sealed class AdminTokenHandler(IConfiguration config) : DelegatingHandler
             if (_token is not null && DateTimeOffset.UtcNow < _expiresAt.AddSeconds(-30))
                 return _token;
 
-            var authority = config["IdentityOption:Address"]!;
+            var authority = identity.Address;
             using var http = new HttpClient();
             using var response = await http.PostAsync($"{authority}/connect/token",
                 new FormUrlEncodedContent(new Dictionary<string, string>
                 {
                     ["grant_type"] = "client_credentials",
-                    ["client_id"] = config["AdminAuth:ClientId"]!,
-                    ["client_secret"] = config["AdminAuth:ClientSecret"]!,
+                    ["client_id"] = adminAuth.ClientId,
+                    ["client_secret"] = adminAuth.ClientSecret,
                     ["scope"] = Scopes
                 }), ct);
             response.EnsureSuccessStatusCode();

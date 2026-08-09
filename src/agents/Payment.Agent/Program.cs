@@ -1,5 +1,3 @@
-using OpenAI;
-using Payment.Agent;
 
 var builder = WebApplication.CreateBuilder(args);
 

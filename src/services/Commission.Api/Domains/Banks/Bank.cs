@@ -24,6 +24,7 @@ public class Bank : AggregateRoot
     public string Name { get; private set; } = string.Empty;
 
     /// <summary>Desteklenen taksit sayıları (boş değil; her biri 1..MaxInstallment; distinct + artan).</summary>
+    /// <remarks>Handler: GetBanksQueryHandler, GetBankQueryHandler, BulkUpsertBankCommissionsCommandHandler</remarks>
     public IReadOnlyList<int> SupportedInstallments => _supportedInstallments;
 
     /// <summary>
@@ -31,6 +32,7 @@ public class Bank : AggregateRoot
     /// parametreyle geçilir (yerel <c>BankCatalog</c> kaldırıldı — tek kaynak Reference.Api).
     /// Boş ad = katalogda yok anlamına gelir → reddedilir.
     /// </summary>
+    /// <remarks>Handler: CreateBankCommandHandler</remarks>
     public static ResultDomain<Bank> Create(string code, string name, IEnumerable<int> installments)
     {
         if (!IsValidCode(code))
@@ -54,6 +56,7 @@ public class Bank : AggregateRoot
     }
 
     /// <summary>Aktiflik ve taksit listesini günceller. Code ve Name değişmez (katalogdan).</summary>
+    /// <remarks>Handler: UpdateBankCommandHandler</remarks>
     public ResultDomain Update(bool isActive, IEnumerable<int> installments)
     {
         var normalized = NormalizeInstallments(installments, out var installmentError);
@@ -68,6 +71,8 @@ public class Bank : AggregateRoot
         return ResultDomain.Ok();
     }
 
+    /// <summary>Bankayı soft-delete işaretler (IsDeleted + DeletedTime); fiziksel silmez.</summary>
+    /// <remarks>Handler: DeleteBankCommandHandler</remarks>
     public void SoftDelete()
     {
         IsDeleted = true;

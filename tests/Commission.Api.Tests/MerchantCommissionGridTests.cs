@@ -1,6 +1,3 @@
-using Commission.Api.Domains.MerchantCommissions;
-using Commission.Api.Domains.MerchantCommissions.Features.Queries;
-using Xunit;
 
 namespace Commission.Api.Tests;
 

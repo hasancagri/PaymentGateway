@@ -19,6 +19,8 @@ public class City : AggregateRoot
     /// <summary>Ait olduğu ülke kodu (normalize upper). Boş değil.</summary>
     public string CountryCode { get; private set; } = string.Empty;
 
+    /// <summary>Kod/ad/ülke kodunu doğrulayıp trim + ülke kodunu upper'a çevirerek yeni City üretir; boş alanda Error.</summary>
+    /// <remarks>Handler: ReferenceSeeder</remarks>
     public static ResultDomain<City> Create(string code, string name, string countryCode)
     {
         if (string.IsNullOrWhiteSpace(code))

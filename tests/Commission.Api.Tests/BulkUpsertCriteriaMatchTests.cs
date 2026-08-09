@@ -1,5 +1,3 @@
-using Commission.Api.Domains.SharedKernel;
-using Xunit;
 
 namespace Commission.Api.Tests;
 

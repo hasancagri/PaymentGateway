@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 
 namespace Merchant.Api.Domains.Merchants;
 
@@ -76,6 +75,7 @@ public class Merchant : AggregateRoot
     /// Saf format doğrulaması. Varlık (lookup) doğrulaması handler'da. <paramref name="merchantKey"/>
     /// handler tarafından üretilip (benzersizlik denetlenmiş) geçirilir; burada yalnız boş-değil kontrolü.
     /// </summary>
+    /// <remarks>Handler: CreateMerchantCommandHandler</remarks>
     public static ResultDomain<Merchant> Create(
         string merchantKey,
         string name,
@@ -112,6 +112,7 @@ public class Merchant : AggregateRoot
     /// Yalnız descriptor'dan gelen alanlar doğrulanır (ad + e-posta biçimi + HTTPS webhook); profil
     /// (telefon/ülke/şehir/MCC) merchant kendi token'ıyla sonradan tamamlar. Charge yetkisi yok.
     /// </summary>
+    /// <remarks>Handler: ApproveRegisterRequestCommandHandler</remarks>
     public static ResultDomain<Merchant> CreateForOnboarding(
         string merchantKey,
         string name,
@@ -189,6 +190,7 @@ public class Merchant : AggregateRoot
     }
 
     /// <summary>Ödeme dönüş adresi (HTTPS zorunlu). Active koşulu #3.</summary>
+    /// <remarks>Handler: SetReturnUrlCommandHandler</remarks>
     public ResultDomain SetReturnUrl(string returnUrl)
     {
         if (!IsHttpsUrl(returnUrl))
@@ -200,6 +202,7 @@ public class Merchant : AggregateRoot
     }
 
     /// <summary>Active koşulu #1 (settlement hesabı eklendi). İdempotent.</summary>
+    /// <remarks>Handler: CreateSettlementAccountCommandHandler</remarks>
     public void MarkSettlementAccountPresent()
     {
         HasSettlementAccount = true;
@@ -207,16 +210,10 @@ public class Merchant : AggregateRoot
     }
 
     /// <summary>Active koşulu #2 (komisyon grid hazır). İdempotent; tek-yön (ready kalır).</summary>
+    /// <remarks>Handler: MerchantCommissionGridReadyHandler</remarks>
     public void MarkCommissionGridReady()
     {
         CommissionGridReady = true;
-        UpdatedTime = DateTime.UtcNow;
-    }
-
-    /// <summary>Opak externalRef günceller (FR-018).</summary>
-    public void SetExternalRef(string? externalRef)
-    {
-        ExternalRef = string.IsNullOrWhiteSpace(externalRef) ? null : externalRef.Trim();
         UpdatedTime = DateTime.UtcNow;
     }
 
@@ -226,6 +223,7 @@ public class Merchant : AggregateRoot
     /// (geçiş yok = beklenen no-op, HTTP hatası değil). Geçiş gerçekleştiyse <c>Ok</c> döner
     /// (handler <c>IsSuccess</c> ile <c>MerchantStatusChanged(Active)</c> yayınlar).
     /// </summary>
+    /// <remarks>Handler: MerchantCommissionGridReadyHandler, CreateSettlementAccountCommandHandler, SetReturnUrlCommandHandler</remarks>
     public ResultDomain TryActivate()
     {
         if (Status != MerchantStatus.Provisioning)
@@ -240,31 +238,8 @@ public class Merchant : AggregateRoot
         return ResultDomain.Ok();
     }
 
-    /// <summary>Profil bilgilerini günceller (aynı format doğrulaması).</summary>
-    public ResultDomain UpdateProfile(
-        string name,
-        string email,
-        string phone,
-        string countryCode,
-        string cityCode,
-        string mcc,
-        string webhookUrl)
-    {
-        var validation = Validate(name, email, phone, countryCode, cityCode, mcc, webhookUrl);
-        if (validation is not null)
-            return ResultDomain.Error(validation);
-
-        Name = name;
-        Email = email;
-        Phone = phone;
-        CountryCode = countryCode;
-        CityCode = cityCode;
-        Mcc = mcc;
-        WebhookUrl = webhookUrl;
-        UpdatedTime = DateTime.UtcNow;
-        return ResultDomain.Ok();
-    }
-
+    /// <summary>Statüyü Active yapar, IsActive=true.</summary>
+    /// <remarks>Handler: SetMerchantStatusCommandHandler</remarks>
     public void Activate()
     {
         Status = MerchantStatus.Active;
@@ -272,6 +247,8 @@ public class Merchant : AggregateRoot
         UpdatedTime = DateTime.UtcNow;
     }
 
+    /// <summary>Statüyü Passive yapar, IsActive=false.</summary>
+    /// <remarks>Handler: SetMerchantStatusCommandHandler</remarks>
     public void Deactivate()
     {
         Status = MerchantStatus.Passive;
@@ -279,6 +256,8 @@ public class Merchant : AggregateRoot
         UpdatedTime = DateTime.UtcNow;
     }
 
+    /// <summary>Statüyü Suspended yapar, IsActive=false.</summary>
+    /// <remarks>Handler: SetMerchantStatusCommandHandler</remarks>
     public void Suspend()
     {
         Status = MerchantStatus.Suspended;
@@ -363,5 +342,7 @@ public enum MerchantStatus
 /// </summary>
 public static class MerchantKeyGenerator
 {
+    /// <summary>Aday merchantKey üretir (mk_ + 32 hane hex); benzersizlik handler döngüsünde.</summary>
+    /// <remarks>Handler: CreateMerchantCommandHandler, ApproveRegisterRequestCommandHandler</remarks>
     public static string Generate() => "mk_" + Guid.NewGuid().ToString("N");
 }

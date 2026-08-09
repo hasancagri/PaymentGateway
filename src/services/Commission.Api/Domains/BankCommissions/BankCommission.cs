@@ -19,6 +19,8 @@ public class BankCommission : AggregateRoot
     /// <summary>Yüzde oran (örn. 1.75); >= 0.</summary>
     public decimal Rate { get; private set; }
 
+    /// <summary>BankCommission oluşturur; bankCode (4 hane), criteria zorunlu, rate >= 0 doğrular.</summary>
+    /// <remarks>Handler: CreateBankCommissionCommandHandler, BulkUpsertBankCommissionsCommandHandler</remarks>
     public static ResultDomain<BankCommission> Create(string bankCode, Criteria criteria, decimal rate)
     {
         if (string.IsNullOrWhiteSpace(bankCode) || bankCode.Length != 4)
@@ -56,6 +58,8 @@ public class BankCommission : AggregateRoot
         });
     }
 
+    /// <summary>Oranı günceller; rate >= 0 doğrular, UpdatedTime'ı yeniler.</summary>
+    /// <remarks>Handler: BulkUpsertBankCommissionsCommandHandler</remarks>
     public ResultDomain UpdateRate(decimal rate)
     {
         if (rate < 0)

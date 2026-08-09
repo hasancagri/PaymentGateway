@@ -1,4 +1,3 @@
-using Merchant.Api.ReadModels;
 
 namespace Merchant.Api.Domains.Merchants.Features.Queries;
 

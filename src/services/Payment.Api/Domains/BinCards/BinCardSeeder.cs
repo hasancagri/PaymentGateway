@@ -1,4 +1,3 @@
-using Marten.Schema;
 
 namespace Payment.Api.Domains.BinCards;
 

@@ -1,5 +1,3 @@
-using Commission.Api.Domains.MerchantCommissions.Features.Commands;
-using Commission.Api.Domains.MerchantCommissions.Features.Queries;
 
 namespace Commission.Api.Domains.MerchantCommissions;
 

@@ -1,7 +1,5 @@
-using System.Text.Json;
-using Common.Mail;
 
-namespace Merchant.Api.Domains.RegisterRequests.Features.Agent;
+namespace Merchant.Api.Domains.RegisterRequests.Features.Agents;
 
 /// <summary>
 /// US1 — merchant adayı başvurusu. Aday, gateway'e sabit bir <b>descriptor linki</b> verir; gateway

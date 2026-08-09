@@ -16,6 +16,8 @@ public class Bank : AggregateRoot
     /// <summary>Banka adı. Boş değil.</summary>
     public string Name { get; private set; } = string.Empty;
 
+    /// <summary>Kod (4 hane) + ad doğrulayıp yeni Bank üretir; geçersizse Error döner.</summary>
+    /// <remarks>Handler: ReferenceSeeder</remarks>
     public static ResultDomain<Bank> Create(string code, string name)
     {
         if (!IsValidCode(code))

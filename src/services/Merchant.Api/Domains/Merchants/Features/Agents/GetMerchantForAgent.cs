@@ -1,6 +1,5 @@
-using Merchant.Api.ReadModels;
 
-namespace Merchant.Api.Domains.Merchants.Features.Agent;
+namespace Merchant.Api.Domains.Merchants.Features.Agents;
 
 /// <summary>
 /// US4 (agent yüzeyi) — merchant kimlik/iletişim/statü bilgisini agent'a açar. Agent slice'ları

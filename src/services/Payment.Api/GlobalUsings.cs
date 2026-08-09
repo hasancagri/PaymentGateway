@@ -19,3 +19,18 @@ global using Weasel.Core;
 global using Wolverine;
 global using Wolverine.Attributes;
 global using Wolverine.Marten;
+// --- hoisted (sade using'ler dosyalardan taşındı) ---
+global using Common.Dependencies;
+global using Common.Exceptions;
+global using Common.Extensions;
+global using Marten.Pagination;
+global using Marten.Schema;
+global using ModelContextProtocol.Server;
+global using Payment.Api.CardVault;
+global using Payment.Api.Domains.BinCards.Features.Commands;
+global using Payment.Api.Domains.BinCards.Features.Queries;
+global using Payment.Api.Domains.PosAccounts.Features.Queries;
+global using Shared.Utils.Constants;
+global using Shared;
+global using System.ComponentModel;
+global using Wolverine.RabbitMQ;

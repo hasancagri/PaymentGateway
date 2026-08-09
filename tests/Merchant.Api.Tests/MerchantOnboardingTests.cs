@@ -1,6 +1,4 @@
-using Merchant.Api.Domains.Merchants;
 using MerchantAggregate = Merchant.Api.Domains.Merchants.Merchant;
-using Xunit;
 
 namespace Merchant.Api.Tests;
 
@@ -89,18 +87,6 @@ public class MerchantOnboardingTests
 
         Assert.False(m.TryActivate().IsSuccess);
         Assert.Equal(MerchantStatus.Active, m.Status);
-    }
-
-    [Fact]
-    public void ExternalRef_round_trip()
-    {
-        var m = Onboard();
-
-        m.SetExternalRef("  order-42 ");
-        Assert.Equal("order-42", m.ExternalRef);
-
-        m.SetExternalRef(null);
-        Assert.Null(m.ExternalRef);
     }
 
     [Fact]
