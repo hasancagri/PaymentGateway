@@ -24,6 +24,12 @@ Bu feature **davranışı değiştirmeden** onboarding sürecini iki aggregate'e
 Silinen üç aggregate'in davranışı yok olmaz; sahiplerine (RegisterRequest / Merchant) taşınır
 ya da (OnboardingNotification) hafif loglamaya iner.
 
+## Clarifications
+
+### Session 2026-08-09
+
+- Q: Yeni `AwaitingDomainControl` ara talebi dışarı açılsın mı, yoksa dış sözleşme eskisi gibi mi kalsın? → A: Dışarı açılır ama **metin üzerinden, on-demand** (Option B, text-first). ECommerce belirsizlikte bırakılmaz: `submit_registration` yanıtı artık `RequestId` döner; ECommerce bunu "benim sürecim" olarak tutar ve istediğinde "sürecim ne oldu?" diye `RequestId` (veya domain) ile `registration_status` sorabilir. Yanıttaki `Message` yeni durumu ve sıradaki adımı insan-okur Türkçe metinle bildirir. ECommerce'e SÜREKLİ poll veya yapısal durum-makinesi GETİRİLMEZ (talep-anında metin sorgusu yeter). Değişiklik eklemelidir (mevcut alan/durumlar kaldırılmaz), kırıcı değildir.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Challenge RegisterRequest'e gömülür (Priority: P1)
@@ -45,7 +51,10 @@ oluşur, token+beklenen değer taşır. Beklenen değeri yayınlayıp tekrar ba�
 
 1. **Given** hiçbir aktif talep yok, **When** aday geçerli bir başvuru gönderir ve beklenen
    değeri henüz yayınlamamıştır, **Then** `RegisterRequest` `AwaitingDomainControl` statüsünde
-   oluşur ve yanıt token + beklenen değer + yayın yolunu döner (challenge yeniden istenir).
+   oluşur ve yanıt `RequestId` + token + beklenen değer + yayın yolunu döner; `Message` durumu
+   ve sıradaki adımı Türkçe metinle bildirir. ECommerce sonradan "sürecim ne oldu?" diye
+   `RequestId` (veya domain) ile `registration_status` sorabilir; yanıt metinle döner (sürekli
+   poll / yapısal durum-makinesi zorunlu değildir).
 2. **Given** `AwaitingDomainControl` statüsünde bir talep var, **When** aday beklenen değeri
    doğru yayınlayıp başvuruyu tekrarlar, **Then** aynı talep `Pending`'e geçer (yeni talep
    açılmaz), süreç değişmeden devam eder.
@@ -149,6 +158,11 @@ loglanır, sistemde `OnboardingNotification` dokümanı OLUŞMAZ.
   `AwaitingDomainControl` talep karar alamaz.
 - **FR-009**: Challenge bileti süresi dolduğunda, aynı talep üzerinde yeni bilet
   (token + beklenen değer + süre) üretilebilmelidir; talep yeniden oluşturulmaz.
+- **FR-009a**: `submit_registration` yanıtı, challenge henüz geçmemişken (`AwaitingDomainControl`)
+  artık `RequestId` DÖNMELİDİR; ECommerce bunu korelasyon referansı olarak tutar. `registration_status`,
+  `RequestId` (veya domain) ile sorulduğunda `AwaitingDomainControl` durumunu ve sıradaki adımı
+  `Message` metniyle RAPORLAMALIDIR. Yeni durum eklemelidir (mevcut alan/durumlar kaldırılmaz);
+  ECommerce'e sürekli poll veya yapısal durum-makinesi zorunluluğu getirilmez (on-demand metin yeter).
 
 **Merchant aktivasyon bileti**
 
@@ -163,10 +177,11 @@ loglanır, sistemde `OnboardingNotification` dokümanı OLUŞMAZ.
 **Davranış korunumu**
 
 - **FR-013**: Dış gözlemlenebilir onboarding davranışı (başvuru → challenge → pending → onay →
-  aktivasyon → aktif; ilgili MCP/HTTP uçlarının girdi/çıktı sözleşmeleri) DEĞİŞMEMELİDİR;
-  yalnız iç aggregate yapısı sadeleşir. (İstisna: yeni `AwaitingDomainControl` statüsü, daha
-  önce "talep yok + ChallengeRequired" ile temsil edilen ara durumu artık kalıcı bir talep
-  olarak yansıtır.)
+  aktivasyon → aktif; ilgili MCP/HTTP uçlarının girdi/çıktı sözleşmeleri) yalnız EKLEMELİ
+  değişebilir; mevcut alan/durumlar KALDIRILMAZ, kırıcı değişiklik YAPILMAZ. Eklemeli değişim:
+  `AwaitingDomainControl` statüsü artık kalıcı bir talep olarak yansır (önce "talep yok +
+  ChallengeRequired" ile temsil ediliyordu) ve FR-009a uyarınca `RequestId` + metin durum ile
+  dışarı açılır. Bunun dışında dış sözleşme DEĞİŞMEZ.
 - **FR-014**: `Merchant.TryActivate()` üç-koşul kapısı (settlement + komisyon grid + ReturnUrl)
   ve komisyon-grid fanout tüketimi DEĞİŞMEDEN çalışmalıdır.
 - **FR-015**: Kaldırılan aggregate'lere ait tüm dosyalar (aggregate kökü, Features slice'ları,
