@@ -1,5 +1,3 @@
-using Payment.Api.Domains.PaymentSessions.Features.Agent;
-using Payment.Api.Domains.PosAccounts;
 
 namespace Payment.Api.Tests;
 

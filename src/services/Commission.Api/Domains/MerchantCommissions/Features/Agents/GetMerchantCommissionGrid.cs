@@ -1,6 +1,5 @@
-using Commission.Api.Domains.BankCommissions;
 
-namespace Commission.Api.Domains.MerchantCommissions.Features.Agent;
+namespace Commission.Api.Domains.MerchantCommissions.Features.Agents;
 
 /// <summary>
 /// US4 — komisyon Excel orkestrasyonu (D14) grid kaynağı. Ready grid'i LLM'in Excel'e çevirebileceği

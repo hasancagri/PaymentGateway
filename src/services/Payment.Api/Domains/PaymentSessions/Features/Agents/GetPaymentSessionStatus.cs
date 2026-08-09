@@ -1,4 +1,4 @@
-namespace Payment.Api.Domains.PaymentSessions.Features.Agent;
+namespace Payment.Api.Domains.PaymentSessions.Features.Agents;
 
 /// <summary>
 /// Story 3 (status) — agent'a açık slice. Oturumun güncel fazını döner (quote verildi / taksit

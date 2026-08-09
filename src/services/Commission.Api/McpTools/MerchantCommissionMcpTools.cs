@@ -1,6 +1,4 @@
-using System.ComponentModel;
-using ModelContextProtocol.Server;
-using Agent = Commission.Api.Domains.MerchantCommissions.Features.Agent;
+using Agent = Commission.Api.Domains.MerchantCommissions.Features.Agents;
 
 namespace Commission.Api.McpTools;
 

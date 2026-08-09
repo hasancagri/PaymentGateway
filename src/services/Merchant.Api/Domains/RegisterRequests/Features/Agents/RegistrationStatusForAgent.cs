@@ -1,4 +1,4 @@
-namespace Merchant.Api.Domains.RegisterRequests.Features.Agent;
+namespace Merchant.Api.Domains.RegisterRequests.Features.Agents;
 
 /// <summary>
 /// US1 (opsiyonel) — domain için başvurunun güncel durumunu döner (Pending/Approved/Rejected).

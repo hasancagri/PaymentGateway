@@ -1,6 +1,4 @@
-using System.ComponentModel;
-using ModelContextProtocol.Server;
-using Agent = Payment.Api.Domains.PaymentSessions.Features.Agent;
+using Agent = Payment.Api.Domains.PaymentSessions.Features.Agents;
 
 namespace Payment.Api.Domains.PaymentSessions;
 

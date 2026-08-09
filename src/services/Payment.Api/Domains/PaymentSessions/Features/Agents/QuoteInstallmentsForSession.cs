@@ -1,7 +1,5 @@
-using Payment.Api.CardVault;
-using Payment.Api.Domains.PosAccounts;
 
-namespace Payment.Api.Domains.PaymentSessions.Features.Agent;
+namespace Payment.Api.Domains.PaymentSessions.Features.Agents;
 
 /// <summary>
 /// Faz 1 (quote) — agent'a açık slice. Token'ı vault'ta karta çözer, oturumu açar ve

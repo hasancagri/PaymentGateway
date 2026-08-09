@@ -155,7 +155,7 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   tool aggregate kökünde — Payment.Api `PaymentSessionMcpTools` deseni). `WithToolsFromAssembly` assembly
   tarar; konum registration'ı etkilemez. Örnek: `RegisterRequests/RegisterRequestMcpTools.cs`,
   `Merchants/MerchantMcpTools.cs`.
-- **Agent/MCP yüzeyi izole (015)**: Agent'a açık işlemler `Domains/<Aggregate>/Features/Agent/` altında,
+- **Agent/MCP yüzeyi izole (015)**: Agent'a açık işlemler `Domains/<Aggregate>/Features/Agents/` (klasör ÇOĞUL) altında,
   slice adı **`<X>ForAgent`** (ör. `SubmitRegistrationForAgent`, `RegistrationStatusForAgent`,
   `GetMerchantForAgent`). MCP tool YALNIZ bu Agent slice'ını çağırır. Agent slice `Features/Commands/` veya
   `Features/Queries/` class'larına **ASLA** gitmez — `IMessageBus` ile bile değil; kendi Query/Command +
