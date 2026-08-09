@@ -1,12 +1,14 @@
 using MerchantAggregate = Merchant.Api.Domains.Merchants.Merchant;
 
-namespace Merchant.Api.Domains.ActivationTickets.Features.Commands;
+namespace Merchant.Api.Domains.Merchants.Features.Commands;
 
 /// <summary>
-/// US3 — aktivasyon bileti kullanımı (Identity aktivasyon sayfasından senkron çağrılır). Bilet
-/// doğrulanır (tek-kullanım, TTL) → <see cref="MerchantAggregate.Provision"/> → <c>MerchantProvisioned</c>
-/// yayınlanır (outbox; Identity Provisioning demetiyle client kurar) → MerchantKey yanıtta <b>bir kez</b>
-/// döner. İkinci redeem / süre dolmuş → RET (key yeniden gösterilmez, FR-009).
+/// US3 — aktivasyon bileti kullanımı (Identity aktivasyon sayfasından senkron çağrılır). 015: bilet
+/// artık ayrı aggregate değil, <see cref="MerchantAggregate"/>'in alanıdır — merchant
+/// <c>ActivationToken</c> ile bulunur, <see cref="MerchantAggregate.RedeemActivation"/> tek-kullanım +
+/// TTL invariant'ını uygular (başarıda Provision etkisi). Başarıda <c>MerchantProvisioned</c> yayınlanır
+/// (outbox; Identity Provisioning demetiyle client kurar) → MerchantKey yanıtta <b>bir kez</b> döner.
+/// İkinci redeem / süre dolmuş → RET (key yeniden gösterilmez, FR-009).
 /// </summary>
 public static class RedeemActivation
 {
@@ -28,27 +30,19 @@ public static class RedeemActivation
             CancellationToken ct)
         {
             var token = cmd.ActivationToken?.Trim() ?? string.Empty;
-            var ticket = await session.Query<ActivationTicket>()
-                .Where(t => t.Token == token)
+
+            // 015: bileti taşıyan merchant'ı aktivasyon token'ıyla bul (eski ActivationTicket sorgusu yerine).
+            var merchant = await session.Query<MerchantAggregate>()
+                .Where(m => m.ActivationToken == token)
                 .FirstOrDefaultAsync(ct);
 
-            if (ticket is null)
-                return FeatureObjectResultModel<RedeemActivationResponse>.NotFound();
-
-            var redeem = ticket.Redeem(DateTime.UtcNow);
-            if (!redeem.IsSuccess)
-            {
-                session.Update(ticket); // süre dolmuşsa Expired'e geçişi kalıcılaştır
-                return FeatureObjectResultModel<RedeemActivationResponse>.Error(redeem.Messages);
-            }
-
-            var merchant = await session.LoadAsync<MerchantAggregate>(ticket.MerchantId, ct);
             if (merchant is null)
                 return FeatureObjectResultModel<RedeemActivationResponse>.NotFound();
 
-            merchant.Provision();
+            var redeem = merchant.RedeemActivation(DateTime.UtcNow);
+            if (!redeem.IsSuccess)
+                return FeatureObjectResultModel<RedeemActivationResponse>.Error(redeem.Messages);
 
-            session.Update(ticket);
             session.Update(merchant);
 
             // Outbox: statü değişikliği + event aynı commit. Identity Provisioning demetiyle client kurar.

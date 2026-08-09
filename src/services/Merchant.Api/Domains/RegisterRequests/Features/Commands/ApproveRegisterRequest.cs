@@ -51,15 +51,14 @@ public static class ApproveRegisterRequest
             if (!approve.IsSuccess)
                 return FeatureObjectResultModel<ApproveRegisterRequestResponse>.Error(approve.Messages);
 
+            // 3) Aktivasyon bileti merchant üstünde üretilir (015: ayrı ActivationTicket aggregate yok).
+            merchant.IssueActivation(DateTime.UtcNow);
+
             session.Store(merchant);
             session.Update(request);
 
-            // 3) Aktivasyon bileti + link.
-            var ticket = ActivationTicket.Issue(merchant.Id).Data!;
-            session.Store(ticket);
-
-            // 4) Aktivasyon maili (deterministik) → contactEmail; OnboardingNotification kaydı (FR-019).
-            await SendActivationMailAsync(session, mail, config, logger, request.ContactEmail, merchant.Id, ticket.Token, ct);
+            // 4) Aktivasyon maili (deterministik) → contactEmail; token merchant.ActivationToken'dan (FR-019).
+            await SendActivationMailAsync(session, mail, config, logger, request.ContactEmail, merchant.Id, merchant.ActivationToken, ct);
 
             return FeatureObjectResultModel<ApproveRegisterRequestResponse>.Ok(new ApproveRegisterRequestResponse
             {

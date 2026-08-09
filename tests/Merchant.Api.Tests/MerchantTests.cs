@@ -155,4 +155,69 @@ public class MerchantTests
         Assert.Equal(MerchantStatus.Active, merchant.Status);
         Assert.True(merchant.IsActive);
     }
+
+    // --- Aktivasyon bileti (015: ActivationTicketTests'ten taşındı; davranış Merchant üstünde) ---
+
+    private static MerchantAggregate OnboardingMerchant() =>
+        MerchantAggregate.CreateForOnboarding(ValidKey, ValidName, ValidEmail, ValidWebhook, "1234567890", null).Data!;
+
+    [Fact]
+    public void IssueActivation_token_ve_sure_uretir_kullanilmamis()
+    {
+        var m = OnboardingMerchant();
+
+        m.IssueActivation(DateTime.UtcNow);
+
+        Assert.False(string.IsNullOrWhiteSpace(m.ActivationToken));
+        Assert.NotNull(m.ActivationExpiresAtUtc);
+        Assert.Null(m.ActivationRedeemedAtUtc);
+    }
+
+    [Fact]
+    public void RedeemActivation_ilk_kez_Ok_Redeemed_ve_Provision()
+    {
+        var m = OnboardingMerchant();
+        m.IssueActivation(DateTime.UtcNow);
+
+        var r = m.RedeemActivation(DateTime.UtcNow);
+
+        Assert.True(r.IsSuccess);
+        Assert.NotNull(m.ActivationRedeemedAtUtc);
+        Assert.Equal(MerchantStatus.Provisioning, m.Status);
+        Assert.NotNull(m.ActivatedAtUtc);
+    }
+
+    [Fact]
+    public void RedeemActivation_ikinci_kez_RET()
+    {
+        var m = OnboardingMerchant();
+        m.IssueActivation(DateTime.UtcNow);
+        m.RedeemActivation(DateTime.UtcNow);
+
+        var second = m.RedeemActivation(DateTime.UtcNow);
+
+        Assert.False(second.IsSuccess);
+    }
+
+    [Fact]
+    public void RedeemActivation_sure_dolmus_RET()
+    {
+        var m = OnboardingMerchant();
+        m.IssueActivation(DateTime.UtcNow);
+
+        var r = m.RedeemActivation(DateTime.UtcNow.AddHours(MerchantAggregate.ActivationTtlHours + 1));
+
+        Assert.False(r.IsSuccess);
+        Assert.Null(m.ActivationRedeemedAtUtc);
+    }
+
+    [Fact]
+    public void RedeemActivation_bilet_yokken_RET()
+    {
+        var m = OnboardingMerchant();
+
+        var r = m.RedeemActivation(DateTime.UtcNow);
+
+        Assert.False(r.IsSuccess);
+    }
 }

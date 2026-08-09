@@ -58,6 +58,20 @@ public class Merchant : AggregateRoot
     /// <summary>Key teslim (aktivasyon) anı; Provisioning'e geçişte set.</summary>
     public DateTime? ActivatedAtUtc { get; private set; }
 
+    // --- Aktivasyon bileti (015: eski ActivationTicket aggregate'inden gömüldü) ---
+
+    /// <summary>Aktivasyon bileti TTL'i (saat).</summary>
+    public const int ActivationTtlHours = 24;
+
+    /// <summary>Tek-kullanımlık key-teslim token'ı (MerchantKey'den AYRI; onayda üretilir).</summary>
+    public string ActivationToken { get; private set; } = string.Empty;
+
+    /// <summary>Aktivasyon biletinin son kullanma anı (~24 saat).</summary>
+    public DateTime? ActivationExpiresAtUtc { get; private set; }
+
+    /// <summary>Redeem anı; doluysa bilet kullanılmıştır (tek-kullanım işareti).</summary>
+    public DateTime? ActivationRedeemedAtUtc { get; private set; }
+
     /// <summary>
     /// Saf format doğrulaması. Varlık (lookup) doğrulaması handler'da. <paramref name="merchantKey"/>
     /// handler tarafından üretilip (benzersizlik denetlenmiş) geçirilir; burada yalnız boş-değil kontrolü.
@@ -139,6 +153,37 @@ public class Merchant : AggregateRoot
             return; // zaten Active — geri almaz
         Status = MerchantStatus.Provisioning;
         UpdatedTime = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Aktivasyon bileti üretir (onayda, <c>ApproveRegisterRequest</c>): tek-kullanımlık teslim token'ı
+    /// + 24h TTL. Redeem anı sıfırlanır (yeni bilet kullanılmamış).
+    /// </summary>
+    public void IssueActivation(DateTime nowUtc)
+    {
+        ActivationToken = Guid.NewGuid().ToString("N");
+        ActivationExpiresAtUtc = nowUtc.AddHours(ActivationTtlHours);
+        ActivationRedeemedAtUtc = null;
+        UpdatedTime = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Aktivasyon biletini redeem eder (Identity aktivasyon sayfasından): tek-kullanım + TTL invariant'ı.
+    /// Başarıda redeem anı işaretlenir ve <see cref="Provision"/> etkisi uygulanır (statü Provisioning
+    /// sabit + <see cref="ActivatedAtUtc"/>). İkinci redeem veya süresi geçmiş bilet → RET (key yeniden
+    /// gösterilmez, FR-009). Beklenen hata Result ile taşınır.
+    /// </summary>
+    public ResultDomain RedeemActivation(DateTime nowUtc)
+    {
+        if (ActivationRedeemedAtUtc is not null)
+            return ResultDomain.Error(InvalidOperation());
+
+        if (ActivationExpiresAtUtc is null || nowUtc > ActivationExpiresAtUtc)
+            return ResultDomain.Error(InvalidOperation());
+
+        ActivationRedeemedAtUtc = nowUtc;
+        Provision();
+        return ResultDomain.Ok();
     }
 
     /// <summary>Ödeme dönüş adresi (HTTPS zorunlu). Active koşulu #3.</summary>

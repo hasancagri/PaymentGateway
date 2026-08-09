@@ -1,6 +1,5 @@
 using Merchant.Api.Domains.Merchants.Features.Commands;
 using Merchant.Api.Domains.Merchants.Features.Queries;
-using Merchant.Api.Domains.ActivationTickets.Features.Commands;
 
 namespace Merchant.Api.Domains.Merchants;
 

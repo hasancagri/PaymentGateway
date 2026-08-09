@@ -20,7 +20,6 @@ builder.Services.AddMarten(opts =>
         // 013 onboarding document'ları.
         opts.Schema.For<RegisterRequest>();
         opts.Schema.For<OnboardingNotification>();
-        opts.Schema.For<ActivationTicket>();
 
         // Reference.Api katalog verisinin yerel read-model izdüşümü (id = Code). Event ile beslenir.
         opts.Schema.For<ReferenceCountry>().Identity(x => x.Code);
