@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 
 namespace Merchant.Api.Domains.Merchants;
 
@@ -218,14 +217,6 @@ public class Merchant : AggregateRoot
         UpdatedTime = DateTime.UtcNow;
     }
 
-    /// <summary>Opak externalRef günceller (FR-018).</summary>
-    /// <remarks>Handler: — (çağrılmıyor)</remarks>
-    public void SetExternalRef(string? externalRef)
-    {
-        ExternalRef = string.IsNullOrWhiteSpace(externalRef) ? null : externalRef.Trim();
-        UpdatedTime = DateTime.UtcNow;
-    }
-
     /// <summary>
     /// Saf iç değerlendirme (013 D10): 3 koşul (settlement + gridReady + ReturnUrl) doluysa
     /// Provisioning→Active geçer. İdempotent — zaten Active ya da koşul eksikse <c>Error</c>
@@ -243,32 +234,6 @@ public class Merchant : AggregateRoot
 
         Status = MerchantStatus.Active;
         IsActive = true;
-        UpdatedTime = DateTime.UtcNow;
-        return ResultDomain.Ok();
-    }
-
-    /// <summary>Profil bilgilerini günceller (aynı format doğrulaması).</summary>
-    /// <remarks>Handler: — (çağrılmıyor)</remarks>
-    public ResultDomain UpdateProfile(
-        string name,
-        string email,
-        string phone,
-        string countryCode,
-        string cityCode,
-        string mcc,
-        string webhookUrl)
-    {
-        var validation = Validate(name, email, phone, countryCode, cityCode, mcc, webhookUrl);
-        if (validation is not null)
-            return ResultDomain.Error(validation);
-
-        Name = name;
-        Email = email;
-        Phone = phone;
-        CountryCode = countryCode;
-        CityCode = cityCode;
-        Mcc = mcc;
-        WebhookUrl = webhookUrl;
         UpdatedTime = DateTime.UtcNow;
         return ResultDomain.Ok();
     }

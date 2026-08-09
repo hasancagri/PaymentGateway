@@ -1,6 +1,4 @@
-using Merchant.Api.Domains.Merchants;
 using MerchantAggregate = Merchant.Api.Domains.Merchants.Merchant;
-using Xunit;
 
 namespace Merchant.Api.Tests;
 
@@ -41,17 +39,6 @@ public class MerchantTests
         Assert.Contains(result.Messages!, m =>
             m.Property == nameof(MerchantAggregate.MerchantKey) &&
             m.Code == CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED);
-    }
-
-    [Fact]
-    public void MerchantKey_UpdateProfile_sonrasi_degismez()
-    {
-        var merchant = CreateValid().Data!;
-
-        merchant.UpdateProfile("Yeni Ad", "yeni@acme.com", "+902129998877",
-            ValidCountry, ValidCity, "5812", "https://acme.com/wh2");
-
-        Assert.Equal(ValidKey, merchant.MerchantKey);
     }
 
     [Fact]
