@@ -146,9 +146,10 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   domain-içi çağrılan metot ayrı bırakılmaz — gövdesi çağıran metoda inline edilir (ör. `Merchant.Provision`
   → `RedeemActivation`'a inline; `CreateAwaiting` challenge kurulumu inline, `IssueChallenge`'ı çağırmaz).
   Böylece bir domain metodunu görünce handler karşılığı olduğu kesindir. **VO MUAF**.
-- **Aggregate metodu — handler notu (015)**: Her aggregate public metodunun XML dokümanına
-  `/// <remarks>Handler: <HandlerAdı></remarks>` eklenir (iş-akışı takibi; çoklu handler virgülle).
-  İç Handler tipini gösterir; dış slice rename'i etkilemez. **VO MUAF**.
+- **Aggregate metodu — iki not (015)**: Her aggregate public metoduna (1) `/// <summary>` metodun
+  ne işe yaradığını, (2) `/// <remarks>Handler: <HandlerAdı></remarks>` onu çağıran Handler tipini
+  yazar (iş-akışı takibi; çoklu handler virgülle; saga/event-handler sayılır). İç Handler tipini
+  gösterir; dış slice rename'i etkilemez. **VO MUAF**.
 - **Ayrı teknik klasör YOK — feature'lar Domains altında (015)**: `McpTools/` gibi teknik-katman
   klasörü açma; MCP tool'ları dahil tüm feature/iş süreçleri `Domains/<Aggregate>/` altında durur (MCP
   tool aggregate kökünde — Payment.Api `PaymentSessionMcpTools` deseni). `WithToolsFromAssembly` assembly

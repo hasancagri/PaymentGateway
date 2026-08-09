@@ -25,6 +25,8 @@ public class PosAccount : AggregateRoot
 
     [JsonIgnore] public IReadOnlyList<CommissionRate> CommissionRates => _commissionRates.AsReadOnly();
 
+    /// <summary>POS hesabı oluşturur: banka kodu (4 hane) + zorunlu merchant kimlik bilgilerini doğrular.</summary>
+    /// <remarks>Handler: CreatePosAccountCommandHandler</remarks>
     public static ResultDomain<PosAccount> Create(
         string bankCode,
         string title,
@@ -66,6 +68,8 @@ public class PosAccount : AggregateRoot
         });
     }
 
+    /// <summary>Merchant kimlik bilgilerini + test bayrağını günceller; zorunlu alanları doğrular.</summary>
+    /// <remarks>Handler: UpdatePosAccountCommandHandler</remarks>
     public ResultDomain UpdateCredentials(
         string merchantId,
         string merchantUser,
@@ -94,6 +98,7 @@ public class PosAccount : AggregateRoot
     }
 
     /// <summary>Taksit için komisyon oranını kurar/günceller (upsert). Oran yüzdedir (örn. 2.35).</summary>
+    /// <remarks>Handler: UpdatePosAccountCommandHandler, CreatePosAccountCommandHandler</remarks>
     public ResultDomain SetCommissionRate(int installmentCount, decimal ratePercent)
     {
         if (installmentCount < 1 || ratePercent < 0)
@@ -111,6 +116,8 @@ public class PosAccount : AggregateRoot
         return ResultDomain.Ok();
     }
 
+    /// <summary>Verilen taksit sayısına ait komisyon oranını kaldırır.</summary>
+    /// <remarks>Handler: UpdatePosAccountCommandHandler</remarks>
     public void RemoveCommissionRate(int installmentCount)
     {
         _commissionRates.RemoveAll(r => r.InstallmentCount == installmentCount);
@@ -118,17 +125,22 @@ public class PosAccount : AggregateRoot
     }
 
     /// <summary>Bu taksit sayısı için tanımlı oran; tanımsızsa null (banka bu taksidi desteklemiyor).</summary>
+    /// <remarks>Handler: BankRouter</remarks>
     public decimal? GetCommissionRate(int installmentCount)
     {
         return _commissionRates.FirstOrDefault(r => r.InstallmentCount == installmentCount)?.RatePercent;
     }
 
+    /// <summary>Hesabı aktif eder (IsActive = true).</summary>
+    /// <remarks>Handler: UpdatePosAccountCommandHandler</remarks>
     public void Activate()
     {
         IsActive = true;
         UpdatedTime = DateTime.UtcNow;
     }
 
+    /// <summary>Hesabı pasif eder (IsActive = false).</summary>
+    /// <remarks>Handler: UpdatePosAccountCommandHandler</remarks>
     public void Deactivate()
     {
         IsActive = false;

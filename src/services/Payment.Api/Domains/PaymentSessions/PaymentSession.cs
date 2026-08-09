@@ -23,6 +23,8 @@ public class PaymentSession : AggregateRoot
     [JsonProperty("OfferedInstallments")]
     private List<OfferedInstallment> _offeredInstallments = new();
 
+    /// <summary>Sunulan taksit satırlarını salt-okunur döner; iç liste dışarı mutasyona kapalı.</summary>
+    /// <remarks>Handler: QuoteInstallmentsForSessionCommandHandler</remarks>
     [JsonIgnore]
     public IReadOnlyList<OfferedInstallment> OfferedInstallments => _offeredInstallments.AsReadOnly();
 
@@ -33,6 +35,7 @@ public class PaymentSession : AggregateRoot
     public string? FailReason { get; private set; }
 
     /// <summary>Yeni oturum açar. <paramref name="cartAmount"/> pozitif olmalı (FR: sepet ≤ 0 reddi).</summary>
+    /// <remarks>Handler: QuoteInstallmentsForSessionCommandHandler</remarks>
     public static ResultDomain<PaymentSession> Create(string cardToken, decimal cartAmount)
     {
         if (string.IsNullOrWhiteSpace(cardToken))
@@ -66,6 +69,7 @@ public class PaymentSession : AggregateRoot
     /// olmalı. Boş liste → <see cref="Fail"/> (ödeme alınamıyor). Her satır Model A invariant'ını
     /// (<c>UserTotalAmount == CartAmount</c>) sağlamalı; aksi halde ihlal (Error). Status → QuoteProvided.
     /// </summary>
+    /// <remarks>Handler: QuoteInstallmentsForSessionCommandHandler</remarks>
     public ResultDomain OfferInstallments(IEnumerable<OfferedInstallment> installments)
     {
         if (Status != PaymentSessionStatus.Opened)
@@ -106,6 +110,7 @@ public class PaymentSession : AggregateRoot
     /// veya <see cref="PaymentSessionStatus.InstallmentSelected"/> olmalı (tekrar seçim = güncelle).
     /// <paramref name="installmentCount"/> sunulan listede yoksa reddedilir (FR-012). Çekim tetiklenmez.
     /// </summary>
+    /// <remarks>Handler: SelectInstallmentCommandHandler</remarks>
     public ResultDomain SelectInstallment(int installmentCount)
     {
         if (Status is not (PaymentSessionStatus.QuoteProvided or PaymentSessionStatus.InstallmentSelected))
@@ -133,6 +138,7 @@ public class PaymentSession : AggregateRoot
     }
 
     /// <summary>Terminal başarısızlık (geçersiz token / POS yok / boş taksit listesi).</summary>
+    /// <remarks>Handler: — (çağrılmıyor) — yalnız OfferInstallments içinden</remarks>
     public void Fail(string reason)
     {
         Status = PaymentSessionStatus.Failed;

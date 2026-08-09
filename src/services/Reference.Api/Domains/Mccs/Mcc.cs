@@ -16,6 +16,8 @@ public class Mcc : AggregateRoot
     /// <summary>MCC adı. Boş değil.</summary>
     public string Name { get; private set; } = string.Empty;
 
+    /// <summary>MCC kaydı üretir; kod 4-hane değilse veya ad boşsa hata Result döner.</summary>
+    /// <remarks>Handler: ReferenceSeeder</remarks>
     public static ResultDomain<Mcc> Create(string code, string name)
     {
         if (!IsValidCode(code))
