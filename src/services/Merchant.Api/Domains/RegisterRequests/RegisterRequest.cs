@@ -67,7 +67,8 @@ public class RegisterRequest : AggregateRoot
                 Code = CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED
             });
 
-        var request = new RegisterRequest
+        var now = DateTime.UtcNow;
+        return ResultDomain<RegisterRequest>.Ok(new RegisterRequest
         {
             Domain = domain.Trim().ToLowerInvariant(),
             LegalName = descriptor.LegalName,
@@ -75,11 +76,14 @@ public class RegisterRequest : AggregateRoot
             ContactEmail = descriptor.ContactEmail,
             WebhookUrl = descriptor.WebhookUrl,
             Status = RegisterRequestStatus.AwaitingDomainControl,
-            ExternalRef = string.IsNullOrWhiteSpace(externalRef) ? null : externalRef.Trim()
-        };
-        request.IssueChallenge(DateTime.UtcNow);
-
-        return ResultDomain<RegisterRequest>.Ok(request);
+            ExternalRef = string.IsNullOrWhiteSpace(externalRef) ? null : externalRef.Trim(),
+            // İlk challenge bileti inline (IssueChallenge çağrılmaz — aggregate metotları yalnız
+            // handler'dan çağrılır, domain-içi çağrı yok; kod tekrarı bilinçli).
+            ChallengeToken = Guid.NewGuid().ToString("N"),
+            ChallengeExpectedValue = Guid.NewGuid().ToString("N"),
+            ChallengeExpiresAtUtc = now.AddHours(ChallengeTtlHours),
+            ChallengeResult = ChallengeOutcome.Pending
+        });
     }
 
     /// <summary>
@@ -134,7 +138,11 @@ public class RegisterRequest : AggregateRoot
     public ResultDomain Approve(Guid merchantId, string? note)
     {
         if (Status != RegisterRequestStatus.Pending)
-            return ResultDomain.Error(InvalidState());
+            return ResultDomain.Error(new MessageItem
+            {
+                Property = nameof(Status),
+                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR
+            });
 
         Status = RegisterRequestStatus.Approved;
         CreatedMerchantId = merchantId;
@@ -148,7 +156,11 @@ public class RegisterRequest : AggregateRoot
     public ResultDomain Reject(string? note)
     {
         if (Status != RegisterRequestStatus.Pending)
-            return ResultDomain.Error(InvalidState());
+            return ResultDomain.Error(new MessageItem
+            {
+                Property = nameof(Status),
+                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR
+            });
 
         Status = RegisterRequestStatus.Rejected;
         ReviewedAtUtc = DateTime.UtcNow;
@@ -156,12 +168,6 @@ public class RegisterRequest : AggregateRoot
         UpdatedTime = DateTime.UtcNow;
         return ResultDomain.Ok();
     }
-
-    private static MessageItem InvalidState() => new()
-    {
-        Property = nameof(Status),
-        Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR
-    };
 }
 
 public enum RegisterRequestStatus

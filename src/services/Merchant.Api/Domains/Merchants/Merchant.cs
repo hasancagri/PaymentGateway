@@ -143,19 +143,6 @@ public class Merchant : AggregateRoot
     }
 
     /// <summary>
-    /// Aktivasyon bileti kullanılınca (key teslim anı). Statüyü Provisioning'de sabitler,
-    /// <see cref="ActivatedAtUtc"/> set eder. İdempotent: zaten set ise no-op.
-    /// </summary>
-    public void Provision()
-    {
-        ActivatedAtUtc ??= DateTime.UtcNow;
-        if (Status == MerchantStatus.Active)
-            return; // zaten Active — geri almaz
-        Status = MerchantStatus.Provisioning;
-        UpdatedTime = DateTime.UtcNow;
-    }
-
-    /// <summary>
     /// Aktivasyon bileti üretir (onayda, <c>ApproveRegisterRequest</c>): tek-kullanımlık teslim token'ı
     /// + 24h TTL. Redeem anı sıfırlanır (yeni bilet kullanılmamış).
     /// </summary>
@@ -169,20 +156,33 @@ public class Merchant : AggregateRoot
 
     /// <summary>
     /// Aktivasyon biletini redeem eder (Identity aktivasyon sayfasından): tek-kullanım + TTL invariant'ı.
-    /// Başarıda redeem anı işaretlenir ve <see cref="Provision"/> etkisi uygulanır (statü Provisioning
-    /// sabit + <see cref="ActivatedAtUtc"/>). İkinci redeem veya süresi geçmiş bilet → RET (key yeniden
+    /// Başarıda redeem anı işaretlenir, statü Provisioning'de sabitlenir ve <see cref="ActivatedAtUtc"/>
+    /// bir kez set edilir (key teslim anı). İkinci redeem veya süresi geçmiş bilet → RET (key yeniden
     /// gösterilmez, FR-009). Beklenen hata Result ile taşınır.
     /// </summary>
     public ResultDomain RedeemActivation(DateTime nowUtc)
     {
         if (ActivationRedeemedAtUtc is not null)
-            return ResultDomain.Error(InvalidOperation());
+            return ResultDomain.Error(new MessageItem
+            {
+                Property = nameof(Status),
+                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR
+            });
 
         if (ActivationExpiresAtUtc is null || nowUtc > ActivationExpiresAtUtc)
-            return ResultDomain.Error(InvalidOperation());
+            return ResultDomain.Error(new MessageItem
+            {
+                Property = nameof(Status),
+                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR
+            });
 
+        // Key teslim anı (eski Provision davranışı inline — ayrı public metot bırakılmaz):
+        // statü Active değilse Provisioning'de sabit, ActivatedAtUtc bir kez set.
         ActivationRedeemedAtUtc = nowUtc;
-        Provision();
+        ActivatedAtUtc ??= DateTime.UtcNow;
+        if (Status != MerchantStatus.Active)
+            Status = MerchantStatus.Provisioning;
+        UpdatedTime = DateTime.UtcNow;
         return ResultDomain.Ok();
     }
 

@@ -30,11 +30,12 @@ public class MerchantOnboardingTests
     }
 
     [Fact]
-    public void Provision_ActivatedAt_set_eder_Provisioning_kalir()
+    public void RedeemActivation_ActivatedAt_set_eder_Provisioning_kalir()
     {
         var m = Onboard();
+        m.IssueActivation(DateTime.UtcNow);
 
-        m.Provision();
+        m.RedeemActivation(DateTime.UtcNow);
 
         Assert.Equal(MerchantStatus.Provisioning, m.Status);
         Assert.NotNull(m.ActivatedAtUtc);
