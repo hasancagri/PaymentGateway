@@ -146,6 +146,7 @@ public class Merchant : AggregateRoot
     /// Aktivasyon bileti üretir (onayda, <c>ApproveRegisterRequest</c>): tek-kullanımlık teslim token'ı
     /// + 24h TTL. Redeem anı sıfırlanır (yeni bilet kullanılmamış).
     /// </summary>
+    /// <remarks>Handler: ApproveRegisterRequestCommandHandler</remarks>
     public void IssueActivation(DateTime nowUtc)
     {
         ActivationToken = Guid.NewGuid().ToString("N");
@@ -160,6 +161,7 @@ public class Merchant : AggregateRoot
     /// bir kez set edilir (key teslim anı). İkinci redeem veya süresi geçmiş bilet → RET (key yeniden
     /// gösterilmez, FR-009). Beklenen hata Result ile taşınır.
     /// </summary>
+    /// <remarks>Handler: RedeemActivationCommandHandler</remarks>
     public ResultDomain RedeemActivation(DateTime nowUtc)
     {
         if (ActivationRedeemedAtUtc is not null)

@@ -55,6 +55,7 @@ public class RegisterRequest : AggregateRoot
     /// <see cref="RegisterRequestStatus.AwaitingDomainControl"/> statüsünde doğar; descriptor'dan
     /// doğrulanmış alanlar kopyalanır ve ilk challenge bileti üretilir. Domain normalize.
     /// </summary>
+    /// <remarks>Handler: SubmitRegistrationCommandHandler</remarks>
     public static ResultDomain<RegisterRequest> CreateAwaiting(
         string domain,
         MerchantDescriptor descriptor,
@@ -90,6 +91,7 @@ public class RegisterRequest : AggregateRoot
     /// Yeni challenge bileti üretir (token + beklenen değer + TTL). İlk oluşturmada ve süre dolunca
     /// (aynı talep üzerinde) çağrılır; talep yeniden oluşturulmaz. Sonuç <see cref="ChallengeOutcome.Pending"/>'e döner.
     /// </summary>
+    /// <remarks>Handler: SubmitRegistrationCommandHandler</remarks>
     public ResultDomain IssueChallenge(DateTime nowUtc)
     {
         ChallengeToken = Guid.NewGuid().ToString("N");
@@ -107,6 +109,7 @@ public class RegisterRequest : AggregateRoot
     /// Süre dolmuş → <see cref="ChallengeOutcome.Expired"/> (çağıran <see cref="IssueChallenge"/> ile
     /// yeniler). Değer yok/yanlış → <see cref="ChallengeOutcome.Failed"/> (talep AwaitingDomainControl kalır).
     /// </summary>
+    /// <remarks>Handler: SubmitRegistrationCommandHandler</remarks>
     public ResultDomain<ChallengeOutcome> VerifyChallenge(string? fetchedValue, DateTime nowUtc)
     {
         // Zaten geçmiş (Pending'e taşınmış) — tek-kullanım idempotent.
@@ -135,6 +138,7 @@ public class RegisterRequest : AggregateRoot
     }
 
     /// <summary>Onay: yalnız Pending→Approved; doğan merchant'ı bağlar. Aksi RET (idempotent koruma).</summary>
+    /// <remarks>Handler: ApproveRegisterRequestCommandHandler</remarks>
     public ResultDomain Approve(Guid merchantId, string? note)
     {
         if (Status != RegisterRequestStatus.Pending)
@@ -153,6 +157,7 @@ public class RegisterRequest : AggregateRoot
     }
 
     /// <summary>Ret: yalnız Pending→Rejected. Merchant oluşmaz; o domainden yeni başvuru yapılabilir.</summary>
+    /// <remarks>Handler: RejectRegisterRequestCommandHandler</remarks>
     public ResultDomain Reject(string? note)
     {
         if (Status != RegisterRequestStatus.Pending)
