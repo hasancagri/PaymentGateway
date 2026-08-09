@@ -159,6 +159,19 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   `GetMerchantForAgent`). MCP tool YALNIZ bu Agent slice'ını çağırır. Agent slice `Features/Commands/` veya
   `Features/Queries/` class'larına **ASLA** gitmez — `IMessageBus` ile bile değil; kendi Query/Command +
   Response + Handler'ını taşır, okumayı/işlemi `IDocumentSession` ile doğrudan yapar (kod tekrarı bilinçli).
+- **Config — Options pattern (strongly-typed)**: Bir config bölümü (ör. `DropShopGateway:{McpUrl,
+  IdentityAddress,ClientId,ClientSecret}`) magic-string `config["Section:Key"]` ile OKUNMAZ. Bölüm için
+  bir Options POCO'su (`Options/` altında) tanımlanır ve bir `AddOptionsExt` uzantısında bağlanır —
+  house-style (ECommerce `WebApp/Extensions/OptionsExt.cs` + `IdentityServerSettings`/`GatewayOption`
+  referans):
+  ```csharp
+  services.AddOptions<T>().BindConfiguration(nameof(T)).ValidateDataAnnotations().ValidateOnStart();
+  services.AddSingleton<T>(sp => sp.GetRequiredService<IOptions<T>>().Value); // POCO'yu unwrap et
+  ```
+  Tüketici `IOptions<T>` değil **düz POCO `T`**'yi ctor'dan enjekte eder. `BindConfiguration(nameof(T))`
+  section adını tip adından alır → POCO adı section adıyla eşleşir (ör. section `GatewayOption`). Zorunlu
+  alanlar DataAnnotations ile işaretlenir; türetilmiş değerler POCO'da computed property. Anahtar isimleri
+  kod içinde string olarak dağıtılmaz.
 
 ## Bilinçli ertelemeler
 
