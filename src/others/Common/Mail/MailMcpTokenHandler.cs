@@ -1,15 +1,15 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
-using Microsoft.Extensions.Configuration;
+using Common.Options;
 
 namespace Common.Mail;
 
 /// <summary>
 /// Mail.Mcp <c>/mcp</c> çağrılarına <c>mail.send</c> scope'lu makine token'ı takar (AgentTokenHandler
 /// deseni — 013 D7). client_credentials token'ı static cache'lenir, süresine 30 sn kala yenilenir.
-/// İstemci kimliği config'ten (<c>MailAuth:ClientId</c>/<c>Secret</c>; mail atan BC başına Identity client).
+/// İstemci kimliği <see cref="MailAuth"/> POCO'sundan (mail atan BC başına Identity client).
 /// </summary>
-public sealed class MailMcpTokenHandler(IConfiguration config) : DelegatingHandler
+public sealed class MailMcpTokenHandler(IdentityOption identity, MailAuth mailAuth) : DelegatingHandler
 {
     private const string Scopes = "mail.send";
 
@@ -36,14 +36,14 @@ public sealed class MailMcpTokenHandler(IConfiguration config) : DelegatingHandl
             if (_token is not null && DateTimeOffset.UtcNow < _expiresAt.AddSeconds(-30))
                 return _token;
 
-            var authority = config["IdentityOption:Address"]!;
+            var authority = identity.Address;
             using var http = new HttpClient();
             using var response = await http.PostAsync($"{authority}/connect/token",
                 new FormUrlEncodedContent(new Dictionary<string, string>
                 {
                     ["grant_type"] = "client_credentials",
-                    ["client_id"] = config["MailAuth:ClientId"]!,
-                    ["client_secret"] = config["MailAuth:ClientSecret"]!,
+                    ["client_id"] = mailAuth.ClientId,
+                    ["client_secret"] = mailAuth.ClientSecret,
                     ["scope"] = Scopes
                 }), ct);
             response.EnsureSuccessStatusCode();

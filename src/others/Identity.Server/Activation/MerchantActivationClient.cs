@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Identity.Server.Options;
 
 namespace Identity.Server.Activation;
 
@@ -9,7 +10,7 @@ namespace Identity.Server.Activation;
 /// çağrı). client_credentials token'ı (identity-activation, merchant.write, claim'siz → AdminPlaneOnly)
 /// static cache'lenir (−30sn yenileme). Key custody tutmaz; yalnız redeem yanıtını taşır.
 /// </summary>
-public sealed class MerchantActivationClient(HttpClient http, IConfiguration config)
+public sealed class MerchantActivationClient(HttpClient http, IdentityOption identity, IConfiguration config)
 {
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private static string? _token;
@@ -57,7 +58,7 @@ public sealed class MerchantActivationClient(HttpClient http, IConfiguration con
             if (_token is not null && DateTimeOffset.UtcNow < _expiresAt.AddSeconds(-30))
                 return _token;
 
-            var authority = config["IdentityOption:Address"] ?? "https://localhost:5101";
+            var authority = identity.Address;
             using var tokenHttp = new HttpClient(new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator

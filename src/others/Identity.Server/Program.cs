@@ -1,7 +1,9 @@
 using Identity.Server;
 using Identity.Server.Connect;
+using Identity.Server.Options;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Shared;
 using Wolverine;
 using Wolverine.RabbitMQ;
@@ -67,6 +69,11 @@ builder.Services.AddRazorPages();
 // sayfası tek senkron redeem çağrısı). Config'ten override edilebilir.
 builder.Services.AddHttpClient<Identity.Server.Activation.MerchantActivationClient>(client =>
     client.BaseAddress = new Uri(builder.Configuration["MerchantApi:BaseUrl"] ?? "http://localhost:5202"));
+
+// Aktivasyon istemcisi için Identity adresi POCO (runtime doğrudan IConfiguration okuması yasak; CLAUDE.md).
+builder.Services.AddOptions<IdentityOption>().BindConfiguration(nameof(IdentityOption))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<IdentityOption>(sp => sp.GetRequiredService<IOptions<IdentityOption>>().Value);
 
 // 012: merchant.lifecycle fanout tüketimi — Merchant BC olayları OpenIddict istemci kaydına
 // izdüşürülür (MerchantClientEventHandler). Message store YOK (D1): durable inbox kullanılamaz;
