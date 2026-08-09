@@ -90,11 +90,11 @@ public class MerchantOnboardingTests
     }
 
     [Fact]
-    public void CreateForOnboarding_externalRef_saklanir()
+    public void CreateForOnboarding_merchantMail_saklanir()
     {
         var m = MerchantAggregate.CreateForOnboarding(
-            "mk_x1", "Acme", "ops@acme.com", "https://acme.com/webhook", null, " ref-1 ").Data!;
+            "mk_x1", "Acme", "ops@acme.com", "https://acme.com/webhook", null, " ops@acme.com ").Data!;
 
-        Assert.Equal("ref-1", m.ExternalRef);
+        Assert.Equal("ops@acme.com", m.MerchantMail);
     }
 }

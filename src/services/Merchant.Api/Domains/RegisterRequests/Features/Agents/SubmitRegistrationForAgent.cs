@@ -2,16 +2,22 @@
 namespace Merchant.Api.Domains.RegisterRequests.Features.Agents;
 
 /// <summary>
-/// US1 — merchant adayı başvurusu. Aday, gateway'e sabit bir <b>descriptor linki</b> verir; gateway
-/// o linki okur (descriptor doğrula) ve başvuruyu doğrudan <see cref="RegisterRequestStatus.Pending"/>
-/// statüsünde oluşturur; admin'e bildirim maili gider. Domain-control challenge KALDIRILDI — sahiplik/
-/// uygunluk denetimi admin'in insan incelemesidir (descriptor'daki legalName/taxId/contactEmail).
-/// Merchant OLUŞMAZ (onayla doğar). Mükerrer koruma (FR-020): aynı domain için Pending/Approved talep
-/// varsa yeni açılmaz.
+/// US1 — merchant adayı başvurusu. Aday, başvuru alanlarını (legalName/taxId/contactEmail/webhookUrl/
+/// domain) doğrudan gönderir (push-inline, 016 — descriptor URL çekme YOK); alanlar doğrulanıp başvuru
+/// doğrudan <see cref="RegisterRequestStatus.Pending"/> statüsünde oluşturulur; merchant'ın verdiği maile
+/// "başvurun alındı" bildirimi gider. Domain-control challenge KALDIRILDI — sahiplik/uygunluk denetimi
+/// admin'in insan incelemesidir. Merchant OLUŞMAZ (onayla doğar). Mükerrer koruma (FR-020): aynı domain
+/// için Pending/Approved talep varsa yeni açılmaz.
 /// </summary>
 public static class SubmitRegistrationForAgent
 {
-    public record SubmitRegistrationCommand(string DescriptorUrl, string? ExternalRef = null);
+    public record SubmitRegistrationCommand(
+        string Domain,
+        string LegalName,
+        string TaxId,
+        string ContactEmail,
+        string WebhookUrl,
+        string? MerchantMail = null);
 
     public class SubmitRegistrationResponse
     {
@@ -26,41 +32,15 @@ public static class SubmitRegistrationForAgent
     [Transactional]
     public class SubmitRegistrationCommandHandler
     {
-        // Dev: aday site (ECommerce) https self-signed dev cert kullanır → sertifikayı doğrulama
-        // (yalnız descriptor okuması; prod'da gerçek cert). Timeout kısa.
-        private static readonly HttpClient Http = new(new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-        })
-        { Timeout = TimeSpan.FromSeconds(10) };
-
         public async Task<FeatureObjectResultModel<SubmitRegistrationResponse>> Handle(
             SubmitRegistrationCommand cmd,
             IDocumentSession session,
-            IMailSender mail,
-            IConfiguration config,
-            ILogger<SubmitRegistrationCommandHandler> logger,
+            IMessageBus bus,
             CancellationToken ct)
         {
-            if (string.IsNullOrWhiteSpace(cmd.DescriptorUrl) ||
-                !Uri.TryCreate(cmd.DescriptorUrl, UriKind.Absolute, out var descriptorUri))
-                return FeatureObjectResultModel<SubmitRegistrationResponse>.Error(new MessageItem
-                {
-                    Property = nameof(cmd.DescriptorUrl),
-                    Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_FORMAT
-                });
+            var domain = cmd.Domain?.Trim().ToLowerInvariant() ?? string.Empty;
 
-            // 1) Descriptor'ı çek + doğrula (FR-002). Erişilemez/eksik → talep yok.
-            var descriptorResult = await FetchDescriptorAsync(cmd.DescriptorUrl, ct);
-            if (!descriptorResult.IsSuccess)
-                return FeatureObjectResultModel<SubmitRegistrationResponse>.Error(descriptorResult.Messages);
-
-            var descriptor = descriptorResult.Data!;
-            var domain = string.IsNullOrWhiteSpace(descriptor.Domain)
-                ? descriptorUri.Authority.ToLowerInvariant()
-                : descriptor.Domain;
-
-            // 2) Aynı domain için aktif talep (Pending/Approved) varsa mükerrer RET (FR-020).
+            // 1) Aynı domain için aktif talep (Pending/Approved) varsa mükerrer RET (FR-020).
             //    Rejected talep yeniden başvuruya engel değildir.
             var duplicate = await session.Query<RegisterRequest>()
                 .Where(r => r.Domain == domain &&
@@ -75,16 +55,23 @@ public static class SubmitRegistrationForAgent
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_DUPLICATE
                 });
 
-            // 3) Talep doğrudan Pending doğar; admin onayı bekler.
-            var created = RegisterRequest.CreatePending(domain, descriptor, cmd.ExternalRef);
+            // 2) Talep doğrudan Pending doğar (alan doğrulaması CreatePending'de); admin onayı bekler.
+            var created = RegisterRequest.CreatePending(
+                cmd.Domain, cmd.LegalName, cmd.TaxId, cmd.ContactEmail, cmd.WebhookUrl, cmd.MerchantMail);
             if (!created.IsSuccess)
                 return FeatureObjectResultModel<SubmitRegistrationResponse>.Error(created.Messages);
 
             var request = created.Data!;
             session.Store(request);
 
-            // 4) Admin'e "yeni başvuru" bildirim maili.
-            await NotifyAdminAsync(mail, config, logger, domain, request.Id, ct);
+            // 3) Merchant maili verdiyse "başvurun alındı" bildirimini yayınla → Mail.Worker (SMTP).
+            //    [Transactional] outbox: publish yalnız DB commit'te gider; mail yoksa atlanır (best-effort).
+            if (!string.IsNullOrWhiteSpace(cmd.MerchantMail))
+                await bus.PublishAsync(new Shared.IntegrationEvents.SendEmailRequested(
+                    cmd.MerchantMail,
+                    $"Başvurunuz alındı: {domain}",
+                    $"'{domain}' alan adı için kayıt başvurunuz alındı (talep {request.Id}). " +
+                    "Admin incelemesi tamamlanınca sonuç bu adrese bildirilecektir."));
 
             return FeatureObjectResultModel<SubmitRegistrationResponse>.Ok(new SubmitRegistrationResponse
             {
@@ -93,59 +80,5 @@ public static class SubmitRegistrationForAgent
                 Message = "Başvuru alındı; admin onayı bekleniyor."
             });
         }
-
-        // --- Admin "yeni başvuru" bildirim maili (FR-005). Mail best-effort; başarısızlık akışı kesmez.
-        private static async Task NotifyAdminAsync(
-            IMailSender mail, IConfiguration config,
-            ILogger logger, string domain, Guid requestId, CancellationToken ct)
-        {
-            var adminEmail = config["Onboarding:AdminNotificationEmail"] ?? "admin@dropshop.local";
-            var subject = $"Yeni merchant başvurusu: {domain}";
-            var body = $"'{domain}' alan adı için yeni bir kayıt başvurusu alındı (talep {requestId}). " +
-                       "Admin panelinden inceleyip onaylayın/reddedin.";
-
-            var send = await mail.SendAsync(adminEmail, subject, body, ct: ct);
-            if (!send.IsSuccess)
-                logger.LogWarning("Admin bildirim maili gönderilemedi: {Domain}", domain);
-        }
-
-        private static async Task<ResultDomain<MerchantDescriptor>> FetchDescriptorAsync(
-            string url, CancellationToken ct)
-        {
-            try
-            {
-                using var resp = await Http.GetAsync(url, ct);
-                if (!resp.IsSuccessStatusCode)
-                    return DescriptorError();
-
-                var json = await resp.Content.ReadAsStringAsync(ct);
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-
-                string? Str(string name) =>
-                    root.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.String
-                        ? el.GetString()
-                        : null;
-
-                string? a2a = null;
-                if (root.TryGetProperty("agent", out var agent) && agent.ValueKind == JsonValueKind.Object &&
-                    agent.TryGetProperty("a2aCardUrl", out var a2aEl) && a2aEl.ValueKind == JsonValueKind.String)
-                    a2a = a2aEl.GetString();
-
-                return MerchantDescriptor.Create(Str("schemaVersion"), Str("domain"), Str("legalName"),
-                    Str("taxId"), Str("contactEmail"), Str("webhookUrl"), a2a);
-            }
-            catch
-            {
-                return DescriptorError();
-            }
-        }
-
-        private static ResultDomain<MerchantDescriptor> DescriptorError() =>
-            ResultDomain<MerchantDescriptor>.Error(new MessageItem
-            {
-                Property = "Descriptor",
-                Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
-            });
     }
 }

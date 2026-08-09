@@ -2,13 +2,16 @@ namespace Merchant.Api.Domains.RegisterRequests;
 
 /// <summary>
 /// Merchant kayıt başvurusu — merchant'tan AYRI aggregate (013 D8). Merchant ancak onayla bundan
-/// doğar. Başvuru descriptor doğrulanınca doğrudan <see cref="RegisterRequestStatus.Pending"/>
-/// statüsünde doğar; admin descriptor'ı (legalName/taxId/contactEmail) inceleyip
+/// doğar. Başvuru alanları (push-inline, 016) doğrulanınca doğrudan <see cref="RegisterRequestStatus.Pending"/>
+/// statüsünde doğar; admin alanları (legalName/taxId/contactEmail) inceleyip
 /// <see cref="Approve"/>/<see cref="Reject"/> eder. Otomatik onay yok. Domain-control challenge
 /// KALDIRILDI: sahiplik/uygunluk denetimi admin'in insan incelemesidir.
 /// </summary>
 public class RegisterRequest : AggregateRoot
 {
+    private static readonly Regex EmailRegex =
+        new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
+
     private RegisterRequest()
     {
     }
@@ -29,18 +32,22 @@ public class RegisterRequest : AggregateRoot
     /// <summary>Approved'da doğan merchant.</summary>
     public Guid? CreatedMerchantId { get; private set; }
 
-    /// <summary>Opsiyonel opak dış referans (FR-018) — merchant'a aktarılır.</summary>
-    public string? ExternalRef { get; private set; }
+    /// <summary>Merchant'ın başvuruda verdiği iletişim maili — onayda merchant'a aktarılır.</summary>
+    public string? MerchantMail { get; private set; }
 
     /// <summary>
-    /// Başvuru oluşturur. Descriptor'dan doğrulanmış alanlar kopyalanır; talep doğrudan
+    /// Başvuru oluşturur. Aday alanları başvuruda (push-inline) gelir; burada doğrulanır (zorunlu +
+    /// contactEmail geçerli e-posta + webhookUrl mutlak HTTPS) ve talep doğrudan
     /// <see cref="RegisterRequestStatus.Pending"/> (admin onayı bekler) statüsünde doğar. Domain normalize.
     /// </summary>
     /// <remarks>Handler: SubmitRegistrationCommandHandler</remarks>
     public static ResultDomain<RegisterRequest> CreatePending(
-        string domain,
-        MerchantDescriptor descriptor,
-        string? externalRef = null)
+        string? domain,
+        string? legalName,
+        string? taxId,
+        string? contactEmail,
+        string? webhookUrl,
+        string? merchantMail = null)
     {
         if (string.IsNullOrWhiteSpace(domain))
             return ResultDomain<RegisterRequest>.Error(new MessageItem
@@ -48,16 +55,42 @@ public class RegisterRequest : AggregateRoot
                 Property = nameof(Domain),
                 Code = CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED
             });
+        if (string.IsNullOrWhiteSpace(legalName))
+            return ResultDomain<RegisterRequest>.Error(new MessageItem
+            {
+                Property = nameof(LegalName),
+                Code = CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED
+            });
+        if (string.IsNullOrWhiteSpace(taxId))
+            return ResultDomain<RegisterRequest>.Error(new MessageItem
+            {
+                Property = nameof(TaxId),
+                Code = CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED
+            });
+        if (string.IsNullOrWhiteSpace(contactEmail) || !EmailRegex.IsMatch(contactEmail))
+            return ResultDomain<RegisterRequest>.Error(new MessageItem
+            {
+                Property = nameof(ContactEmail),
+                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_FORMAT
+            });
+        if (string.IsNullOrWhiteSpace(webhookUrl) ||
+            !Uri.TryCreate(webhookUrl, UriKind.Absolute, out var webhookUri) ||
+            webhookUri.Scheme != Uri.UriSchemeHttps)
+            return ResultDomain<RegisterRequest>.Error(new MessageItem
+            {
+                Property = nameof(WebhookUrl),
+                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_FORMAT
+            });
 
         return ResultDomain<RegisterRequest>.Ok(new RegisterRequest
         {
             Domain = domain.Trim().ToLowerInvariant(),
-            LegalName = descriptor.LegalName,
-            TaxId = descriptor.TaxId,
-            ContactEmail = descriptor.ContactEmail,
-            WebhookUrl = descriptor.WebhookUrl,
+            LegalName = legalName.Trim(),
+            TaxId = taxId.Trim(),
+            ContactEmail = contactEmail.Trim(),
+            WebhookUrl = webhookUrl.Trim(),
             Status = RegisterRequestStatus.Pending,
-            ExternalRef = string.IsNullOrWhiteSpace(externalRef) ? null : externalRef.Trim()
+            MerchantMail = string.IsNullOrWhiteSpace(merchantMail) ? null : merchantMail.Trim()
         });
     }
 

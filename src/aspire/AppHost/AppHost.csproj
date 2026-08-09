@@ -13,7 +13,7 @@
       <ProjectReference Include="..\..\services\Payment.Api\Payment.Api.csproj" />
       <ProjectReference Include="..\..\agents\Payment.Agent\Payment.Agent.csproj" />
       <ProjectReference Include="..\..\agents\Merchant.Agent\Merchant.Agent.csproj" />
-      <ProjectReference Include="..\..\others\Mail.Mcp\Mail.Mcp.csproj" />
+      <ProjectReference Include="..\..\others\Mail.Worker\Mail.Worker.csproj" />
       <ProjectReference Include="..\..\others\Excel.Mcp\Excel.Mcp.csproj" />
       <ProjectReference Include="..\..\services\Merchant.Api\Merchant.Api.csproj" />
       <ProjectReference Include="..\..\services\Commission.Api\Commission.Api.csproj" />

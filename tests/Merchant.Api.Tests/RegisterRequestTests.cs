@@ -3,14 +3,11 @@ namespace Merchant.Api.Tests;
 
 public class RegisterRequestTests
 {
-    private static MerchantDescriptor ValidDescriptor() =>
-        MerchantDescriptor.Create("1.0", "shop.example.com", "Örnek A.Ş.", "1234567890",
-            "onboarding@example.com", "https://shop.example.com/webhook", null).Data!;
-
     private static RegisterRequest PendingRequest() =>
-        RegisterRequest.CreatePending("shop.example.com", ValidDescriptor()).Data!;
+        RegisterRequest.CreatePending("shop.example.com", "Örnek A.Ş.", "1234567890",
+            "onboarding@example.com", "https://shop.example.com/webhook").Data!;
 
-    // --- CreatePending (challenge yok — descriptor doğrulanınca doğrudan Pending) ---
+    // --- CreatePending (challenge yok — alanlar doğrulanınca doğrudan Pending) ---
 
     [Fact]
     public void CreatePending_Pending_statusunde_dogar()
@@ -26,7 +23,8 @@ public class RegisterRequestTests
     [Fact]
     public void CreatePending_domain_normalize_edilir()
     {
-        var req = RegisterRequest.CreatePending("  SHOP.Example.COM ", ValidDescriptor()).Data!;
+        var req = RegisterRequest.CreatePending("  SHOP.Example.COM ", "Örnek A.Ş.", "1234567890",
+            "onboarding@example.com", "https://shop.example.com/webhook").Data!;
 
         Assert.Equal("shop.example.com", req.Domain);
     }
@@ -34,7 +32,8 @@ public class RegisterRequestTests
     [Fact]
     public void CreatePending_bos_domain_reddedilir()
     {
-        var req = RegisterRequest.CreatePending("  ", ValidDescriptor());
+        var req = RegisterRequest.CreatePending("  ", "Örnek A.Ş.", "1234567890",
+            "onboarding@example.com", "https://shop.example.com/webhook");
 
         Assert.False(req.IsSuccess);
     }
@@ -87,22 +86,31 @@ public class RegisterRequestTests
         Assert.False(approve.IsSuccess);
     }
 
-    // --- Descriptor doğrulama (değişmez) ---
+    // --- Alan doğrulama (push-inline — CreatePending içinde) ---
 
     [Fact]
-    public void Descriptor_eksik_alan_reddedilir()
+    public void CreatePending_eksik_alan_reddedilir()
     {
-        var missing = MerchantDescriptor.Create("1.0", "shop.example.com", "", "1234567890",
-            "onboarding@example.com", "https://shop.example.com/webhook", null);
+        var missing = RegisterRequest.CreatePending("shop.example.com", "", "1234567890",
+            "onboarding@example.com", "https://shop.example.com/webhook");
 
         Assert.False(missing.IsSuccess);
     }
 
     [Fact]
-    public void Descriptor_webhook_https_degilse_reddedilir()
+    public void CreatePending_gecersiz_email_reddedilir()
     {
-        var http = MerchantDescriptor.Create("1.0", "shop.example.com", "Örnek", "1234567890",
-            "onboarding@example.com", "http://shop.example.com/webhook", null);
+        var badEmail = RegisterRequest.CreatePending("shop.example.com", "Örnek", "1234567890",
+            "gecersiz-email", "https://shop.example.com/webhook");
+
+        Assert.False(badEmail.IsSuccess);
+    }
+
+    [Fact]
+    public void CreatePending_webhook_https_degilse_reddedilir()
+    {
+        var http = RegisterRequest.CreatePending("shop.example.com", "Örnek", "1234567890",
+            "onboarding@example.com", "http://shop.example.com/webhook");
 
         Assert.False(http.IsSuccess);
     }

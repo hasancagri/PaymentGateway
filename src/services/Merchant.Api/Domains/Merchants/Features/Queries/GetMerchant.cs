@@ -24,8 +24,8 @@ public static class GetMerchant
         /// <summary>013: ödeme dönüş adresi (Active koşulu #3).</summary>
         public string? ReturnUrl { get; set; }
 
-        /// <summary>013 (FR-018): opak dış referans; aynen döner.</summary>
-        public string? ExternalRef { get; set; }
+        /// <summary>013: merchant'ın başvuruda verdiği iletişim maili.</summary>
+        public string? MerchantMail { get; set; }
 
         public DateTime CreatedTime { get; set; }
     }
@@ -65,7 +65,7 @@ public static class GetMerchant
                 WebhookUrl = merchant.WebhookUrl,
                 Status = merchant.Status.ToString(),
                 ReturnUrl = merchant.ReturnUrl,
-                ExternalRef = merchant.ExternalRef,
+                MerchantMail = merchant.MerchantMail,
                 CreatedTime = merchant.CreatedTime
             });
         }

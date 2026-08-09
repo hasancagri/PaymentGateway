@@ -13,8 +13,9 @@ Mevcut BC'ler: **Payment** (CP.VPOS sanal POS), **Merchant** (onboarding + settl
 hesapları), **Commission** (banka referansı + komisyon grid). Ayrıca **Admin** (Razor Pages
 BFF) API'leri service discovery ile tüketir; **Identity.Server** (OpenIddict, BC değil —
 altyapı servisi) makine token'ı verir. 013: **Merchant.Agent** (A2A başvuru host'u, BC değil),
-**Mail.Mcp** + **Excel.Mcp** (generic MCP altyapı servisleri, BC değil), **Mailpit** (dev SMTP
-catch-all). Her BC kendi spec döngüsüyle (spec-kit, `specs/<NNN>/`) eklendi.
+**Excel.Mcp** (generic MCP altyapı servisi, BC değil), **Mailpit** (dev SMTP catch-all). 016:
+**Mail.Worker** (düz mail projesi — MCP DEĞİL; RabbitMQ consumer → SMTP). Her BC kendi spec
+döngüsüyle (spec-kit, `specs/<NNN>/`) eklendi.
 
 ## Komutlar
 
@@ -47,10 +48,18 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
 - `src/agents/Merchant.Agent` — 013 A2A başvuru host'u (Payment.Agent şablonu). BC değil, stateless.
   013 skill'leri: `register` + `registration_status`; Merchant.Api `/mcp`'yi kendi client'ıyla
   (`merchant-agent`, `merchant.write`) tüketir. Komisyon/pazarlık YOK (014).
-- `src/others/Mail.Mcp` + `src/others/Excel.Mcp` — generic altyapı MCP server'ları (BC değil, domain
-  bilmez). `send_email` (System.Net.Mail → dev Mailpit) / `generate_spreadsheet` (ClosedXML → .xlsx
-  base64). Scope-korumalı: `mail.send` / `document.generate`. Deterministik mailler Common `IMailSender`
-  (→ `MailMcpClient`) üzerinden; komisyon Excel maili harici LLM/MCP orkestrasyon (013 client sabitlemez).
+- `src/others/Excel.Mcp` — generic altyapı MCP server'ı (BC değil, domain bilmez). `generate_spreadsheet`
+  (ClosedXML → .xlsx base64). Scope-korumalı: `document.generate`. **MCP = yalnız Agent yüzeyi** (altyapı
+  kuralı, 016): MCP tool'ları YALNIZ agent/LLM çağırır; servisler-arası veya BC→altyapı iletişimi ASLA MCP
+  değil (messaging veya HTTP). Nerede MCP nerede HTTP belirsizliğini bu kural keser.
+- `src/others/Mail.Worker` — düz mail projesi (016; eski `Mail.Mcp` MCP'den çıkarıldı). **MCP DEĞİL** —
+  HTTP yüzeyi/auth yok, yalnız Wolverine RabbitMQ consumer. `mail.delivery` fanout'unu durable queue
+  (`mail.delivery-send`) ile tüketir; `SendEmailHandler` (tekil "Handler") `System.Net.Mail` → Mailpit ile
+  gönderir. **Retry**: `Policies.OnException<SmtpException>().RetryWithCooldown(1s,5s,15s).Then.MoveToErrorQueue()`
+  (backoff + dead-letter; message store yok → `ProcessInline`, RabbitMQ redelivery). Deterministik mailler
+  (aktivasyon linki + başvuru ack) BC handler'ından `[Transactional]` outbox ile `bus.PublishAsync(new
+  SendEmailRequested(to,subject,body))` — publish yalnız DB commit'te gider. `IMailSender`/`MailMcpClient`
+  KALDIRILDI (BC→MCP ihlaliydi). Komisyon Excel maili (014, henüz yok) da aynı kuyruğa publish edecek.
 - `src/services/Commission.Api` — Commission BC. `Bank` aggregate (katalogdan kod+ad) + banka/merchant
   komisyon grid'leri (kombinasyon-bazlı, atomik toplu upsert). Banka seed yok.
 - `src/agents/Payment.Agent` — A2A host + LLM router + MCP client (007). Payment BC **DEĞİL** —
@@ -135,11 +144,11 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   extension, aggregate'e ait enum/status/mapping. Doğrulama:
   `grep -rlE "class .*: AggregateRoot" src/*/*/Domains` → her klasör tek dosya.
 - **ValueObjects**: aggregate'e ait standalone value object (class/record, AggregateRoot değil) →
-  `<Aggregate>/ValueObjects/` altına konur, aggregate kökünde durmaz. Örnek:
-  `RegisterRequests/ValueObjects/MerchantDescriptor.cs`.
+  `<Aggregate>/ValueObjects/` altına konur, aggregate kökünde durmaz. (016: tek örnek olan
+  `MerchantDescriptor` push-inline ile silindi — kural yeni VO gerektiğinde geçerli.)
 - **Aggregate metotları — private helper YOK (015)**: Aggregate'lerde private yardımcı metod yazma;
   ortak mantık private'a çıkarılıp çağrılmaz, **inline** yazılır (kod tekrarı bilinçli kabul). **VO
-  MUAF** (VO'da private helper serbest — ör. `MerchantDescriptor.IsHttpsUrl`). Örnek: `RegisterRequest`
+  MUAF** (VO'da private helper serbest — VO gerektiğinde). Örnek: `RegisterRequest`
   `InvalidState()` helper'ı kaldırıldı, `MessageItem` her metotta inline.
 - **Aggregate metotları — yalnız handler'dan çağrılır (015)**: Bir aggregate public metodu SADECE
   handler'dan çağrılır; başka bir aggregate metodunun içinden ÇAĞRILMAZ (factory dahil). Yalnız

@@ -16,7 +16,7 @@ public static class GetRegisterRequest
         public string Status { get; set; } = string.Empty;
         public string? ReviewNote { get; set; }
         public Guid? CreatedMerchantId { get; set; }
-        public string? ExternalRef { get; set; }
+        public string? MerchantMail { get; set; }
         public DateTime CreatedTime { get; set; }
         public DateTime? ReviewedAtUtc { get; set; }
     }
@@ -43,7 +43,7 @@ public static class GetRegisterRequest
                 Status = r.Status.ToString(),
                 ReviewNote = r.ReviewNote,
                 CreatedMerchantId = r.CreatedMerchantId,
-                ExternalRef = r.ExternalRef,
+                MerchantMail = r.MerchantMail,
                 CreatedTime = r.CreatedTime,
                 ReviewedAtUtc = r.ReviewedAtUtc
             });

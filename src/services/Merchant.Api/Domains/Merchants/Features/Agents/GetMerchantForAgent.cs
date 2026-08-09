@@ -26,7 +26,7 @@ public static class GetMerchantForAgent
         public string WebhookUrl { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public string? ReturnUrl { get; set; }
-        public string? ExternalRef { get; set; }
+        public string? MerchantMail { get; set; }
         public DateTime CreatedTime { get; set; }
     }
 
@@ -65,7 +65,7 @@ public static class GetMerchantForAgent
                 WebhookUrl = merchant.WebhookUrl,
                 Status = merchant.Status.ToString(),
                 ReturnUrl = merchant.ReturnUrl,
-                ExternalRef = merchant.ExternalRef,
+                MerchantMail = merchant.MerchantMail,
                 CreatedTime = merchant.CreatedTime
             });
         }
