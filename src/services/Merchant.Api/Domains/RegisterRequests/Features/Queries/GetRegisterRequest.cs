@@ -1,6 +1,6 @@
 namespace Merchant.Api.Domains.RegisterRequests.Features.Queries;
 
-/// <summary>US2 — talep ayrıntısı (domain + descriptor özeti + challenge/karar bilgisi).</summary>
+/// <summary>US2 — talep ayrıntısı (domain + descriptor özeti + karar bilgisi).</summary>
 public static class GetRegisterRequest
 {
     public record GetRegisterRequestQuery(Guid Id);
@@ -13,7 +13,6 @@ public static class GetRegisterRequest
         public string TaxId { get; set; } = string.Empty;
         public string ContactEmail { get; set; } = string.Empty;
         public string WebhookUrl { get; set; } = string.Empty;
-        public string ChallengeResult { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public string? ReviewNote { get; set; }
         public Guid? CreatedMerchantId { get; set; }
@@ -41,7 +40,6 @@ public static class GetRegisterRequest
                 TaxId = r.TaxId,
                 ContactEmail = r.ContactEmail,
                 WebhookUrl = r.WebhookUrl,
-                ChallengeResult = r.ChallengeResult.ToString(),
                 Status = r.Status.ToString(),
                 ReviewNote = r.ReviewNote,
                 CreatedMerchantId = r.CreatedMerchantId,

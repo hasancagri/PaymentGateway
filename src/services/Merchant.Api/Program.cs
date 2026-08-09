@@ -17,7 +17,7 @@ builder.Services.AddMarten(opts =>
         opts.Schema.For<Merchant.Api.Domains.Merchants.Merchant>();
         opts.Schema.For<Merchant.Api.Domains.SettlementAccounts.SettlementAccount>();
 
-        // Onboarding document'ı (015: challenge RegisterRequest'e, aktivasyon Merchant'a gömüldü).
+        // Onboarding başvuru document'ı (challenge yok — descriptor + admin onayı; aktivasyon Merchant'a gömülü).
         opts.Schema.For<RegisterRequest>();
 
         // Reference.Api katalog verisinin yerel read-model izdüşümü (id = Code). Event ile beslenir.

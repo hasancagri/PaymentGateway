@@ -12,7 +12,6 @@ public static class ConstValues
         "Kullanıcı bir alan adıyla (domain) gateway'e kayıt olmak istiyorsa `submit_registration` " +
         "tool'unu kullanıcının verdiği domain ile çağır. Kullanıcı başvurusunun durumunu soruyorsa " +
         "`registration_status` tool'unu domain ile çağır. " +
-        "KESİN KURALLAR: Domain'i kullanıcıdan al; challenge token'ı/değerini SEN ÜRETME (tool " +
-        "sonucundan gelir). Kimlik, sır veya merchant anahtarı ÜRETME. Bu sürümde komisyon/pazarlık " +
-        "YOKTUR; komisyonla ilgili istekleri bu sürümde yapamayacağını söyle.";
+        "KESİN KURALLAR: Domain'i kullanıcıdan al. Kimlik, sır veya merchant anahtarı ÜRETME. " +
+        "Bu sürümde komisyon/pazarlık YOKTUR; komisyonla ilgili istekleri bu sürümde yapamayacağını söyle.";
 }

@@ -1,9 +1,9 @@
 namespace Merchant.Api.Domains.RegisterRequests.Features.Agent;
 
 /// <summary>
-/// US1 (opsiyonel) — domain için başvurunun güncel durumunu döner. 015: talep artık challenge'dan önce
-/// (AwaitingDomainControl) kalıcı olduğundan bu sorgu o durumu da raporlar; <see cref="RegistrationStatusResponse.Message"/>
-/// güncel durumu + sıradaki adımı Türkçe metinle bildirir (ECommerce "sürecim ne oldu?" — on-demand, poll zorunlu değil).
+/// US1 (opsiyonel) — domain için başvurunun güncel durumunu döner (Pending/Approved/Rejected).
+/// <see cref="RegistrationStatusResponse.Message"/> güncel durumu + sıradaki adımı Türkçe metinle
+/// bildirir (ECommerce "sürecim ne oldu?" — on-demand, poll zorunlu değil).
 /// </summary>
 public static class RegistrationStatusForAgent
 {
@@ -11,11 +11,11 @@ public static class RegistrationStatusForAgent
 
     public class RegistrationStatusResponse
     {
-        /// <summary>Enum adı: AwaitingDomainControl / Pending / Approved / Rejected.</summary>
+        /// <summary>Enum adı: Pending / Approved / Rejected.</summary>
         public string Status { get; set; } = string.Empty;
         public Guid? RequestId { get; set; }
 
-        /// <summary>015: güncel durum + sıradaki adım — insan-okur Türkçe metin.</summary>
+        /// <summary>Güncel durum + sıradaki adım — insan-okur Türkçe metin.</summary>
         public string Message { get; set; } = string.Empty;
     }
 
@@ -47,10 +47,8 @@ public static class RegistrationStatusForAgent
         // Durum → sıradaki adım metni (on-demand "sürecim ne oldu?" yanıtı).
         private static string StatusMessage(RegisterRequestStatus status) => status switch
         {
-            RegisterRequestStatus.AwaitingDomainControl =>
-                "Alan adı sahipliği bekleniyor: verilen challenge değerini belirtilen yola yayınlayıp başvuruyu tekrarlayın.",
             RegisterRequestStatus.Pending =>
-                "Sahiplik doğrulandı; admin onayı bekleniyor.",
+                "Başvuru alındı; admin onayı bekleniyor.",
             RegisterRequestStatus.Approved =>
                 "Başvuru onaylandı; aktivasyon adımına geçebilirsiniz (key teslim linki mail ile iletildi).",
             RegisterRequestStatus.Rejected =>

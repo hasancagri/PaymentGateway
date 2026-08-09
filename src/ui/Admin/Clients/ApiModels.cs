@@ -84,7 +84,6 @@ public class RegisterRequestListItem
     public string Domain { get; set; } = string.Empty;
     public string LegalName { get; set; } = string.Empty;
     public string ContactEmail { get; set; } = string.Empty;
-    public string ChallengeResult { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedTime { get; set; }
 }

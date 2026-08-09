@@ -10,119 +10,39 @@ public class RegisterRequestTests
         MerchantDescriptor.Create("1.0", "shop.example.com", "Örnek A.Ş.", "1234567890",
             "onboarding@example.com", "https://shop.example.com/webhook", null).Data!;
 
-    private static RegisterRequest AwaitingRequest() =>
-        RegisterRequest.CreateAwaiting("shop.example.com", ValidDescriptor()).Data!;
+    private static RegisterRequest PendingRequest() =>
+        RegisterRequest.CreatePending("shop.example.com", ValidDescriptor()).Data!;
 
-    // Challenge geçmiş (Pending) talep — VerifyChallenge doğru değerle çağrılır.
-    private static RegisterRequest PendingRequest()
-    {
-        var req = AwaitingRequest();
-        req.VerifyChallenge(req.ChallengeExpectedValue, DateTime.UtcNow);
-        return req;
-    }
-
-    // --- CreateAwaiting + challenge (015: DomainControlChallengeTests'ten taşındı) ---
+    // --- CreatePending (challenge yok — descriptor doğrulanınca doğrudan Pending) ---
 
     [Fact]
-    public void CreateAwaiting_AwaitingDomainControl_ve_challenge_uretir()
-    {
-        var req = AwaitingRequest();
-
-        Assert.Equal(RegisterRequestStatus.AwaitingDomainControl, req.Status);
-        Assert.Equal(ChallengeOutcome.Pending, req.ChallengeResult);
-        Assert.False(string.IsNullOrWhiteSpace(req.ChallengeToken));
-        Assert.False(string.IsNullOrWhiteSpace(req.ChallengeExpectedValue));
-        Assert.Equal("shop.example.com", req.Domain);
-        Assert.Equal("Örnek A.Ş.", req.LegalName);
-    }
-
-    [Fact]
-    public void CreateAwaiting_domain_normalize_edilir()
-    {
-        var req = RegisterRequest.CreateAwaiting("  SHOP.Example.COM ", ValidDescriptor()).Data!;
-
-        Assert.Equal("shop.example.com", req.Domain);
-    }
-
-    [Fact]
-    public void VerifyChallenge_dogru_deger_Passed_ve_Pending()
-    {
-        var req = AwaitingRequest();
-
-        var outcome = req.VerifyChallenge(req.ChallengeExpectedValue, DateTime.UtcNow).Data!;
-
-        Assert.Equal(ChallengeOutcome.Passed, outcome);
-        Assert.Equal(RegisterRequestStatus.Pending, req.Status);
-    }
-
-    [Fact]
-    public void VerifyChallenge_yanlis_deger_Failed_ve_AwaitingDomainControl_kalir()
-    {
-        var req = AwaitingRequest();
-
-        var outcome = req.VerifyChallenge("yanlis", DateTime.UtcNow).Data!;
-
-        Assert.Equal(ChallengeOutcome.Failed, outcome);
-        Assert.Equal(RegisterRequestStatus.AwaitingDomainControl, req.Status);
-    }
-
-    [Fact]
-    public void VerifyChallenge_null_deger_Failed()
-    {
-        var req = AwaitingRequest();
-
-        Assert.Equal(ChallengeOutcome.Failed, req.VerifyChallenge(null, DateTime.UtcNow).Data!);
-    }
-
-    [Fact]
-    public void VerifyChallenge_sure_dolmus_Expired()
-    {
-        var req = AwaitingRequest();
-
-        var outcome = req.VerifyChallenge(
-            req.ChallengeExpectedValue, DateTime.UtcNow.AddHours(RegisterRequest.ChallengeTtlHours + 1)).Data!;
-
-        Assert.Equal(ChallengeOutcome.Expired, outcome);
-        Assert.Equal(RegisterRequestStatus.AwaitingDomainControl, req.Status);
-    }
-
-    [Fact]
-    public void VerifyChallenge_Passed_sonrasi_tekrar_Passed_doner()
+    public void CreatePending_Pending_statusunde_dogar()
     {
         var req = PendingRequest();
 
-        // Tek-kullanım idempotent: tekrar Verify durumu değiştirmez, Passed sabit kalır.
-        var again = req.VerifyChallenge("baska", DateTime.UtcNow).Data!;
-
-        Assert.Equal(ChallengeOutcome.Passed, again);
         Assert.Equal(RegisterRequestStatus.Pending, req.Status);
+        Assert.Equal("shop.example.com", req.Domain);
+        Assert.Equal("Örnek A.Ş.", req.LegalName);
+        Assert.Equal("1234567890", req.TaxId);
     }
 
     [Fact]
-    public void IssueChallenge_yeni_token_ve_deger_uretir()
+    public void CreatePending_domain_normalize_edilir()
     {
-        var req = AwaitingRequest();
-        var oldToken = req.ChallengeToken;
-        var oldValue = req.ChallengeExpectedValue;
+        var req = RegisterRequest.CreatePending("  SHOP.Example.COM ", ValidDescriptor()).Data!;
 
-        req.IssueChallenge(DateTime.UtcNow);
+        Assert.Equal("shop.example.com", req.Domain);
+    }
 
-        Assert.NotEqual(oldToken, req.ChallengeToken);
-        Assert.NotEqual(oldValue, req.ChallengeExpectedValue);
-        Assert.Equal(ChallengeOutcome.Pending, req.ChallengeResult);
+    [Fact]
+    public void CreatePending_bos_domain_reddedilir()
+    {
+        var req = RegisterRequest.CreatePending("  ", ValidDescriptor());
+
+        Assert.False(req.IsSuccess);
     }
 
     // --- Karar kapıları (Approve/Reject) ---
-
-    [Fact]
-    public void Approve_AwaitingDomainControl_talepte_RET()
-    {
-        var req = AwaitingRequest();
-
-        var approve = req.Approve(Guid.NewGuid(), null);
-
-        Assert.False(approve.IsSuccess);
-    }
 
     [Fact]
     public void Approve_yalniz_Pending_calisir_ve_merchant_baglar()

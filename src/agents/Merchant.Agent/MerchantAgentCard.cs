@@ -12,8 +12,8 @@ public static class MerchantAgentCard
     public static AgentCard Create(string agentUrl) => new()
     {
         Name = "MerchantAgent",
-        Description = "Merchant adaylarının gateway'e kayıt başvurusunu A2A ile alır; alan adı " +
-                      "sahipliğini doğrular. Komisyon/pazarlık bu sürümde YOK.",
+        Description = "Merchant adaylarının gateway'e kayıt başvurusunu A2A ile alır; başvuru admin " +
+                      "onayı bekler. Komisyon/pazarlık bu sürümde YOK.",
         Version = "0.1.0",
         DefaultInputModes = ["text"],
         DefaultOutputModes = ["text"],
@@ -29,8 +29,8 @@ public static class MerchantAgentCard
                 Id = "register",
                 Name = "Gateway'e kayıt başvurusu yap",
                 Description = "Aday alan adıyla (domain) gateway'e kayıt başvurusu başlatır: descriptor " +
-                              "okunur, alan adı sahipliği domain-control challenge ile doğrulanır ve " +
-                              "başvuru (RegisterRequest) oluşturulur. Kimlik/sır KABUL ETMEZ.",
+                              "okunur/doğrulanır ve başvuru (RegisterRequest) Pending olarak oluşturulur; " +
+                              "admin onayı bekler. Kimlik/sır KABUL ETMEZ.",
                 Tags = ["merchant", "onboarding", "register"],
                 Examples = ["shop.example.com sitemle gateway'inize kayıt olmak istiyorum"]
             },

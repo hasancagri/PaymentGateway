@@ -5,12 +5,11 @@ namespace Merchant.Api.Domains.RegisterRequests.Features.Agent;
 
 /// <summary>
 /// US1 — merchant adayı başvurusu. Aday, gateway'e sabit bir <b>descriptor linki</b> verir; gateway
-/// o linki okur (descriptor doğrula), alan adı sahipliğini <b>domain-control challenge</b> ile doğrular.
-/// 015: challenge artık ayrı aggregate değil, <see cref="RegisterRequest"/>'in alanıdır — talep challenge
-/// geçmeden ÖNCE <see cref="RegisterRequestStatus.AwaitingDomainControl"/> statüsünde doğar, kanıt geçince
-/// aynı talep <see cref="RegisterRequestStatus.Pending"/>'e ilerler ve admin'e bildirim maili gider.
+/// o linki okur (descriptor doğrula) ve başvuruyu doğrudan <see cref="RegisterRequestStatus.Pending"/>
+/// statüsünde oluşturur; admin'e bildirim maili gider. Domain-control challenge KALDIRILDI — sahiplik/
+/// uygunluk denetimi admin'in insan incelemesidir (descriptor'daki legalName/taxId/contactEmail).
 /// Merchant OLUŞMAZ (onayla doğar). Mükerrer koruma (FR-020): aynı domain için Pending/Approved talep
-/// varsa yeni açılmaz; AwaitingDomainControl varsa YENİDEN KULLANILIR (yeni talep açılmaz).
+/// varsa yeni açılmaz.
 /// </summary>
 public static class SubmitRegistrationForAgent
 {
@@ -18,14 +17,11 @@ public static class SubmitRegistrationForAgent
 
     public class SubmitRegistrationResponse
     {
-        /// <summary>"Pending" (talep Pending'e geçti) veya "ChallengeRequired" (aday değeri yayınlamalı).</summary>
+        /// <summary>Başarıda "Pending" (talep admin onayı bekler).</summary>
         public string Status { get; set; } = string.Empty;
 
-        /// <summary>015: artık ChallengeRequired'da da dolu — ECommerce "benim sürecim" korelasyon referansı.</summary>
+        /// <summary>ECommerce "benim sürecim" korelasyon referansı.</summary>
         public Guid? RequestId { get; set; }
-        public string? Token { get; set; }
-        public string? ExpectedValue { get; set; }
-        public string? PublishPath { get; set; }
         public string? Message { get; set; }
     }
 
@@ -33,7 +29,7 @@ public static class SubmitRegistrationForAgent
     public class SubmitRegistrationCommandHandler
     {
         // Dev: aday site (ECommerce) https self-signed dev cert kullanır → sertifikayı doğrulama
-        // (yalnız descriptor/challenge okuması; prod'da gerçek cert). Timeout kısa.
+        // (yalnız descriptor okuması; prod'da gerçek cert). Timeout kısa.
         private static readonly HttpClient Http = new(new HttpClientHandler
         {
             ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
@@ -66,67 +62,30 @@ public static class SubmitRegistrationForAgent
                 ? descriptorUri.Authority.ToLowerInvariant()
                 : descriptor.Domain;
 
-            // 2) Aynı domain için aktif talep (015): Pending/Approved varsa mükerrer RET (FR-020);
-            //    AwaitingDomainControl varsa yeniden kullan; yoksa yeni AwaitingDomainControl talebi doğur.
-            var existing = await session.Query<RegisterRequest>()
+            // 2) Aynı domain için aktif talep (Pending/Approved) varsa mükerrer RET (FR-020).
+            //    Rejected talep yeniden başvuruya engel değildir.
+            var duplicate = await session.Query<RegisterRequest>()
                 .Where(r => r.Domain == domain &&
-                            (r.Status == RegisterRequestStatus.AwaitingDomainControl ||
-                             r.Status == RegisterRequestStatus.Pending ||
+                            (r.Status == RegisterRequestStatus.Pending ||
                              r.Status == RegisterRequestStatus.Approved))
-                .OrderByDescending(r => r.CreatedTime)
-                .FirstOrDefaultAsync(ct);
+                .AnyAsync(ct);
 
-            if (existing is not null && existing.Status != RegisterRequestStatus.AwaitingDomainControl)
+            if (duplicate)
                 return FeatureObjectResultModel<SubmitRegistrationResponse>.Error(new MessageItem
                 {
                     Property = nameof(domain),
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_DUPLICATE
                 });
 
-            RegisterRequest request;
-            if (existing is not null)
-            {
-                request = existing;
-            }
-            else
-            {
-                var created = RegisterRequest.CreateAwaiting(domain, descriptor, cmd.ExternalRef);
-                if (!created.IsSuccess)
-                    return FeatureObjectResultModel<SubmitRegistrationResponse>.Error(created.Messages);
-                request = created.Data!;
-            }
+            // 3) Talep doğrudan Pending doğar; admin onayı bekler.
+            var created = RegisterRequest.CreatePending(domain, descriptor, cmd.ExternalRef);
+            if (!created.IsSuccess)
+                return FeatureObjectResultModel<SubmitRegistrationResponse>.Error(created.Messages);
 
-            // 3) Challenge bileti süresi dolmuşsa (ve henüz geçmemişse) aynı talep üzerinde yenile.
-            if (request.ChallengeResult != ChallengeOutcome.Passed && DateTime.UtcNow > request.ChallengeExpiresAtUtc)
-                request.IssueChallenge(DateTime.UtcNow);
+            var request = created.Data!;
+            session.Store(request);
 
-            // 4) Adayın yayınladığı değeri aynı origin'deki challenge yolundan çek + doğrula.
-            var challengeUrl = $"{descriptorUri.Scheme}://{descriptorUri.Authority}" +
-                               $"/.well-known/merchant-challenge/{request.ChallengeToken}";
-            var fetched = await FetchChallengeValueAsync(challengeUrl, ct);
-            var verifyResult = request.VerifyChallenge(fetched, DateTime.UtcNow);
-            var outcome = verifyResult.Data!;
-
-            session.Store(request); // Store = upsert (yeni talep Update'te NonExistentDocument verirdi)
-
-            if (outcome != ChallengeOutcome.Passed)
-            {
-                // Aday henüz yayınlamadı → değeri döndür, yayınlayınca tekrar çağırsın (FR-003).
-                // 015: talep artık kalıcı → RequestId de döner (ECommerce "sürecim ne oldu?" ile takip eder).
-                return FeatureObjectResultModel<SubmitRegistrationResponse>.Ok(new SubmitRegistrationResponse
-                {
-                    Status = "ChallengeRequired",
-                    RequestId = request.Id,
-                    Token = request.ChallengeToken,
-                    ExpectedValue = request.ChallengeExpectedValue,
-                    PublishPath = $"/.well-known/merchant-challenge/{request.ChallengeToken}",
-                    Message = outcome == ChallengeOutcome.Expired
-                        ? "Bilet süresi doldu; yeni değeri yayınlayıp tekrar başvurun."
-                        : "Belirtilen yola beklenen değeri yayınlayıp başvuruyu tekrarlayın."
-                });
-            }
-
-            // 5) Kanıt geçti → talep artık Pending (VerifyChallenge içinde geçti) + admin bildirim maili.
+            // 4) Admin'e "yeni başvuru" bildirim maili.
             await NotifyAdminAsync(mail, config, logger, domain, request.Id, ct);
 
             return FeatureObjectResultModel<SubmitRegistrationResponse>.Ok(new SubmitRegistrationResponse
@@ -137,8 +96,7 @@ public static class SubmitRegistrationForAgent
             });
         }
 
-        // --- Admin "yeni başvuru" bildirim maili (FR-005). 015: ayrı durum kaydı (OnboardingNotification)
-        // TUTULMAZ — mail best-effort, sonuç ILogger ile loglanır; başarısızlık akışı kesmez.
+        // --- Admin "yeni başvuru" bildirim maili (FR-005). Mail best-effort; başarısızlık akışı kesmez.
         private static async Task NotifyAdminAsync(
             IMailSender mail, IConfiguration config,
             ILogger logger, string domain, Guid requestId, CancellationToken ct)
@@ -182,19 +140,6 @@ public static class SubmitRegistrationForAgent
             catch
             {
                 return DescriptorError();
-            }
-        }
-
-        private static async Task<string?> FetchChallengeValueAsync(string url, CancellationToken ct)
-        {
-            try
-            {
-                using var resp = await Http.GetAsync(url, ct);
-                return resp.IsSuccessStatusCode ? (await resp.Content.ReadAsStringAsync(ct)).Trim() : null;
-            }
-            catch
-            {
-                return null;
             }
         }
 
