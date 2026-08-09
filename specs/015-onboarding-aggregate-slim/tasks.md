@@ -27,7 +27,7 @@ Bu kural her `[US*]` kod görevinin tamamlanma koşuludur; ayrıca T021 ile büt
 
 ## Phase 1: Setup
 
-- [ ] T001 Baseline doğrula: `dotnet build` + `dotnet test tests/Merchant.Api.Tests` şu an yeşil mi (refactor öncesi referans); değilse durup nedeni not et.
+- [X] T001 Baseline doğrula: `dotnet build` + `dotnet test tests/Merchant.Api.Tests` şu an yeşil mi (refactor öncesi referans); değilse durup nedeni not et.
 
 ---
 
@@ -43,14 +43,14 @@ Yok. Konsolidasyon story-bazlı ilerler; ortak bloklayan altyapı değişimi ger
 
 **Independent Test**: Başvuru gönder → `RegisterRequest` `AwaitingDomainControl` (token+expected taşır); değeri yayınla+tekrar → aynı talep `Pending`; `DomainControlChallenge` dokümanı yok. (quickstart S1–S4)
 
-- [ ] T002 [P] [US1] `ChallengeOutcome` enum'unu `Domains/DomainControlChallenges/DomainControlChallenge.cs`'ten yeni dosyaya taşı: `Domains/RegisterRequests/ChallengeOutcome.cs` (namespace `Merchant.Api.Domains.RegisterRequests`); `ChallengeStatus` enum'unu TAŞIMA (silinecek). Enum değerlerine kısa Türkçe açıklama yorumu koru.
-- [ ] T003 [US1] `Domains/RegisterRequests/RegisterRequest.cs`: `RegisterRequestStatus`'a `AwaitingDomainControl = 0` ekle (yeni ilk durum — Türkçe yorumla açıkla); challenge alanlarını ekle (`ChallengeToken`, `ChallengeExpectedValue`, `ChallengeExpiresAtUtc`), her birine ne olduğunu belirten XML/satır yorumu.
-- [ ] T004 [US1] `Domains/RegisterRequests/RegisterRequest.cs`: challenge davranışlarını ekle — `CreateAwaiting(string domain, MerchantDescriptor descriptor, string? externalRef)` (AwaitingDomainControl + ilk bilet), `ResultDomain IssueChallenge(DateTime nowUtc)` (süre dolmuşsa yeni token/expected/expiry), `ResultDomain<ChallengeOutcome> VerifyChallenge(string? fetchedValue, DateTime nowUtc)` (eski `DomainControlChallenge.Verify` mantığı; `Passed` → `Status=Pending`). Eski `Create(descriptor, outcome, ...)` fabrikasını kaldır/uyarla. Her metoda XML `<summary>` yaz (invariant + statü geçişi + neden; taşınan açıklamayı yeni akışa göre güncelle).
-- [ ] T005 [US1] `Domains/RegisterRequests/Features/Agent/SubmitRegistration.cs`: challenge'ı `RegisterRequest` üstünden yürüt — descriptor fetch (aynen) → dup kontrol (`AwaitingDomainControl`+`Pending`+`Approved`) → aynı domain için AwaitingDomainControl talebini BUL veya `CreateAwaiting` ile OLUŞTUR → süre dolmuşsa `IssueChallenge` → challenge değerini fetch et → `VerifyChallenge` → `Passed` değilse `ChallengeRequired` yanıtı (artık `RequestId` DOLU) → `Passed`'de talep zaten `Pending`. `DomainControlChallenge` `session.Store` çağrılarını kaldır. Numaralı satır-içi yorumları yeni akışa göre güncelle; sınıf `<summary>`'sini "challenge artık request alanı" olacak şekilde düzelt.
-- [ ] T006 [US1] `Domains/RegisterRequests/Features/Agent/RegistrationStatus.cs`: `RegistrationStatusResponse`'a `Message` (Türkçe metin) alanı ekle; `AwaitingDomainControl` dâhil güncel durumu + sıradaki adımı metinle döndür (on-demand "sürecim ne oldu?"). Yeni davranışı `<summary>` ile açıkla.
-- [ ] T007 [P] [US1] `McpTools/MerchantOnboardingMcpTools.cs`: `submit_registration` + `registration_status` `[Description]` metinlerini güncelle (AwaitingDomainControl + RequestId + on-demand metin; `get_merchant` değişmez).
-- [ ] T008 [US1] `Domains/DomainControlChallenges/` klasörünü tümüyle SİL (aggregate + `ChallengeStatus`/`ChallengeOutcome` eski konumu). Ölü `using`/referansları temizle (özellikle SubmitRegistration + RegisterRequest).
-- [ ] T009 [P] [US1] `tests/Merchant.Api.Tests/DomainControlChallengeTests.cs` içeriğini `RegisterRequestTests.cs`'e uyarla (Verify Passed/Failed/Expired + AwaitingDomainControl→Pending geçişi + IssueChallenge yeniden-üretim); eski test dosyasını sil.
+- [X] T002 [P] [US1] `ChallengeOutcome` enum'unu `Domains/DomainControlChallenges/DomainControlChallenge.cs`'ten yeni dosyaya taşı: `Domains/RegisterRequests/ChallengeOutcome.cs` (namespace `Merchant.Api.Domains.RegisterRequests`); `ChallengeStatus` enum'unu TAŞIMA (silinecek). Enum değerlerine kısa Türkçe açıklama yorumu koru.
+- [X] T003 [US1] `Domains/RegisterRequests/RegisterRequest.cs`: `RegisterRequestStatus`'a `AwaitingDomainControl = 0` ekle (yeni ilk durum — Türkçe yorumla açıkla); challenge alanlarını ekle (`ChallengeToken`, `ChallengeExpectedValue`, `ChallengeExpiresAtUtc`), her birine ne olduğunu belirten XML/satır yorumu.
+- [X] T004 [US1] `Domains/RegisterRequests/RegisterRequest.cs`: challenge davranışlarını ekle — `CreateAwaiting(string domain, MerchantDescriptor descriptor, string? externalRef)` (AwaitingDomainControl + ilk bilet), `ResultDomain IssueChallenge(DateTime nowUtc)` (süre dolmuşsa yeni token/expected/expiry), `ResultDomain<ChallengeOutcome> VerifyChallenge(string? fetchedValue, DateTime nowUtc)` (eski `DomainControlChallenge.Verify` mantığı; `Passed` → `Status=Pending`). Eski `Create(descriptor, outcome, ...)` fabrikasını kaldır/uyarla. Her metoda XML `<summary>` yaz (invariant + statü geçişi + neden; taşınan açıklamayı yeni akışa göre güncelle).
+- [X] T005 [US1] `Domains/RegisterRequests/Features/Agent/SubmitRegistration.cs`: challenge'ı `RegisterRequest` üstünden yürüt — descriptor fetch (aynen) → dup kontrol (`AwaitingDomainControl`+`Pending`+`Approved`) → aynı domain için AwaitingDomainControl talebini BUL veya `CreateAwaiting` ile OLUŞTUR → süre dolmuşsa `IssueChallenge` → challenge değerini fetch et → `VerifyChallenge` → `Passed` değilse `ChallengeRequired` yanıtı (artık `RequestId` DOLU) → `Passed`'de talep zaten `Pending`. `DomainControlChallenge` `session.Store` çağrılarını kaldır. Numaralı satır-içi yorumları yeni akışa göre güncelle; sınıf `<summary>`'sini "challenge artık request alanı" olacak şekilde düzelt.
+- [X] T006 [US1] `Domains/RegisterRequests/Features/Agent/RegistrationStatus.cs`: `RegistrationStatusResponse`'a `Message` (Türkçe metin) alanı ekle; `AwaitingDomainControl` dâhil güncel durumu + sıradaki adımı metinle döndür (on-demand "sürecim ne oldu?"). Yeni davranışı `<summary>` ile açıkla.
+- [X] T007 [P] [US1] `McpTools/MerchantOnboardingMcpTools.cs`: `submit_registration` + `registration_status` `[Description]` metinlerini güncelle (AwaitingDomainControl + RequestId + on-demand metin; `get_merchant` değişmez).
+- [X] T008 [US1] `Domains/DomainControlChallenges/` klasörünü tümüyle SİL (aggregate + `ChallengeStatus`/`ChallengeOutcome` eski konumu). Ölü `using`/referansları temizle (özellikle SubmitRegistration + RegisterRequest).
+- [X] T009 [P] [US1] `tests/Merchant.Api.Tests/DomainControlChallengeTests.cs` içeriğini `RegisterRequestTests.cs`'e uyarla (Verify Passed/Failed/Expired + AwaitingDomainControl→Pending geçişi + IssueChallenge yeniden-üretim); eski test dosyasını sil.
 
 **Checkpoint US1**: `dotnet build` 0 hata; challenge testleri RegisterRequest üstünde yeşil; quickstart S1–S4 canlı geçer.
 
@@ -62,11 +62,11 @@ Yok. Konsolidasyon story-bazlı ilerler; ortak bloklayan altyapı değişimi ger
 
 **Independent Test**: Talebi onayla → merchant Provisioning + `ActivationToken`/`ExpiresAt` dolu; redeem → key bir kez döner, ikinci redeem RET; `ActivationTicket` dokümanı yok. (quickstart S5–S6)
 
-- [ ] T010 [US2] `Domains/Merchants/Merchant.cs`: aktivasyon alanlarını ekle (`ActivationToken`, `ActivationExpiresAtUtc`, `ActivationRedeemedAtUtc` — her birine Türkçe alan yorumu); `void IssueActivation(DateTime nowUtc)` (token Guid"N" + 24h) ve `ResultDomain RedeemActivation(DateTime nowUtc)` (tek-kullanım + TTL; başarıda redeemed işaretle + `Provision()` etkisi). `Provision()`'ı redeem'e katla veya private yardımcıya indir. Her metoda XML `<summary>` (invariant + neden).
-- [ ] T011 [US2] `RedeemActivation.cs`'i `Domains/ActivationTickets/Features/Commands/` konumundan `Domains/Merchants/Features/Commands/RedeemActivation.cs`'e taşı; handler `ActivationTicket` sorgusu yerine `Merchant`'ı `ActivationToken` ile bulsun → `merchant.RedeemActivation(now)` → başarıda `MerchantProvisioned` yayınla, `MerchantKey` bir kez döndür. Endpoint (`/activation/redeem`, `AdminPlaneOnly`+`merchant.write`) + `Produces` aynen korunur. Sınıf `<summary>` + satır-içi yorumları yeni akışa (Merchant üstünden redeem) göre güncelle.
-- [ ] T012 [US2] `Domains/RegisterRequests/Features/Commands/ApproveRegisterRequest.cs`: `ActivationTicket.Issue(merchant.Id)` + `session.Store(ticket)` yerine `merchant.IssueActivation(DateTime.UtcNow)`; aktivasyon mailindeki `activationToken` artık `merchant.ActivationToken`'dan gelir. `ActivationTicket` `using`/referanslarını kaldır. İlgili numaralı yorumu ("3) Aktivasyon bileti + link") güncelle.
-- [ ] T013 [US2] `Domains/ActivationTickets/` klasörünü tümüyle SİL (aggregate + `ActivationTicketStatus` + eski Features konumu). Ölü referansları temizle.
-- [ ] T014 [P] [US2] `tests/Merchant.Api.Tests/ActivationTicketTests.cs` içeriğini `MerchantTests.cs`'e uyarla (IssueActivation + RedeemActivation tek-kullanım/TTL/başarı → Provision); eski test dosyasını sil.
+- [X] T010 [US2] `Domains/Merchants/Merchant.cs`: aktivasyon alanlarını ekle (`ActivationToken`, `ActivationExpiresAtUtc`, `ActivationRedeemedAtUtc` — her birine Türkçe alan yorumu); `void IssueActivation(DateTime nowUtc)` (token Guid"N" + 24h) ve `ResultDomain RedeemActivation(DateTime nowUtc)` (tek-kullanım + TTL; başarıda redeemed işaretle + `Provision()` etkisi). `Provision()`'ı redeem'e katla veya private yardımcıya indir. Her metoda XML `<summary>` (invariant + neden).
+- [X] T011 [US2] `RedeemActivation.cs`'i `Domains/ActivationTickets/Features/Commands/` konumundan `Domains/Merchants/Features/Commands/RedeemActivation.cs`'e taşı; handler `ActivationTicket` sorgusu yerine `Merchant`'ı `ActivationToken` ile bulsun → `merchant.RedeemActivation(now)` → başarıda `MerchantProvisioned` yayınla, `MerchantKey` bir kez döndür. Endpoint (`/activation/redeem`, `AdminPlaneOnly`+`merchant.write`) + `Produces` aynen korunur. Sınıf `<summary>` + satır-içi yorumları yeni akışa (Merchant üstünden redeem) göre güncelle.
+- [X] T012 [US2] `Domains/RegisterRequests/Features/Commands/ApproveRegisterRequest.cs`: `ActivationTicket.Issue(merchant.Id)` + `session.Store(ticket)` yerine `merchant.IssueActivation(DateTime.UtcNow)`; aktivasyon mailindeki `activationToken` artık `merchant.ActivationToken`'dan gelir. `ActivationTicket` `using`/referanslarını kaldır. İlgili numaralı yorumu ("3) Aktivasyon bileti + link") güncelle.
+- [X] T013 [US2] `Domains/ActivationTickets/` klasörünü tümüyle SİL (aggregate + `ActivationTicketStatus` + eski Features konumu). Ölü referansları temizle.
+- [X] T014 [P] [US2] `tests/Merchant.Api.Tests/ActivationTicketTests.cs` içeriğini `MerchantTests.cs`'e uyarla (IssueActivation + RedeemActivation tek-kullanım/TTL/başarı → Provision); eski test dosyasını sil.
 
 **Checkpoint US2**: `dotnet build` 0 hata; aktivasyon testleri Merchant üstünde yeşil; quickstart S5–S7 canlı geçer.
 
@@ -80,9 +80,9 @@ Yok. Konsolidasyon story-bazlı ilerler; ortak bloklayan altyapı değişimi ger
 
 **Bağımlılık**: US1 (SubmitRegistration) + US2 (ApproveRegisterRequest) aynı handler'lara dokunur → US3 onlardan SONRA.
 
-- [ ] T015 [US3] `Domains/RegisterRequests/Features/Agent/SubmitRegistration.cs` `NotifyAdminAsync`: `OnboardingNotification.Create/MarkSent/MarkFailed` + `session.Store(notification)` kaldır; yalnız `mail.SendAsync` + sonuç `ILogger` (başarısızlıkta `LogWarning`). Mail best-effort — bunu yorumla belirt (akış kesilmez).
-- [ ] T016 [US3] `Domains/RegisterRequests/Features/Commands/ApproveRegisterRequest.cs` `SendActivationMailAsync`: aynı şekilde `OnboardingNotification`'ı kaldır, yalnız gönder + logla; yorumu güncelle.
-- [ ] T017 [US3] `Domains/OnboardingNotifications/` klasörünü tümüyle SİL (aggregate + `NotificationKind`/`NotificationStatus`). Ölü `using Merchant.Api.Domains.OnboardingNotifications;` referanslarını (Submit + Approve) temizle.
+- [X] T015 [US3] `Domains/RegisterRequests/Features/Agent/SubmitRegistration.cs` `NotifyAdminAsync`: `OnboardingNotification.Create/MarkSent/MarkFailed` + `session.Store(notification)` kaldır; yalnız `mail.SendAsync` + sonuç `ILogger` (başarısızlıkta `LogWarning`). Mail best-effort — bunu yorumla belirt (akış kesilmez).
+- [X] T016 [US3] `Domains/RegisterRequests/Features/Commands/ApproveRegisterRequest.cs` `SendActivationMailAsync`: aynı şekilde `OnboardingNotification`'ı kaldır, yalnız gönder + logla; yorumu güncelle.
+- [X] T017 [US3] `Domains/OnboardingNotifications/` klasörünü tümüyle SİL (aggregate + `NotificationKind`/`NotificationStatus`). Ölü `using Merchant.Api.Domains.OnboardingNotifications;` referanslarını (Submit + Approve) temizle.
 
 **Checkpoint US3**: `dotnet build` 0 hata; `OnboardingNotification` referansı kalmadı.
 
@@ -90,10 +90,10 @@ Yok. Konsolidasyon story-bazlı ilerler; ortak bloklayan altyapı değişimi ger
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T018 Yapısal doğrulama: `grep -rlE "class .*: AggregateRoot" src/services/Merchant.Api/Domains` yalnız `RegisterRequest.cs` + `Merchant.cs` + `MerchantSettlementAccount.cs` döner; silinen 3 klasör yok (SC-001).
-- [ ] T019 `dotnet build` 0 hata + `dotnet test tests/Merchant.Api.Tests` tümü yeşil (ölü kod/referans yok) (SC-004).
+- [X] T018 Yapısal doğrulama: `grep -rlE "class .*: AggregateRoot" src/services/Merchant.Api/Domains` yalnız `RegisterRequest.cs` + `Merchant.cs` + `MerchantSettlementAccount.cs` döner; silinen 3 klasör yok (SC-001).
+- [X] T019 `dotnet build` 0 hata + `dotnet test tests/Merchant.Api.Tests` tümü yeşil (ölü kod/referans yok) (SC-004).
 - [ ] T020 Aspire ile canlı quickstart S1–S9 (özellikle S3 aynı-talep Pending, S6 ikinci-redeem RET, S7 TryActivate→Active, S9 notification yok) elle doğrula (SC-003); `MerchantProvisioned` + `MerchantStatusChanged(Active)` consumer log'unda "Successfully processed", "No known handler" yok.
-- [ ] T021 Dokümantasyon geçişi: eklenen/taşınan her aggregate metodu (`CreateAwaiting`/`IssueChallenge`/`VerifyChallenge`/`IssueActivation`/`RedeemActivation`) XML `<summary>` taşıyor; yeniden yazılan handler adımları (SubmitRegistration/RedeemActivation/ApproveRegisterRequest) güncel Türkçe yorumlu; taşınan eski açıklamalarda artık geçersiz ifade ("RegisterRequest'ten ÖNCE yaşar", "ayrı bilet" vb.) kalmadı.
+- [X] T021 Dokümantasyon geçişi: eklenen/taşınan her aggregate metodu (`CreateAwaiting`/`IssueChallenge`/`VerifyChallenge`/`IssueActivation`/`RedeemActivation`) XML `<summary>` taşıyor; yeniden yazılan handler adımları (SubmitRegistration/RedeemActivation/ApproveRegisterRequest) güncel Türkçe yorumlu; taşınan eski açıklamalarda artık geçersiz ifade ("RegisterRequest'ten ÖNCE yaşar", "ayrı bilet" vb.) kalmadı.
 
 ---
 

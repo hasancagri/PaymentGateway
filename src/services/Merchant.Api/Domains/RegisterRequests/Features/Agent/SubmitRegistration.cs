@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Common.Mail;
-using Merchant.Api.Domains.OnboardingNotifications;
 
 namespace Merchant.Api.Domains.RegisterRequests.Features.Agent;
 
@@ -128,7 +127,7 @@ public static class SubmitRegistration
             }
 
             // 5) Kanıt geçti → talep artık Pending (VerifyChallenge içinde geçti) + admin bildirim maili.
-            await NotifyAdminAsync(session, mail, config, logger, domain, request.Id, ct);
+            await NotifyAdminAsync(mail, config, logger, domain, request.Id, ct);
 
             return FeatureObjectResultModel<SubmitRegistrationResponse>.Ok(new SubmitRegistrationResponse
             {
@@ -138,9 +137,10 @@ public static class SubmitRegistration
             });
         }
 
-        // --- Admin "yeni başvuru" bildirim maili (FR-005/019) — OnboardingNotification kaydına yansır.
+        // --- Admin "yeni başvuru" bildirim maili (FR-005). 015: ayrı durum kaydı (OnboardingNotification)
+        // TUTULMAZ — mail best-effort, sonuç ILogger ile loglanır; başarısızlık akışı kesmez.
         private static async Task NotifyAdminAsync(
-            IDocumentSession session, IMailSender mail, IConfiguration config,
+            IMailSender mail, IConfiguration config,
             ILogger logger, string domain, Guid requestId, CancellationToken ct)
         {
             var adminEmail = config["Onboarding:AdminNotificationEmail"] ?? "admin@dropshop.local";
@@ -148,18 +148,9 @@ public static class SubmitRegistration
             var body = $"'{domain}' alan adı için yeni bir kayıt başvurusu alındı (talep {requestId}). " +
                        "Admin panelinden inceleyip onaylayın/reddedin.";
 
-            var notification = OnboardingNotification.Create(NotificationKind.AdminNewRequest, adminEmail, subject).Data!;
-
             var send = await mail.SendAsync(adminEmail, subject, body, ct: ct);
-            if (send.IsSuccess)
-                notification.MarkSent();
-            else
-            {
-                notification.MarkFailed("Mail.Mcp send_email başarısız");
+            if (!send.IsSuccess)
                 logger.LogWarning("Admin bildirim maili gönderilemedi: {Domain}", domain);
-            }
-
-            session.Store(notification);
         }
 
         private static async Task<ResultDomain<MerchantDescriptor>> FetchDescriptorAsync(

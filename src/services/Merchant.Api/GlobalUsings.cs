@@ -18,7 +18,6 @@ global using Wolverine.Attributes;
 global using Wolverine.Marten;
 global using Common.Exceptions;
 global using Common.Extensions;
-global using Merchant.Api.Domains.OnboardingNotifications;
 global using Merchant.Api.Domains.RegisterRequests.ValueObjects;
 global using Merchant.Api.ReadModels;
 global using Shared;

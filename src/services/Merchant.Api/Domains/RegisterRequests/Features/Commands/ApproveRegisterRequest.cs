@@ -1,6 +1,5 @@
 using Common.Mail;
 using Merchant.Api.Domains.Merchants;
-using Merchant.Api.Domains.OnboardingNotifications;
 using MerchantAggregate = Merchant.Api.Domains.Merchants.Merchant;
 
 namespace Merchant.Api.Domains.RegisterRequests.Features.Commands;
@@ -57,8 +56,8 @@ public static class ApproveRegisterRequest
             session.Store(merchant);
             session.Update(request);
 
-            // 4) Aktivasyon maili (deterministik) → contactEmail; token merchant.ActivationToken'dan (FR-019).
-            await SendActivationMailAsync(session, mail, config, logger, request.ContactEmail, merchant.Id, merchant.ActivationToken, ct);
+            // 4) Aktivasyon maili (deterministik) → contactEmail; token merchant.ActivationToken'dan.
+            await SendActivationMailAsync(mail, config, logger, request.ContactEmail, merchant.Id, merchant.ActivationToken, ct);
 
             return FeatureObjectResultModel<ApproveRegisterRequestResponse>.Ok(new ApproveRegisterRequestResponse
             {
@@ -67,8 +66,9 @@ public static class ApproveRegisterRequest
             });
         }
 
+        // 015: ayrı durum kaydı (OnboardingNotification) TUTULMAZ — mail best-effort, sonuç ILogger ile loglanır.
         private static async Task SendActivationMailAsync(
-            IDocumentSession session, IMailSender mail, IConfiguration config, ILogger logger,
+            IMailSender mail, IConfiguration config, ILogger logger,
             string contactEmail, Guid merchantId, string activationToken, CancellationToken ct)
         {
             var baseUrl = config["Onboarding:ActivationBaseUrl"] ?? "https://localhost:5101/activation";
@@ -77,18 +77,9 @@ public static class ApproveRegisterRequest
             var body = "Başvurunuz onaylandı. Aşağıdaki tek kullanımlık linkten hesabınızı etkinleştirip " +
                        $"MerchantKey'inizi (yalnız bir kez gösterilir) alın:\n{link}";
 
-            var notification = OnboardingNotification.Create(NotificationKind.Activation, contactEmail, subject, merchantId).Data!;
-
             var send = await mail.SendAsync(contactEmail, subject, body, ct: ct);
-            if (send.IsSuccess)
-                notification.MarkSent();
-            else
-            {
-                notification.MarkFailed("Mail.Mcp send_email başarısız");
+            if (!send.IsSuccess)
                 logger.LogWarning("Aktivasyon maili gönderilemedi: {MerchantId}", merchantId);
-            }
-
-            session.Store(notification);
         }
 
         private static async Task<string> GenerateUniqueMerchantKeyAsync(IDocumentSession session, CancellationToken ct)
