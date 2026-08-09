@@ -5,7 +5,7 @@ namespace Merchant.Api.Domains.RegisterRequests.Features.Agent;
 /// (AwaitingDomainControl) kalıcı olduğundan bu sorgu o durumu da raporlar; <see cref="RegistrationStatusResponse.Message"/>
 /// güncel durumu + sıradaki adımı Türkçe metinle bildirir (ECommerce "sürecim ne oldu?" — on-demand, poll zorunlu değil).
 /// </summary>
-public static class RegistrationStatus
+public static class RegistrationStatusForAgent
 {
     public record RegistrationStatusQuery(string Domain);
 

@@ -18,15 +18,15 @@ public static class SubmitRegistrationMcpTool
                  "challenge geçmeden AwaitingDomainControl olarak doğar ve RequestId döner (takip için); " +
                  "kanıt geçince Pending'e ilerler. Henüz yayınlanmadıysa yayınlanacak değer/yol döner. " +
                  "Kimlik/sır KABUL ETMEZ, merchant OLUŞTURMAZ.")]
-    public static Task<FeatureObjectResultModel<Agent.SubmitRegistration.SubmitRegistrationResponse>>
+    public static Task<FeatureObjectResultModel<Agent.SubmitRegistrationForAgent.SubmitRegistrationResponse>>
         SubmitRegistrationAsync(
             [Description("Adayın descriptor dosyasının tam linki (ör. https://shop/.well-known/merchant-descriptor.json)")]
             string descriptorUrl,
             IMessageBus bus,
             CancellationToken ct,
             [Description("Opsiyonel opak dış referans (aynen saklanır/döner)")] string? externalRef = null)
-        => bus.InvokeAsync<FeatureObjectResultModel<Agent.SubmitRegistration.SubmitRegistrationResponse>>(
-            new Agent.SubmitRegistration.SubmitRegistrationCommand(descriptorUrl, externalRef), ct);
+        => bus.InvokeAsync<FeatureObjectResultModel<Agent.SubmitRegistrationForAgent.SubmitRegistrationResponse>>(
+            new Agent.SubmitRegistrationForAgent.SubmitRegistrationCommand(descriptorUrl, externalRef), ct);
 }
 
 /// <summary>US1 (opsiyonel) — domain için başvuru durumu.</summary>
@@ -37,11 +37,11 @@ public static class RegistrationStatusMcpTool
     [Description("Verilen alan adı (domain) için başvurunun güncel durumunu döner: AwaitingDomainControl / " +
                  "Pending / Approved / Rejected. Durum + sıradaki adım Message metniyle gelir (on-demand " +
                  "'sürecim ne oldu?'; sürekli poll gerekmez).")]
-    public static Task<FeatureObjectResultModel<Agent.RegistrationStatus.RegistrationStatusResponse>>
+    public static Task<FeatureObjectResultModel<Agent.RegistrationStatusForAgent.RegistrationStatusResponse>>
         RegistrationStatusAsync(
             [Description("Aday alan adı (ör. shop.example.com)")] string domain,
             IMessageBus bus,
             CancellationToken ct)
-        => bus.InvokeAsync<FeatureObjectResultModel<Agent.RegistrationStatus.RegistrationStatusResponse>>(
-            new Agent.RegistrationStatus.RegistrationStatusQuery(domain), ct);
+        => bus.InvokeAsync<FeatureObjectResultModel<Agent.RegistrationStatusForAgent.RegistrationStatusResponse>>(
+            new Agent.RegistrationStatusForAgent.RegistrationStatusQuery(domain), ct);
 }

@@ -12,7 +12,7 @@ namespace Merchant.Api.Domains.RegisterRequests.Features.Agent;
 /// Merchant OLUŞMAZ (onayla doğar). Mükerrer koruma (FR-020): aynı domain için Pending/Approved talep
 /// varsa yeni açılmaz; AwaitingDomainControl varsa YENİDEN KULLANILIR (yeni talep açılmaz).
 /// </summary>
-public static class SubmitRegistration
+public static class SubmitRegistrationForAgent
 {
     public record SubmitRegistrationCommand(string DescriptorUrl, string? ExternalRef = null);
 
