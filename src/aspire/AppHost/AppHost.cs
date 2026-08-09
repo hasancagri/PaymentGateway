@@ -43,19 +43,21 @@ builder.AddProject<Projects.Reference_Api>("reference-api")
     .WaitFor(rabbit);
 
 // 013: Mailpit — dev SMTP catch-all (SMTP :1025, web UI :8025). Gerçek adres gerekmez; tüm
-// giden mail tek inbox'ta görünür. Mail.Mcp buraya SMTP ile bağlanır (localhost:1025).
+// giden mail tek inbox'ta görünür. Mail.Worker buraya SMTP ile bağlanır (localhost:1025).
 var mailpit = builder.AddContainer("mailpit", "axllent/mailpit")
     .WithEndpoint(port: 1025, targetPort: 1025, name: "smtp")
     .WithHttpEndpoint(port: 8025, targetPort: 8025, name: "http")
     .WithLifetime(ContainerLifetime.Persistent);
 
-// 013: generic altyapı MCP server'ları (BC değil). Mail.Mcp = send_email (SMTP → Mailpit);
-// Excel.Mcp = generate_spreadsheet (.xlsx). Yüzeyler scope-korumalı (mail.send / document.generate).
-var mailMcp = builder.AddProject<Projects.Mail_Mcp>("mail-mcp")
-    .WithReference(identityServer)
-    .WaitFor(identityServer)
+// 016: Mail.Worker = düz mail projesi (MCP DEĞİL). mail.delivery fanout'unu RabbitMQ ile tüketip
+// SMTP (Mailpit) ile gönderir. Auth yok (HTTP yüzeyi yok); yalnız kuyruk consumer'ı.
+builder.AddProject<Projects.Mail_Worker>("mail-worker")
+    .WithReference(rabbit)
+    .WaitFor(rabbit)
     .WaitFor(mailpit);
 
+// 013: generic altyapı MCP server'ı (BC değil). Excel.Mcp = generate_spreadsheet (.xlsx).
+// Yüzey scope-korumalı (document.generate); yalnız Agent/LLM çağırır.
 builder.AddProject<Projects.Excel_Mcp>("excel-mcp")
     .WithReference(identityServer)
     .WaitFor(identityServer);
@@ -64,11 +66,9 @@ var merchantApi = builder.AddProject<Projects.Merchant_Api>("merchant-api")
     .WithReference(merchantDb)
     .WithReference(rabbit)
     .WithReference(identityServer)
-    .WithReference(mailMcp)
     .WaitFor(merchantDb)
     .WaitFor(rabbit)
-    .WaitFor(identityServer)
-    .WaitFor(mailMcp);
+    .WaitFor(identityServer);
 
 var commissionApi = builder.AddProject<Projects.Commission_Api>("commission-api")
     .WithReference(commissionDb)

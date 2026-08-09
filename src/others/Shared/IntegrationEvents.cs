@@ -29,4 +29,8 @@ public static class IntegrationEvents
     // 013: Commission.Api grid'i finalize edip Ready olunca yayınlar; Merchant.Api tüketir
     // (Active koşulu #2). Sır taşımaz; tek-yön (ready olunca ready kalır).
     public record MerchantCommissionGridReady(Guid MerchantId);
+
+    // 016: deterministik mail gönderimi — BC handler'ı [Transactional] outbox ile yayınlar, Mail.Worker
+    // tüketip SMTP ile gönderir (MCP DEĞİL — yalnız Agent MCP çağırır). Generic (domain sızmaz).
+    public record SendEmailRequested(string To, string Subject, string Body, bool IsHtml = false);
 }

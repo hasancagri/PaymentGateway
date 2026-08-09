@@ -30,4 +30,11 @@ public static class RabbitMqConstants
         public const string Exchange = "merchant.commission";
         public const string MerchantQueue = "merchant.commission-ready";
     }
+
+    // 016: deterministik mail teslim fanout. BC'ler yayınlar; Mail.Worker durable queue ile tüketir (SMTP).
+    public static class MailDelivery
+    {
+        public const string Exchange = "mail.delivery";
+        public const string WorkerQueue = "mail.delivery-send";
+    }
 }

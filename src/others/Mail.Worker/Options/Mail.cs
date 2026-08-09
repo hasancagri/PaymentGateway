@@ -1,4 +1,4 @@
-namespace Mail.Mcp.Options;
+namespace Mail.Worker.Options;
 
 // SMTP ayarları (section Mail:Smtp). Dev varsayılanı Mailpit (host mailpit, port 1025, auth yok).
 public class Mail

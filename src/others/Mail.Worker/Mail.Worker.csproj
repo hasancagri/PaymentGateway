@@ -4,16 +4,18 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <RootNamespace>Mail.Mcp</RootNamespace>
-        <AssemblyName>Mail.Mcp</AssemblyName>
+        <RootNamespace>Mail.Worker</RootNamespace>
+        <AssemblyName>Mail.Worker</AssemblyName>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="ModelContextProtocol.AspNetCore" />
+        <PackageReference Include="WolverineFx" />
+        <PackageReference Include="WolverineFx.RuntimeCompilation" />
+        <PackageReference Include="WolverineFx.RabbitMQ" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Common\Common.csproj" />
+        <ProjectReference Include="..\Shared\Shared.csproj" />
         <ProjectReference Include="..\..\aspire\ServiceDefaults\ServiceDefaults.csproj" />
     </ItemGroup>
 

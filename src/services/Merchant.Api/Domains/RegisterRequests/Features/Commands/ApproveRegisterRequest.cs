@@ -5,7 +5,7 @@ namespace Merchant.Api.Domains.RegisterRequests.Features.Commands;
 /// <summary>
 /// US2 — admin onayı: talep Approved olur, merchant O ANDA <b>Provisioning</b> statüsünde doğar
 /// (MerchantKey üretilir ama HİÇBİR yerde görünmez), ActivationTicket üretilir ve descriptor
-/// contactEmail'ine aktivasyon linkli mail gider (deterministik, IMailSender). MerchantProvisioned
+/// contactEmail'ine aktivasyon linkli mail gider (deterministik; SendEmailRequested publish → Mail.Worker). MerchantProvisioned
 /// burada YAYINLANMAZ — aktivasyon redeem'de yayınlanır (D1/D4). Hepsi tek <c>[Transactional]</c> (outbox).
 /// </summary>
 public static class ApproveRegisterRequest
@@ -24,9 +24,8 @@ public static class ApproveRegisterRequest
         public async Task<FeatureObjectResultModel<ApproveRegisterRequestResponse>> Handle(
             ApproveRegisterRequestCommand cmd,
             IDocumentSession session,
-            IMailSender mail,
-            IConfiguration config,
-            ILogger<ApproveRegisterRequestCommandHandler> logger,
+            IMessageBus bus,
+            Merchant.Api.Options.Onboarding onboarding,
             CancellationToken ct)
         {
             var request = await session.LoadAsync<RegisterRequest>(cmd.RequestId, ct);
@@ -37,7 +36,7 @@ public static class ApproveRegisterRequest
             var merchantKey = await GenerateUniqueMerchantKeyAsync(session, ct);
             var merchantResult = MerchantAggregate.CreateForOnboarding(
                 merchantKey, request.LegalName, request.ContactEmail, request.WebhookUrl,
-                request.TaxId, request.ExternalRef);
+                request.TaxId, request.MerchantMail);
             if (!merchantResult.IsSuccess)
                 return FeatureObjectResultModel<ApproveRegisterRequestResponse>.Error(merchantResult.Messages);
 
@@ -55,29 +54,20 @@ public static class ApproveRegisterRequest
             session.Update(request);
 
             // 4) Aktivasyon maili (deterministik) → contactEmail; token merchant.ActivationToken'dan.
-            await SendActivationMailAsync(mail, config, logger, request.ContactEmail, merchant.Id, merchant.ActivationToken, ct);
+            //    Publish → Mail.Worker (SMTP). [Transactional] outbox: yalnız commit'te gider; kritik link
+            //    olduğundan Mail.Worker retry/dead-letter ile teslim güvencesi taşır.
+            var link = $"{onboarding.ActivationBaseUrl}?token={merchant.ActivationToken}";
+            await bus.PublishAsync(new Shared.IntegrationEvents.SendEmailRequested(
+                request.ContactEmail,
+                "DropShop hesabınızı etkinleştirin",
+                "Başvurunuz onaylandı. Aşağıdaki tek kullanımlık linkten hesabınızı etkinleştirip " +
+                $"MerchantKey'inizi (yalnız bir kez gösterilir) alın:\n{link}"));
 
             return FeatureObjectResultModel<ApproveRegisterRequestResponse>.Ok(new ApproveRegisterRequestResponse
             {
                 MerchantId = merchant.Id,
                 RequestId = request.Id
             });
-        }
-
-        // 015: ayrı durum kaydı (OnboardingNotification) TUTULMAZ — mail best-effort, sonuç ILogger ile loglanır.
-        private static async Task SendActivationMailAsync(
-            IMailSender mail, IConfiguration config, ILogger logger,
-            string contactEmail, Guid merchantId, string activationToken, CancellationToken ct)
-        {
-            var baseUrl = config["Onboarding:ActivationBaseUrl"] ?? "https://localhost:5101/activation";
-            var link = $"{baseUrl}?token={activationToken}";
-            var subject = "DropShop hesabınızı etkinleştirin";
-            var body = "Başvurunuz onaylandı. Aşağıdaki tek kullanımlık linkten hesabınızı etkinleştirip " +
-                       $"MerchantKey'inizi (yalnız bir kez gösterilir) alın:\n{link}";
-
-            var send = await mail.SendAsync(contactEmail, subject, body, ct: ct);
-            if (!send.IsSuccess)
-                logger.LogWarning("Aktivasyon maili gönderilemedi: {MerchantId}", merchantId);
         }
 
         private static async Task<string> GenerateUniqueMerchantKeyAsync(IDocumentSession session, CancellationToken ct)

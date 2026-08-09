@@ -45,8 +45,8 @@ public class Merchant : AggregateRoot
     /// <summary>Ödeme dönüş adresi (geçerli HTTPS). Active koşulu #3.</summary>
     public string? ReturnUrl { get; private set; }
 
-    /// <summary>Opak dış referans; gateway anlamlandırmaz, aynen döner (FR-018).</summary>
-    public string? ExternalRef { get; private set; }
+    /// <summary>Merchant'ın başvuruda verdiği iletişim maili (onboarding'de RegisterRequest'ten kopyalanır).</summary>
+    public string? MerchantMail { get; private set; }
 
     /// <summary>Active koşulu #1 — en az bir settlement hesabı eklenince set (BC-içi).</summary>
     public bool HasSettlementAccount { get; private set; }
@@ -119,7 +119,7 @@ public class Merchant : AggregateRoot
         string email,
         string webhookUrl,
         string? taxId,
-        string? externalRef)
+        string? merchantMail)
     {
         if (string.IsNullOrWhiteSpace(merchantKey))
             return ResultDomain<Merchant>.Error(Required(nameof(MerchantKey)));
@@ -137,7 +137,7 @@ public class Merchant : AggregateRoot
             Email = email,
             WebhookUrl = webhookUrl,
             TaxId = taxId?.Trim(),
-            ExternalRef = string.IsNullOrWhiteSpace(externalRef) ? null : externalRef.Trim(),
+            MerchantMail = string.IsNullOrWhiteSpace(merchantMail) ? null : merchantMail.Trim(),
             Status = MerchantStatus.Provisioning,
             IsActive = false
         });

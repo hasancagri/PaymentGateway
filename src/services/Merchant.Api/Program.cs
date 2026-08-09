@@ -68,6 +68,13 @@ builder.Host.UseWolverine(opts =>
         .ToQueue(RabbitMqConstants.MerchantCommission.MerchantQueue);
     opts.ListenToRabbitQueue(RabbitMqConstants.MerchantCommission.MerchantQueue).UseDurableInbox();
 
+    // 016: deterministik mail yayını — Mail.Worker tüketip SMTP ile gönderir (MCP DEĞİL). [Transactional]
+    // handler'dan PublishMessage → outbox: yalnız DB commit olursa gider, retry/dead-letter Wolverine'de.
+    rabbit.DeclareExchange(RabbitMqConstants.MailDelivery.Exchange,
+        e => { e.ExchangeType = ExchangeType.Fanout; });
+    opts.PublishMessage<Shared.IntegrationEvents.SendEmailRequested>()
+        .ToRabbitExchange(RabbitMqConstants.MailDelivery.Exchange);
+
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
 });
@@ -88,23 +95,13 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
-// 013: IMailSender (Common) — Scrutor FromApplicationDependencies bu marker'ı Common assembly'sinden
-// güvenilir keşfetmiyor; açıkça kaydet (deterministik mailler: aktivasyon + admin bildirim).
-builder.Services.AddSingleton<Common.Mail.IMailSender, Common.Mail.MailMcpClient>();
+// 016: deterministik mailler Mail.Worker'a RabbitMQ ile publish edilir (MCP/IMailSender YOK).
 
-// Mail akışı POCO'ları (runtime doğrudan IConfiguration okuması yasak; CLAUDE.md).
-builder.Services.AddOptions<Common.Options.IdentityOption>().BindConfiguration(nameof(Common.Options.IdentityOption))
+// Onboarding akış ayarları (aktivasyon taban linki).
+builder.Services.AddOptions<Merchant.Api.Options.Onboarding>().BindConfiguration(nameof(Merchant.Api.Options.Onboarding))
     .ValidateDataAnnotations().ValidateOnStart();
-builder.Services.AddSingleton<Common.Options.IdentityOption>(sp =>
-    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Common.Options.IdentityOption>>().Value);
-builder.Services.AddOptions<Common.Options.MailAuth>().BindConfiguration(nameof(Common.Options.MailAuth))
-    .ValidateDataAnnotations().ValidateOnStart();
-builder.Services.AddSingleton<Common.Options.MailAuth>(sp =>
-    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Common.Options.MailAuth>>().Value);
-builder.Services.AddOptions<Common.Options.MailMcp>().BindConfiguration(nameof(Common.Options.MailMcp))
-    .ValidateDataAnnotations().ValidateOnStart();
-builder.Services.AddSingleton<Common.Options.MailMcp>(sp =>
-    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Common.Options.MailMcp>>().Value);
+builder.Services.AddSingleton<Merchant.Api.Options.Onboarding>(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Merchant.Api.Options.Onboarding>>().Value);
 
 // 013: MCP server — Merchant.Agent'a başvuru tool'larını sunar ([McpServerToolType]). Stateless HTTP.
 builder.Services
