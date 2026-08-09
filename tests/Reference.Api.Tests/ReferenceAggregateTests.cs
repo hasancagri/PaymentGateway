@@ -1,8 +1,3 @@
-using Reference.Api.Domains.Banks;
-using Reference.Api.Domains.Cities;
-using Reference.Api.Domains.Countries;
-using Reference.Api.Domains.Mccs;
-using Xunit;
 
 namespace Reference.Api.Tests;
 

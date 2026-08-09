@@ -1,4 +1,3 @@
-using Payment.Api.Domains.BinCards.Features.Commands;
 
 namespace Payment.Api.Tests;
 

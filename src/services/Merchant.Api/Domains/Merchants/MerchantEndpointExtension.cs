@@ -1,5 +1,3 @@
-using Merchant.Api.Domains.Merchants.Features.Commands;
-using Merchant.Api.Domains.Merchants.Features.Queries;
 
 namespace Merchant.Api.Domains.Merchants;
 

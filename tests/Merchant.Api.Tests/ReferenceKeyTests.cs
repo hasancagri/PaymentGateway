@@ -1,5 +1,3 @@
-using Merchant.Api.ReadModels;
-using Xunit;
 
 namespace Merchant.Api.Tests;
 

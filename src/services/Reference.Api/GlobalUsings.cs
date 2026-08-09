@@ -15,3 +15,15 @@ global using Weasel.Core;
 global using Wolverine;
 global using Wolverine.Attributes;
 global using Wolverine.Marten;
+// --- hoisted (sade using'ler dosyalardan taşındı) ---
+global using Common.Dependencies;
+global using Common.Exceptions;
+global using Marten.Schema;
+global using Reference.Api.Domains.Banks;
+global using Reference.Api.Domains.Cities;
+global using Reference.Api.Domains.Countries;
+global using Reference.Api.Domains.Mccs;
+global using Reference.Api.Seeding;
+global using Shared.Utils.Constants;
+global using Shared;
+global using Wolverine.RabbitMQ;

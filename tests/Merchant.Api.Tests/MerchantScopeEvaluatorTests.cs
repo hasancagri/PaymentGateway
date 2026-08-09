@@ -1,5 +1,3 @@
-using Common.Utils.Authorization;
-using Xunit;
 
 namespace Merchant.Api.Tests;
 

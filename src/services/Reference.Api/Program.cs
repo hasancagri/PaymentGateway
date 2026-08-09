@@ -1,12 +1,3 @@
-using Common.Exceptions;
-using Reference.Api.Domains.Banks;
-using Reference.Api.Domains.Cities;
-using Reference.Api.Domains.Countries;
-using Reference.Api.Domains.Mccs;
-using Reference.Api.Seeding;
-using Shared;
-using Shared.Utils.Constants;
-using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();

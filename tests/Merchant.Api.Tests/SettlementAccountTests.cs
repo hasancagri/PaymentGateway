@@ -1,5 +1,3 @@
-using Merchant.Api.Domains.SettlementAccounts;
-using Xunit;
 
 namespace Merchant.Api.Tests;
 

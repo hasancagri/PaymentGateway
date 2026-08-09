@@ -1,5 +1,3 @@
-using Merchant.Api.Domains.RegisterRequests.Features.Commands;
-using Merchant.Api.Domains.RegisterRequests.Features.Queries;
 
 namespace Merchant.Api.Domains.RegisterRequests;
 

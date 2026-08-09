@@ -1,4 +1,3 @@
-using Shared;
 
 namespace Merchant.Api.ReadModels;
 

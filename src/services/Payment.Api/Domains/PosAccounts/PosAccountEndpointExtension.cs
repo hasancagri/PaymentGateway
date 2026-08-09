@@ -1,5 +1,4 @@
 ﻿using Payment.Api.Domains.PosAccounts.Features.Commands;
-using Payment.Api.Domains.PosAccounts.Features.Queries;
 
 namespace Payment.Api.Domains.PosAccounts;
 

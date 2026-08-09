@@ -1,4 +1,3 @@
-using Commission.Api.Domains.BankCommissions;
 
 namespace Commission.Api.Domains.MerchantCommissions.Features.Queries;
 

@@ -23,3 +23,16 @@ global using Merchant.Api.ReadModels;
 global using Shared;
 global using Shared.Utils.Constants;
 global using Wolverine.RabbitMQ;
+// --- hoisted (sade using'ler dosyalardan taşındı) ---
+global using Common.Dependencies;
+global using Common.Mail;
+global using Merchant.Api.Domains.Merchants.Features.Commands;
+global using Merchant.Api.Domains.Merchants.Features.Queries;
+global using Merchant.Api.Domains.RegisterRequests.Features.Commands;
+global using Merchant.Api.Domains.RegisterRequests.Features.Queries;
+global using Merchant.Api.Domains.SettlementAccounts.Features.Commands;
+global using Merchant.Api.Domains.SettlementAccounts.Features.Queries;
+global using ModelContextProtocol.Server;
+global using System.ComponentModel;
+global using System.Text.Json;
+global using System.Text.RegularExpressions;

@@ -1,7 +1,3 @@
-using Commission.Api.Domains.MerchantCommissions;
-using Commission.Api.Domains.MerchantCommissions.Features.Queries;
-using Commission.Api.Domains.SharedKernel;
-using Xunit;
 
 namespace Commission.Api.Tests;
 

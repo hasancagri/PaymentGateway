@@ -1,8 +1,3 @@
-using Marten.Schema;
-using Reference.Api.Domains.Banks;
-using Reference.Api.Domains.Cities;
-using Reference.Api.Domains.Countries;
-using Reference.Api.Domains.Mccs;
 
 namespace Reference.Api.Seeding;
 
