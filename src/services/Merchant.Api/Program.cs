@@ -19,7 +19,6 @@ builder.Services.AddMarten(opts =>
 
         // 013 onboarding document'ları.
         opts.Schema.For<RegisterRequest>();
-        opts.Schema.For<DomainControlChallenge>();
         opts.Schema.For<OnboardingNotification>();
         opts.Schema.For<ActivationTicket>();
 

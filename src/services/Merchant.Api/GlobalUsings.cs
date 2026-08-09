@@ -20,7 +20,6 @@ global using Common.Exceptions;
 global using Common.Extensions;
 global using Merchant.Api.Domains.OnboardingNotifications;
 global using Merchant.Api.Domains.ActivationTickets;
-global using Merchant.Api.Domains.DomainControlChallenges;
 global using Merchant.Api.Domains.RegisterRequests.ValueObjects;
 global using Merchant.Api.ReadModels;
 global using Shared;

@@ -14,8 +14,9 @@ public static class SubmitRegistrationMcpTool
 {
     [McpServerTool(Name = "submit_registration")]
     [Description("Merchant adayının verdiği descriptor linkinden kayıt başvurusu başlatır: descriptor " +
-                 "okunur/doğrulanır, alan adı sahipliği domain-control challenge ile doğrulanır. Kanıt " +
-                 "geçerse Pending başvuru oluşur; henüz yayınlanmadıysa yayınlanacak değer/yol döner. " +
+                 "okunur/doğrulanır, alan adı sahipliği domain-control challenge ile doğrulanır. Talep " +
+                 "challenge geçmeden AwaitingDomainControl olarak doğar ve RequestId döner (takip için); " +
+                 "kanıt geçince Pending'e ilerler. Henüz yayınlanmadıysa yayınlanacak değer/yol döner. " +
                  "Kimlik/sır KABUL ETMEZ, merchant OLUŞTURMAZ.")]
     public static Task<FeatureObjectResultModel<Agent.SubmitRegistration.SubmitRegistrationResponse>>
         SubmitRegistrationAsync(
@@ -49,7 +50,9 @@ public static class GetMerchantMcpTool
 public static class RegistrationStatusMcpTool
 {
     [McpServerTool(Name = "registration_status")]
-    [Description("Verilen alan adı (domain) için başvurunun durumunu döner: Pending / Approved / Rejected.")]
+    [Description("Verilen alan adı (domain) için başvurunun güncel durumunu döner: AwaitingDomainControl / " +
+                 "Pending / Approved / Rejected. Durum + sıradaki adım Message metniyle gelir (on-demand " +
+                 "'sürecim ne oldu?'; sürekli poll gerekmez).")]
     public static Task<FeatureObjectResultModel<Agent.RegistrationStatus.RegistrationStatusResponse>>
         RegistrationStatusAsync(
             [Description("Aday alan adı (ör. shop.example.com)")] string domain,
