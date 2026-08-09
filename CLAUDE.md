@@ -160,9 +160,11 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   `GetMerchantForAgent`). MCP tool YALNIZ bu Agent slice'ını çağırır. Agent slice `Features/Commands/` veya
   `Features/Queries/` class'larına **ASLA** gitmez — `IMessageBus` ile bile değil; kendi Query/Command +
   Response + Handler'ını taşır, okumayı/işlemi `IDocumentSession` ile doğrudan yapar (kod tekrarı bilinçli).
-- **Config — Options pattern (strongly-typed)**: Bir config bölümü (ör. `DropShopGateway:{McpUrl,
-  IdentityAddress,ClientId,ClientSecret}`) magic-string `config["Section:Key"]` ile OKUNMAZ. Bölüm için
-  bir Options POCO'su (`Options/` altında) tanımlanır ve bir `AddOptionsExt` uzantısında bağlanır —
+- **Config — Options pattern (strongly-typed)**: `IConfiguration`'dan DOĞRUDAN değer okunmaz —
+  `config["Section:Key"]`, `GetValue<T>`, `GetSection(...).Value`, ad-hoc `Get<T>()` dahil hepsi YASAK.
+  `IConfiguration`/`IConfigurationSection` hiçbir handler/servis ctor'una girmez. Her bölüm (ör.
+  `DropShopGateway:{McpUrl,IdentityAddress,ClientId,ClientSecret}`) için bir Options POCO'su
+  (`Options/` altında) tanımlanır ve bir `AddOptionsExt` uzantısında bağlanır —
   house-style (ECommerce `WebApp/Extensions/OptionsExt.cs` + `IdentityServerSettings`/`GatewayOption`
   referans):
   ```csharp
@@ -173,6 +175,9 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   section adını tip adından alır → POCO adı section adıyla eşleşir (ör. section `GatewayOption`). Zorunlu
   alanlar DataAnnotations ile işaretlenir; türetilmiş değerler POCO'da computed property. Anahtar isimleri
   kod içinde string olarak dağıtılmaz.
+  **İstisna (sabit POCO'ya map olmayan):** Aspire service-discovery anahtarları
+  (`config["services:<ad>:http:0"]`) ve dinamik-keyed lookup (ör. `Clients:{clientId}:Secret`) doğrudan
+  okunabilir — biri Aspire enjekte eder, öteki çalışma-anı anahtarı; ikisi de statik section değildir.
 
 ## Bilinçli ertelemeler
 
