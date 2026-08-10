@@ -1,9 +1,9 @@
 # Contract: Card Vault HTTP API
 
 Base: `api/v{version:apiVersion}/merchants/{merchantId:guid}/vault/cards`
-Auth (hepsi): scope `payment.vault` (capability scope; `payment.write` DEĞİL — mcp/pos merchant'a
+Auth (hepsi): scope `cards.write` (capability scope; `payment.write` DEĞİL — mcp/pos merchant'a
 kapalı) + policy `MerchantScoped` (claim `merchant_id` == route `{merchantId}`, fail-closed). Yalnız
-**Active** merchant `payment.vault` alır (Provisioning RET). Payment.Api'nin ilk merchant-scoped grubu.
+**Active** merchant `cards.write` alır (Provisioning RET). Payment.Api'nin ilk merchant-scoped grubu.
 
 ## POST .../vault/cards — TokenizeCard
 

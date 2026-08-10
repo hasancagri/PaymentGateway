@@ -2,7 +2,7 @@
 
 Ön koşul: Aspire ayağa (`dotnet run --project src/aspire/AppHost/AppHost.csproj`). Postgres +
 RabbitMQ + Identity.Server + Payment.Api + Merchant.Api hazır. Bir **Active** merchant + geçerli
-merchant token (client_id=merchantId, client_secret=MerchantKey → `connect/token`, scope `payment.vault`).
+merchant token (client_id=merchantId, client_secret=MerchantKey → `connect/token`, scope `cards.write`).
 
 ## S1 — Tokenize (P1)
 `POST api/v1.0/merchants/{merchantId}/vault/cards` body `{pan, expiry, holderName}` (geçerli PAN).
@@ -26,7 +26,7 @@ Revoked token'a PUT → RET.
 
 ## S6 — Tenant izolasyon (fail-closed)
 Merchant A token'ıyla merchant B route'una (`/merchants/{B}/vault/cards`) tokenize/revoke. Beklenen:
-403 (MerchantScoped claim≠route). Provisioning merchant token'ı (payment.vault yok) → 403/401.
+403 (MerchantScoped claim≠route). Provisioning merchant token'ı (cards.write yok) → 403/401.
 Ek: merchant token'ıyla `/mcp` veya `/pos-accounts` (payment.write) → 403 (merchant payment.write almaz).
 
 ## S7 — PAN sızıntısı yok

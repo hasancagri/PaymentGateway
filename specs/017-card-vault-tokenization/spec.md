@@ -124,7 +124,7 @@ değil, P3.
   `token` üretmek ZORUNDADIR (tokenizasyon idempotent DEĞİL).
 - **FR-015**: Revoke işlemi idempotent OLMAK ZORUNDADIR (zaten Revoked kart tekrar revoke →
   başarı, hata değil).
-- **FR-016**: Vault durum-değiştiren uçları özel bir vault yetkisi (`payment.vault` capability
+- **FR-016**: Vault durum-değiştiren uçları özel bir vault yetkisi (`cards.write` capability
   scope) + tenant eşleşmesi (MerchantScoped) altında OLMAK ZORUNDADIR; beklenen hatalar Result
   deseniyle taşınır. Bu yetki ödeme MCP/POS uçlarını (`payment.write`) merchant'a AÇMAZ.
 - **FR-017**: Vault uçları yalnız ödeme-yapabilir (Active) merchant'a açık OLMAK ZORUNDADIR;

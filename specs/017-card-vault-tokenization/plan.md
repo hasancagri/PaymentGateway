@@ -52,13 +52,13 @@ düzlemi genişlemesi (payment plane → Active merchant). ~orta boy feature, ta
 - **IV. Result Pattern** ✓ — aggregate `ResultDomain`, handler `FeatureObjectResultModel<T>`,
   `MessageItem` + resource `Code`. Exception yok.
 - **V. Merkezi Kimlik ve Açık Yetki** ✓ (analyze C1 sonrası DÜZELTİLDİ) — Vault uçları yeni
-  **capability scope `payment.vault`** + `MerchantScoped`, route `merchants/{merchantId:guid}/vault/cards`.
+  **capability scope `cards.write`** + `MerchantScoped`, route `merchants/{merchantId:guid}/vault/cards`.
   Bu, Payment audience'ını Active merchant token'ına **yalnız vault için** açar (bugün kapalı, 012).
   Anayasa V "Active tam demet" bunu öngörür → mevcut ilkenin uygulanışı, amendment gerekmez.
   **`payment.write` merchant'a VERİLMEZ** — Payment `/mcp` (agent yüzeyi) + `/pos-accounts` merchant'a
   kapalı kalır (C1 deliği kapatıldı). Capability scope anayasa yasağına girmez (yasak yalnız
-  merchant/statü-başına çoğaltmadır; `payment.vault` yetki TÜRÜdür, `mail.send`/`document.generate`
-  precedent'i). Charge fail-closed korunur (Provisioning `payment.vault` almaz, FR-017). Tenant
+  merchant/statü-başına çoğaltmadır; `cards.write` yetki TÜRÜdür, `mail.send`/`document.generate`
+  precedent'i). Charge fail-closed korunur (Provisioning `cards.write` almaz, FR-017). Tenant
   izolasyonu token↔merchant eşleşmesiyle (MerchantScoped fail-closed).
 - **VI. Spec-Driven** ✓ — bu akış.
 
@@ -105,9 +105,9 @@ src/services/Payment.Api/
 ├── PanTools/                             # veya SharedKernel: LuhnValidator, BinExtractor, BrandDetector (saf)
 └── Program.cs                            # Schema.For<StoredCard>() + AddStoredCardGroupEndpointExtension
 
-src/others/Common/ (AuthorizationScopes) # YENİ sabit: PaymentVault = "payment.vault"
-src/others/Identity.Server/              # payment.vault scope kaydı + Active merchant demetine ekle (statü-kapılı)
-src/services/Payment.Api/ (auth wiring)  # merchant token payment.vault kabulü + MerchantScoped policy
+src/others/Common/ (AuthorizationScopes) # YENİ sabit: CardsWrite = "cards.write"
+src/others/Identity.Server/              # cards.write scope kaydı + Active merchant demetine ekle (statü-kapılı)
+src/services/Payment.Api/ (auth wiring)  # merchant token cards.write kabulü + MerchantScoped policy
 
 tests/Payment.Api.Tests/                 # YENİ (yoksa) — StoredCard domain birim testleri
 ```

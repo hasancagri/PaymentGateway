@@ -14,11 +14,12 @@ Teknik bilinmeyenler ve karar gerektiren noktalar; her biri Decision / Rationale
 
 ## R2 — Merchant token Payment audience'ına nasıl girer? (auth düzlemi) — DÜZELTİLDİ (analyze C1)
 
-- **Decision**: Vault uçları **yeni capability scope `payment.vault`** + `AuthorizationPolicies.
+- **Decision**: Vault uçları **capability scope `cards.write`** + `AuthorizationPolicies.
   MerchantScoped` ile korunur; route `merchants/{merchantId:guid}/vault/cards`. Identity.Server
-  **Active** merchant demetine `payment.vault` eklenir (statü-kapılı; Provisioning ALMAZ). Payment.Api
-  JwtBearer merchant token'ını yalnız `payment.vault` uçları için tanır. `payment.write` (Payment
-  `/mcp` agent yüzeyi + `/pos-accounts`) merchant'a **VERİLMEZ**.
+  **Active** merchant demetine `cards.write` eklenir (statü-kapılı; Provisioning ALMAZ). Payment.Api
+  JwtBearer merchant token'ını yalnız `cards.write` uçları için tanır. `payment.write` (Payment
+  `/mcp` agent yüzeyi + `/pos-accounts`) merchant'a **VERİLMEZ**. (Ad `cards.write`: `AuthorizationScopes.cs`
+  yorumunun öngördüğü isim — proje niyetiyle uyumlu.)
 - **Rationale (İLK KARAR DÜZELTİLDİ)**: İlk tur `payment.write` yeniden kullanımını seçmişti; analyze
   C1 bunun `/mcp` ve `/pos-accounts`'u (payment.write, MerchantScoped YOK) merchant token'ına açtığını
   gösterdi (yetki deliği, anayasa V). Anayasa yalnız **merchant/statü-başına** scope çoğaltmayı yasaklar;

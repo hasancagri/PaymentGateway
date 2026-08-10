@@ -21,6 +21,10 @@ builder.Services.AddMarten(opts =>
             .Index(x => x.CardProgram);
         // 007 A2A: ödeme oturumu (agent-başlatımlı akışın kalıcı izdüşümü).
         opts.Schema.For<Payment.Api.Domains.PaymentSessions.PaymentSession>();
+        // 017: kayıtlı kart (vault) — kimlik opak Token, merchant-scoped index.
+        opts.Schema.For<Payment.Api.Domains.StoredCards.StoredCard>()
+            .Identity(x => x.Token)
+            .Index(x => x.MerchantId);
     })
     .IntegrateWithWolverine()
     // Katalog boşsa gömülü bincards.json'dan bir kez seed (idempotent).
@@ -62,7 +66,9 @@ builder.Services.AddApiVersioning(options =>
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.PaymentRead,
-    AuthorizationScopes.PaymentWrite);
+    AuthorizationScopes.PaymentWrite,
+    // 017: vault düzlemi — Active merchant token'ının kabul edildiği tek payment scope'u (capability).
+    AuthorizationScopes.CardsWrite);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
@@ -86,6 +92,8 @@ var apiVersionSet = app.NewApiVersionSet()
 
 app.AddPosAccountGroupEndpointExtension(apiVersionSet);
 app.AddBinCardGroupEndpointExtension(apiVersionSet);
+// 017: merchant-scoped kart vault (Payment.Api'nin ilk {merchantId} route grubu).
+app.AddStoredCardGroupEndpointExtension(apiVersionSet);
 
 // 007 A2A: MCP endpoint (Streamable HTTP) — Payment.Agent MCP client buraya bağlanır.
 // 011: yüzey tek policy ile korunur (payment.write) — tool'lar session açar/değiştirir;
