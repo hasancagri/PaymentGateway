@@ -5,8 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace Admin.Pages.MerchantCommissions;
 
 /// <summary>
-/// Merchant komisyonlarının salt-görünüm listesi (enriched): oran + banka aralığı (min–max) +
-/// tavan-altı işareti (read-time). Düzenleme grid'de (CreateOrUpdate). Banka kodu filtresi YOK (FR-017).
+/// Merchant komisyonlarının SALT-OKUMA listesi (enriched): oran + banka aralığı (min–max) +
+/// tavan-altı işareti (read-time) + teklif durumu (019 US5). Düzenleme/Finalize YOK (FR-013):
+/// komisyon yalnız teklif kabulüyle oluşur; pazarlık Merchant.Agent metin kanalından yürür.
 /// </summary>
 public class IndexModel : BasePageModel
 {
@@ -24,30 +25,17 @@ public class IndexModel : BasePageModel
     public List<MerchantListItem> Merchants { get; private set; } = new();
     public List<MerchantCommissionItem> Rows { get; private set; } = new();
 
+    /// <summary>019 US5 — son teklifin durumu (yok / beklemede / kabul / ret + gerekçe + zaman).</summary>
+    public CommissionProposalStatusModel? ProposalStatus { get; private set; }
+
     public async Task OnGetAsync(CancellationToken ct)
     {
         await LoadMerchantsAsync(ct);
         if (MerchantId is { } id && id != Guid.Empty)
-            await LoadRowsAsync(id, ct);
-    }
-
-    // 013 US4 — grid'i finalize et (Draft→Ready): bütünlük geçerse Ready + MerchantCommissionGridReady
-    // event'i (Active koşulu #2). Bütünlük eksikse API hata döner (UI gösterir).
-    public async Task<IActionResult> OnPostFinalizeAsync(Guid merchantId, CancellationToken ct)
-    {
-        var result = await _commissionApi.FinalizeMerchantCommissionGridAsync(merchantId, ct);
-        if (result.IsSuccess)
         {
-            Flash = "Komisyon grid'i finalize edildi (Ready).";
-            return RedirectToPage(new { MerchantId = merchantId });
+            await LoadRowsAsync(id, ct);
+            await LoadProposalStatusAsync(id, ct);
         }
-
-        // Bütünlük hatası → sayfada göster (redirect'te List kaybolur; yeniden yükle).
-        AddErrors(result.Messages);
-        MerchantId = merchantId;
-        await LoadMerchantsAsync(ct);
-        await LoadRowsAsync(merchantId, ct);
-        return Page();
     }
 
     private async Task LoadMerchantsAsync(CancellationToken ct)
@@ -68,7 +56,7 @@ public class IndexModel : BasePageModel
             return;
         }
 
-        // Yalnız merchant oranı girilmiş satırlar (salt-görünüm liste). Eksik hücreler grid'de yönetilir.
+        // Yalnız merchant oranı oluşmuş satırlar (salt-görünüm). Oranlar teklif kabulüyle doğar.
         Rows = (result.Data?.Items ?? new())
             .Where(i => !i.IsMissing)
             .OrderBy(i => i.Criteria.CardBrand)
@@ -76,5 +64,14 @@ public class IndexModel : BasePageModel
             .ThenBy(i => i.Criteria.TransactionRegion)
             .ThenBy(i => i.Criteria.InstallmentCount)
             .ToList();
+    }
+
+    private async Task LoadProposalStatusAsync(Guid merchantId, CancellationToken ct)
+    {
+        var result = await _commissionApi.GetCommissionProposalStatusAsync(merchantId, ct);
+        if (result.IsSuccess)
+            ProposalStatus = result.Data;
+        else
+            AddErrors(result.Messages);
     }
 }

@@ -14,11 +14,9 @@ public interface ICommissionApiClient
     Task<ApiResult<BankDetail>> GetBankAsync(string code, CancellationToken ct = default);
     Task<ApiResult<CodeResult>> UpdateBankAsync(string code, UpdateBankRequest request, CancellationToken ct = default);
     Task<ApiResult<CodeResult>> DeleteBankAsync(string code, CancellationToken ct = default);
-    Task<ApiResult<IdResult>> CreateMerchantCommissionAsync(CreateMerchantCommissionRequest request, CancellationToken ct = default);
-    Task<ApiResult<IdResult>> UpdateMerchantCommissionAsync(Guid id, UpdateMerchantCommissionRequest request, CancellationToken ct = default);
-    Task<ApiResult<BulkUpsertResult>> BulkUpsertMerchantCommissionsAsync(BulkUpsertMerchantCommissionsRequest request, CancellationToken ct = default);
     Task<ApiResult<MerchantCommissionsResponse>> GetMerchantCommissionsAsync(Guid merchantId, CancellationToken ct = default);
-    Task<ApiResult<GridStatusResult>> FinalizeMerchantCommissionGridAsync(Guid merchantId, CancellationToken ct = default);
+    // 019: merchant komisyon upsert/finalize çağrıları SÖKÜLDÜ (FR-013) — salt-okuma + teklif durumu.
+    Task<ApiResult<CommissionProposalStatusModel>> GetCommissionProposalStatusAsync(Guid merchantId, CancellationToken ct = default);
 }
 
 public class CommissionApiClient : ApiClientBase, ICommissionApiClient
@@ -62,18 +60,9 @@ public class CommissionApiClient : ApiClientBase, ICommissionApiClient
     public Task<ApiResult<CodeResult>> DeleteBankAsync(string code, CancellationToken ct = default) =>
         SendAsync<CodeResult>(() => Http.DeleteAsync($"/api/v1/banks/{Uri.EscapeDataString(code)}", ct), ct);
 
-    public Task<ApiResult<IdResult>> CreateMerchantCommissionAsync(CreateMerchantCommissionRequest request, CancellationToken ct = default) =>
-        SendAsync<IdResult>(() => Http.PostAsJsonAsync("/api/v1/merchant-commissions", request, ct), ct);
-
-    public Task<ApiResult<IdResult>> UpdateMerchantCommissionAsync(Guid id, UpdateMerchantCommissionRequest request, CancellationToken ct = default) =>
-        SendAsync<IdResult>(() => Http.PutAsJsonAsync($"/api/v1/merchant-commissions/{id}", request, ct), ct);
-
-    public Task<ApiResult<BulkUpsertResult>> BulkUpsertMerchantCommissionsAsync(BulkUpsertMerchantCommissionsRequest request, CancellationToken ct = default) =>
-        SendAsync<BulkUpsertResult>(() => Http.PostAsJsonAsync("/api/v1/merchant-commissions/bulk", request, ct), ct);
-
     public Task<ApiResult<MerchantCommissionsResponse>> GetMerchantCommissionsAsync(Guid merchantId, CancellationToken ct = default) =>
         SendAsync<MerchantCommissionsResponse>(() => Http.GetAsync($"/api/v1/merchant-commissions?merchantId={merchantId}", ct), ct);
 
-    public Task<ApiResult<GridStatusResult>> FinalizeMerchantCommissionGridAsync(Guid merchantId, CancellationToken ct = default) =>
-        SendAsync<GridStatusResult>(() => Http.PostAsJsonAsync("/api/v1/merchant-commissions/finalize", new FinalizeGridRequest(merchantId), ct), ct);
+    public Task<ApiResult<CommissionProposalStatusModel>> GetCommissionProposalStatusAsync(Guid merchantId, CancellationToken ct = default) =>
+        SendAsync<CommissionProposalStatusModel>(() => Http.GetAsync($"/api/v1/commission-proposals/status?merchantId={merchantId}", ct), ct);
 }

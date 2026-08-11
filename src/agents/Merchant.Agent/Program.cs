@@ -37,8 +37,15 @@ var merchantApiBase = builder.Configuration["services:merchant-api:http:0"]
                       ?? "http://merchant-api";
 var mcpEndpoint = $"{merchantApiBase.TrimEnd('/')}/mcp";
 
-// /mcp merchant.write ister — MCP trafiği AgentTokenHandler'lı HttpClient'la Bearer taşır.
-// Client tool çağrıları boyunca yaşamalı → dispose edilmez (McpToolProvider.KeepAlive ile aynı ömür).
+// 019: Commission.Api /mcp — komisyon teklif/pazarlık tool'ları (submit/revise/show/status).
+var commissionApiBase = builder.Configuration["services:commission-api:http:0"]
+                        ?? builder.Configuration["CommissionApi:BaseUrl"]
+                        ?? "http://commission-api";
+var commissionMcpEndpoint = $"{commissionApiBase.TrimEnd('/')}/mcp";
+
+// /mcp merchant.write + commission.write ister — MCP trafiği AgentTokenHandler'lı HttpClient'la Bearer
+// taşır (tek token, iki audience). Client tool çağrıları boyunca yaşamalı → dispose edilmez
+// (McpToolProvider.KeepAlive ile aynı ömür).
 var identityOption = builder.Configuration.GetSection(nameof(IdentityOption)).Get<IdentityOption>()!;
 var agentAuth = builder.Configuration.GetSection(nameof(AgentAuth)).Get<AgentAuth>()!;
 var mcpHttpClient = new HttpClient(new AgentTokenHandler(identityOption, agentAuth)
@@ -47,6 +54,8 @@ var mcpHttpClient = new HttpClient(new AgentTokenHandler(identityOption, agentAu
 });
 
 var tools = await McpToolProvider.DiscoverToolsAsync(mcpEndpoint, mcpHttpClient, bootstrapLogger);
+var commissionTools = await McpToolProvider.DiscoverToolsAsync(commissionMcpEndpoint, mcpHttpClient, bootstrapLogger);
+tools = [.. tools, .. commissionTools];
 
 // --- Router agent: LLM sırayı kurar, domain kararları vermez.
 AIAgent agent = new ChatClientAgent(

@@ -7,7 +7,9 @@ namespace Merchant.Agent.TokenHandlers;
 // Token edinilemezse istisna yüzeye çıkar (sessiz başarı yok) — tool çağrısı anlaşılır hata döner.
 public sealed class AgentTokenHandler(IdentityOption identity, AgentAuth agentAuth) : DelegatingHandler
 {
-    private const string Scopes = "merchant.read merchant.write";
+    // 019: commission.write eklendi — tek token hem Merchant hem Commission /mcp'ye gider
+    // (aud: merchant.api + commission.api; scope→audience eşlemesi Identity Config'te).
+    private const string Scopes = "merchant.read merchant.write commission.write";
 
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private static string? _token;

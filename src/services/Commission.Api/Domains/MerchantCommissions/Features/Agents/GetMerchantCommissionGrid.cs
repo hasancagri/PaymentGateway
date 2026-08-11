@@ -1,10 +1,9 @@
-
 namespace Commission.Api.Domains.MerchantCommissions.Features.Agents;
 
 /// <summary>
-/// US4 — komisyon Excel orkestrasyonu (D14) grid kaynağı. Ready grid'i LLM'in Excel'e çevirebileceği
-/// düz tablo (satır/sütun) olarak döner. Ready değilse (Draft/tanımsız) → isEmpty:true, rows boş
-/// (LLM "hazır değil" der; Excel üretilmez). Read-only.
+/// 013 US4 — komisyon Excel orkestrasyonu (D14) grid kaynağı. 019 (FR-013): GridStatus/Finalize
+/// SÖKÜLDÜ — "hazır" olmanın tek kaynağı KABUL edilmiş teklif (Accepted CommissionProposal). Kabul
+/// yoksa isEmpty:true, rows boş (Excel üretilmez). Read-only.
 /// </summary>
 public static class GetMerchantCommissionGrid
 {
@@ -13,7 +12,10 @@ public static class GetMerchantCommissionGrid
     public class GetMerchantCommissionGridResponse
     {
         public Guid MerchantId { get; set; }
-        public string Status { get; set; } = "Draft";
+
+        /// <summary>Son teklifin durumu (None/Pending/Accepted/Rejected/Superseded) — bilgi amaçlı.</summary>
+        public string Status { get; set; } = "None";
+
         public bool IsEmpty { get; set; } = true;
         public List<string> Columns { get; set; } = new();
         public List<List<string>> Rows { get; set; } = new();
@@ -29,14 +31,21 @@ public static class GetMerchantCommissionGrid
             IQuerySession session,
             CancellationToken ct)
         {
-            var grid = await session.LoadAsync<MerchantCommissionGrid>(query.MerchantId, ct);
+            var latestProposal = await session.Query<CommissionProposal>()
+                .Where(p => p.MerchantId == query.MerchantId && !p.IsDeleted)
+                .OrderByDescending(p => p.CreatedTime)
+                .FirstOrDefaultAsync(ct);
 
-            // Yalnız Ready grid Excel'e döker; aksi halde boş (isEmpty).
-            if (grid is null || grid.Status != GridStatus.Ready)
+            var hasAccepted = await session.Query<CommissionProposal>()
+                .Where(p => p.MerchantId == query.MerchantId && p.Status == ProposalStatus.Accepted && !p.IsDeleted)
+                .AnyAsync(ct);
+
+            // Yalnız KABUL edilmiş komisyon Excel'e döker; aksi halde boş (isEmpty).
+            if (!hasAccepted)
                 return FeatureObjectResultModel<GetMerchantCommissionGridResponse>.Ok(new GetMerchantCommissionGridResponse
                 {
                     MerchantId = query.MerchantId,
-                    Status = grid?.Status.ToString() ?? GridStatus.Draft.ToString(),
+                    Status = latestProposal?.Status.ToString() ?? "None",
                     IsEmpty = true,
                     Columns = GridColumns,
                     Rows = new List<List<string>>()
@@ -64,7 +73,7 @@ public static class GetMerchantCommissionGrid
             return FeatureObjectResultModel<GetMerchantCommissionGridResponse>.Ok(new GetMerchantCommissionGridResponse
             {
                 MerchantId = query.MerchantId,
-                Status = GridStatus.Ready.ToString(),
+                Status = ProposalStatus.Accepted.ToString(),
                 IsEmpty = rows.Count == 0,
                 Columns = GridColumns,
                 Rows = rows

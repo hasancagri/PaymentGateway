@@ -94,10 +94,13 @@ identityServer.WithReference(merchantApi);
 // 013 A2A: Merchant.Agent — merchant adaylarının kayıt başvurusunu A2A ile alır (Payment.Agent
 // deseni). BC değil, stateless. merchant-api'nin MCP endpoint'ini service discovery ile bulur.
 // Chat model anahtarı agent'ın kendi config'inden (OpenAI:ApiKey / user-secrets).
+// 019: commission-api referansı — komisyon teklif/pazarlık MCP tool'ları (ikinci MCP client).
 builder.AddProject<Projects.Merchant_Agent>("merchant-agent")
     .WithReference(merchantApi)
+    .WithReference(commissionApi)
     .WithReference(identityServer)
     .WaitFor(merchantApi)
+    .WaitFor(commissionApi)
     .WaitFor(identityServer);
 
 // Admin BFF (Razor Pages) — üç API'yi service discovery ile çağırır; 011: her istek

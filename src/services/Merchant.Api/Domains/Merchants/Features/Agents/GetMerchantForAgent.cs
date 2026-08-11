@@ -8,7 +8,10 @@ namespace Merchant.Api.Domains.Merchants.Features.Agents;
 /// </summary>
 public static class GetMerchantForAgent
 {
-    public record GetMerchantForAgentQuery(Guid MerchantId);
+    // 019: Name araması eklendi — agent "Kahve Dünyası'na teklif sun" akışında isimden id+email çözer
+    // (contracts §4). MerchantId varsa o kazanır; yoksa Name (case-insensitive, önce tam eşleşme,
+    // sonra tekil contains) kullanılır.
+    public record GetMerchantForAgentQuery(Guid? MerchantId = null, string? Name = null);
 
     public class GetMerchantForAgentResponse
     {
@@ -37,9 +40,41 @@ public static class GetMerchantForAgent
             IDocumentSession session,
             CancellationToken ct)
         {
-            var merchant = await session.Query<Merchant>()
-                .Where(m => m.Id == query.MerchantId && !m.IsDeleted)
-                .FirstOrDefaultAsync(ct);
+            Merchant? merchant;
+            if (query.MerchantId is { } merchantId && merchantId != Guid.Empty)
+            {
+                merchant = await session.Query<Merchant>()
+                    .Where(m => m.Id == merchantId && !m.IsDeleted)
+                    .FirstOrDefaultAsync(ct);
+            }
+            else if (!string.IsNullOrWhiteSpace(query.Name))
+            {
+                var needle = query.Name.Trim().ToLower();
+                var candidates = await session.Query<Merchant>()
+                    .Where(m => !m.IsDeleted && m.Name.ToLower().Contains(needle))
+                    .ToListAsync(ct);
+
+                // Tam eşleşme öncelikli; yoksa TEKİL contains — birden çok aday belirsizdir (duplicate).
+                merchant = candidates.FirstOrDefault(m => string.Equals(m.Name, query.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+                           ?? (candidates.Count == 1 ? candidates[0] : null);
+                if (merchant is null && candidates.Count > 1)
+                {
+                    return FeatureObjectResultModel<GetMerchantForAgentResponse>.Error(new MessageItem
+                    {
+                        Property = "Name",
+                        Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_DUPLICATE,
+                        Params = candidates.Select(c => c.Name).Take(5).ToList()
+                    });
+                }
+            }
+            else
+            {
+                return FeatureObjectResultModel<GetMerchantForAgentResponse>.Error(new MessageItem
+                {
+                    Property = "MerchantId/Name",
+                    Code = CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED
+                });
+            }
 
             if (merchant is null)
                 return FeatureObjectResultModel<GetMerchantForAgentResponse>.NotFound();

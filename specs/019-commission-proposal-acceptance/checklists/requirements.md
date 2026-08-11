@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Komisyon Teklifi ve Merchant Kabulü
+# Specification Quality Checklist: Komisyon Teklifi ve Metin-Sürümlü Pazarlık
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-08-11
@@ -31,7 +31,7 @@
 
 ## Notes
 
-- Kaynak: 2026-08-11 ECommerce oturumu — "belki karşı taraf komisyonu beğenmeyecek"; A yolu seçildi.
-- 013'ün "Kabul/ret YOK (gateway-otoriter)" varsayımını DEVİRİR; MerchantCommissionGrid → CommissionProposal evrimi.
-- 018 (key rotasyonu) ile bilet deseni ortak; implementasyonda tek desen hedeflenmeli.
-- Statü/event yeniden adlandırması (GridReady → Accepted) Merchant.Api aktivasyon koşuluna dokunur → plan önerilir.
+- v2 yeniden yazım: pazarlık (metin-sürümlü revizyon + diff yankı + ayrık gönder fazı) ve
+  agent kanalı eklendi; Finalize/Draft-Ready kaldırma FR-013'te.
+- Assumptions bölümündeki teknik adlandırmalar (Merchant.Agent, Excel.Mcp, worker) bilinçli:
+  mevcut sistem sınırlarına atıf, çözüm dayatması değil.

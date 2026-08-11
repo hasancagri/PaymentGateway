@@ -244,32 +244,22 @@ public class BankCommissionItem
     public decimal Rate { get; set; }
 }
 
-public record CreateMerchantCommissionRequest(Guid MerchantId, CriteriaDto Criteria, decimal Rate);
-
-public record UpdateMerchantCommissionRequest(decimal Rate);
-
-// Toplu merchant komisyonu (grid kaydı)
-
-public record MerchantCommissionBulkItem(CriteriaDto Criteria, decimal Rate);
-
-public record BulkUpsertMerchantCommissionsRequest(Guid MerchantId, List<MerchantCommissionBulkItem> Items);
-
-public class BulkUpsertResult
-{
-    public int Created { get; set; }
-    public int Updated { get; set; }
-}
+// 019 (FR-013): merchant komisyon upsert/finalize modelleri SÖKÜLDÜ — komisyon yalnız teklif
+// kabulüyle yazılır; admin ekranı salt-okuma + teklif durumu gösterir.
 
 public class MerchantCommissionsResponse
 {
     public List<MerchantCommissionItem> Items { get; set; } = new();
 }
 
-public record FinalizeGridRequest(Guid MerchantId);
-
-public class GridStatusResult
+/// <summary>019 US5 — merchant'ın SON komisyon teklifinin durumu (Commission.Api /commission-proposals/status).</summary>
+public class CommissionProposalStatusModel
 {
-    public string Status { get; set; } = string.Empty;
+    public string Status { get; set; } = "None";
+    public Guid? ProposalId { get; set; }
+    public DateTime? DecidedTime { get; set; }
+    public string? RejectReason { get; set; }
+    public int RowCount { get; set; }
 }
 
 /// <summary>Enriched grid satırı: merchant oranı + banka aralığı (min/max) + tavan-altı işareti (read-time).</summary>
