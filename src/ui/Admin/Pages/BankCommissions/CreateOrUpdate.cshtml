@@ -1,24 +1,18 @@
 @page
-@using System.Globalization
-@model Admin.Pages.MerchantCommissions.CreateModel
+@model Admin.Pages.BankCommissions.CreateOrUpdateModel
 @{
-    ViewData["Title"] = "Merchant Komisyon Grid";
-    string Inv(decimal d) => d.ToString(CultureInfo.InvariantCulture);
+    ViewData["Title"] = "Yeni Banka Komisyonu Ekle";
 }
 
 <partial name="_Messages" />
 
-<div class="actions">
-    <a class="btn" asp-page="Index" style="background:#6e7781;">Merchant komisyon listesi</a>
-</div>
-
 <form method="get">
-    <label asp-for="MerchantId">Merchant</label>
-    <select asp-for="MerchantId" onchange="this.form.submit()">
-        <option value="">— merchant seç —</option>
-        @foreach (var m in Model.Merchants)
+    <label asp-for="BankCode">Banka</label>
+    <select asp-for="BankCode" onchange="this.form.submit()">
+        <option value="">— banka seç —</option>
+        @foreach (var b in Model.Banks)
         {
-            <option value="@m.Id">@m.Name (@m.Mcc)</option>
+            <option value="@b.Code">@b.Code — @b.Name</option>
         }
     </select>
     <noscript><button type="submit" class="inline">Yükle</button></noscript>
@@ -26,11 +20,11 @@
 
 @if (!Model.GridReady)
 {
-    <p class="muted">Grid için bir merchant seçin. Grid tüm kombinasyonları (marka × tip × bölge × taksit 1..15) gösterir; eksikler işaretlidir.</p>
+    <p class="muted">Grid için bir banka seçin. Grid, bankanın desteklediği taksitlere göre tüm kombinasyonları gösterir.</p>
 }
 else if (Model.Cells.Count == 0)
 {
-    <p class="muted">Üretilecek kombinasyon yok.</p>
+    <p class="muted">Bu banka için üretilecek kombinasyon yok (taksit listesi boş olabilir).</p>
 }
 else
 {
@@ -61,23 +55,22 @@ else
         </div>
         <div class="bulk-fill">
             <input type="number" step="0.01" min="0" data-role="fill-rate" class="rate" placeholder="oran" />
-            <button type="button" data-role="fill-empty" class="inline">Boşları doldur</button>
+            <button type="button" data-role="fill-empty" class="inline">Tamamını doldur</button>
         </div>
     </div>
 
     <form method="post" id="grid-form">
-        <input type="hidden" name="MerchantId" value="@Model.MerchantId" />
-        <p class="muted">Boş (eksik) hücreler işaretlidir. Kırmızı satır: merchant oranı banka tavanının (max) altında/eşit — bilgi amaçlı, engellemez. "Boşları doldur" yalnız görünen (filtreli, açık sayfa) boş hücreleri doldurur.</p>
+        <input type="hidden" name="BankCode" value="@Model.BankCode" />
+        <p class="muted">Boş (eksik) hücreler işaretlidir. "Tamamını doldur" filtre/sayfa fark etmeksizin TÜM boş hücreleri doldurur; dolu hücreye dokunmaz. Doldurulan hücreler kaydedilir; dokunulmayanlar değişmez.</p>
         <table>
             <thead>
-                <tr><th>Marka</th><th>Tip</th><th>Bölge</th><th>Taksit</th><th>Banka Aralığı</th><th>Oran (%)</th></tr>
+                <tr><th>Marka</th><th>Tip</th><th>Bölge</th><th>Taksit</th><th>Oran (%)</th></tr>
             </thead>
             <tbody>
                 @for (var i = 0; i < Model.Cells.Count; i++)
                 {
                     var cell = Model.Cells[i];
-                    var rowClass = cell.BelowBankCeiling ? "below-ceiling" : (cell.Existing ? "" : "missing");
-                    <tr class="@rowClass"
+                    <tr class="@(cell.Existing ? "" : "missing")"
                         data-brand="@cell.CardBrand" data-type="@cell.CardType"
                         data-region="@cell.TransactionRegion" data-inst="@cell.InstallmentCount">
                         <td>@cell.CardBrand</td>
@@ -85,22 +78,12 @@ else
                         <td>@cell.TransactionRegion</td>
                         <td>@cell.InstallmentCount</td>
                         <td>
-                            @if (cell.BankMax.HasValue)
-                            {
-                                <span>@Inv(cell.BankMin!.Value) – @Inv(cell.BankMax.Value)</span>
-                            }
-                            else
-                            {
-                                <span class="muted">banka yok</span>
-                            }
-                        </td>
-                        <td>
                             <input type="hidden" name="Cells[@i].CardBrand" value="@cell.CardBrand" />
                             <input type="hidden" name="Cells[@i].CardType" value="@cell.CardType" />
                             <input type="hidden" name="Cells[@i].TransactionRegion" value="@cell.TransactionRegion" />
                             <input type="hidden" name="Cells[@i].InstallmentCount" value="@cell.InstallmentCount" />
                             <input class="rate" type="number" step="0.01" min="0"
-                                   name="Cells[@i].Rate" value="@(cell.Rate?.ToString(CultureInfo.InvariantCulture))"
+                                   name="Cells[@i].Rate" value="@(cell.Rate?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                                    placeholder="eksik" />
                         </td>
                     </tr>

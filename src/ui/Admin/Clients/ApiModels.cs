@@ -27,15 +27,6 @@ public class ApiResult<T>
 
 // ---- Merchant.Api ----
 
-public record CreateMerchantRequest(
-    string Name,
-    string Email,
-    string Phone,
-    string CountryCode,
-    string CityCode,
-    string Mcc,
-    string WebhookUrl);
-
 public class IdResult
 {
     public Guid Id { get; set; }
@@ -56,6 +47,16 @@ public class MerchantDetail
     public string WebhookUrl { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedTime { get; set; }
+}
+
+public class FinalizeResult
+{
+    public Guid MerchantId { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public bool Activated { get; set; }
+    public bool HasSettlementAccount { get; set; }
+    public bool CommissionGridReady { get; set; }
+    public bool HasReturnUrl { get; set; }
 }
 
 public class MerchantsResponse

@@ -72,7 +72,7 @@ public static class MerchantClientEventHandler
 
         descriptor.Permissions.Clear();
         if (GrantsToken(e.NewStatus))
-            AddMerchantPermissions(descriptor);
+            AddMerchantPermissions(descriptor, e.NewStatus);
 
         await apps.UpdateAsync(existing, descriptor);
         logger.LogInformation("Merchant istemci izinleri güncellendi: {ClientId} → {Status}", clientId, e.NewStatus);
@@ -92,19 +92,24 @@ public static class MerchantClientEventHandler
         descriptor.Properties[MerchantIdProperty] = JsonSerializer.SerializeToElement(clientId);
 
         if (GrantsToken(status))
-            AddMerchantPermissions(descriptor);
+            AddMerchantPermissions(descriptor, status);
 
         return descriptor;
     }
 
     // 013 kademeli yetki: token yalnız Provisioning + Active statüde verilir (charge hiçbir alt-statüde
     // — henüz yok; demetler bugün eşdeğer, gate kurulur). Passive/Suspended → izinsiz (unauthorized_client).
-    private static void AddMerchantPermissions(OpenIddictApplicationDescriptor descriptor)
+    private static void AddMerchantPermissions(OpenIddictApplicationDescriptor descriptor, string status)
     {
         descriptor.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
         descriptor.Permissions.Add(Permissions.Endpoints.Token);
         descriptor.Permissions.Add(Permissions.Prefixes.Scope + "merchant.read");
         descriptor.Permissions.Add(Permissions.Prefixes.Scope + "merchant.write");
+
+        // 017: cards.write yalnız Active demetine (vault ödeme düzlemi). Provisioning ALMAZ →
+        // charge fail-closed korunur (FR-017). payment.write hiçbir statüde merchant'a verilmez.
+        if (string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase))
+            descriptor.Permissions.Add(Permissions.Prefixes.Scope + "cards.write");
     }
 
     private static bool GrantsToken(string status) =>

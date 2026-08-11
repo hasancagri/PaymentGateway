@@ -4,7 +4,7 @@ namespace Admin.Clients;
 
 public interface IRegisterRequestApiClient
 {
-    Task<ApiResult<RegisterRequestsResponse>> GetPendingAsync(CancellationToken ct = default);
+    Task<ApiResult<RegisterRequestsResponse>> GetAllAsync(CancellationToken ct = default);
     Task<ApiResult<ApproveRegisterResult>> ApproveAsync(Guid id, string? note, CancellationToken ct = default);
     Task<ApiResult<IdResult>> RejectAsync(Guid id, string? note, CancellationToken ct = default);
 }
@@ -15,9 +15,9 @@ public class RegisterRequestApiClient : ApiClientBase, IRegisterRequestApiClient
     {
     }
 
-    public Task<ApiResult<RegisterRequestsResponse>> GetPendingAsync(CancellationToken ct = default) =>
+    public Task<ApiResult<RegisterRequestsResponse>> GetAllAsync(CancellationToken ct = default) =>
         SendAsync<RegisterRequestsResponse>(
-            () => Http.GetAsync("/api/v1/register-requests?status=Pending", ct), ct);
+            () => Http.GetAsync("/api/v1/register-requests", ct), ct);
 
     public Task<ApiResult<ApproveRegisterResult>> ApproveAsync(Guid id, string? note, CancellationToken ct = default) =>
         SendAsync<ApproveRegisterResult>(

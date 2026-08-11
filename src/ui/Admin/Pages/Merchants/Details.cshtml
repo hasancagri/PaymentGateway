@@ -27,6 +27,12 @@ else
     </table>
 
     <div class="actions">
+        @if (m.Status == "Provisioning")
+        {
+            <form method="post" style="display:inline">
+                <button class="btn" asp-page-handler="Finalize" asp-route-id="@m.Id">Finalize</button>
+            </form>
+        }
         <a class="btn" asp-page="/MerchantCommissions/Index" asp-route-merchantId="@m.Id">Komisyonları</a>
         <a class="btn" asp-page="/SettlementAccounts/Index" asp-route-merchantId="@m.Id">Settlement Hesapları</a>
         <a class="btn" asp-page="Index" style="background:#6e7781;">Listeye dön</a>

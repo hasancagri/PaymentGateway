@@ -11,7 +11,7 @@ namespace Admin.Pages.MerchantCommissions;
 /// Banka-bağımsız (merchant kombinasyon-bazlı). Grid eksenleri domain enum'larından gelir
 /// (GET /bank-commissions/criteria-options) — UI kopyalamaz. Merchant listesi Merchant.Api'den.
 /// </summary>
-public class CreateModel : BasePageModel
+public class CreateOrUpdateModel : BasePageModel
 {
     // Merchant banka-bağımsız → taksit ekseni sabit 1..15 (FR-018).
     private static readonly int[] Installments = Enumerable.Range(1, 15).ToArray();
@@ -19,7 +19,7 @@ public class CreateModel : BasePageModel
     private readonly IMerchantApiClient _merchantApi;
     private readonly ICommissionApiClient _commissionApi;
 
-    public CreateModel(IMerchantApiClient merchantApi, ICommissionApiClient commissionApi)
+    public CreateOrUpdateModel(IMerchantApiClient merchantApi, ICommissionApiClient commissionApi)
     {
         _merchantApi = merchantApi;
         _commissionApi = commissionApi;
@@ -39,6 +39,10 @@ public class CreateModel : BasePageModel
     {
         await LoadMerchantsAsync(ct);
 
+        // İlk açılışta merchant seçili gelsin: parametre yoksa listedeki ilk merchant ile grid kurulur.
+        if (MerchantId is null || MerchantId == Guid.Empty)
+            MerchantId = Merchants.FirstOrDefault()?.Id;
+
         if (MerchantId is { } id && id != Guid.Empty)
             await BuildGridAsync(id, ct);
     }
@@ -50,7 +54,7 @@ public class CreateModel : BasePageModel
         if (MerchantId is not { } merchantId || merchantId == Guid.Empty)
         {
             Flash = "Merchant seçilmedi.";
-            return RedirectToPage("Create");
+            return RedirectToPage("CreateOrUpdate");
         }
 
         var items = Cells
@@ -69,7 +73,7 @@ public class CreateModel : BasePageModel
         if (items.Count == 0)
         {
             Flash = "Doldurulan hücre yok; değişiklik kaydedilmedi.";
-            return RedirectToPage("Create", new { merchantId });
+            return RedirectToPage("CreateOrUpdate", new { merchantId });
         }
 
         var result = await _commissionApi.BulkUpsertMerchantCommissionsAsync(
@@ -77,7 +81,7 @@ public class CreateModel : BasePageModel
         if (result.IsSuccess)
         {
             Flash = $"Kaydedildi: {result.Data?.Created ?? 0} eklendi, {result.Data?.Updated ?? 0} güncellendi.";
-            return RedirectToPage("Create", new { merchantId });
+            return RedirectToPage("CreateOrUpdate", new { merchantId });
         }
 
         AddErrors(result.Messages);

@@ -3,9 +3,11 @@ namespace Commission.Api.Domains.MerchantCommissions.Features.Commands;
 
 /// <summary>
 /// US4 — merchant grid'ini finalize eder (B kararı, gateway-otoriter). Bütünlük: eksik hücre YOK
-/// (IsMissing yok) + banka-servisli her kombinasyon tavan-altı (BelowBankCeiling). Geçerse grid Ready
-/// olur ve <c>MerchantCommissionGridReady</c> yayınlanır (aynı <c>[Transactional]</c> = outbox, D13).
-/// Draft'ta event/Excel YOK (erken tetikleme önlenir). İdempotent: zaten Ready ise event tekrar yayılmaz.
+/// (IsMissing yok). Tavan kuralı (BelowBankCeiling) 2026-08-11'de finalize'dan ÇIKARILDI — yön/anlam
+/// tartışmalı, yeniden tasarlanacak (bkz. Obsidian DropShop/Yapılacaklar); listede bilgi amaçlı durur.
+/// Geçerse grid Ready olur ve <c>MerchantCommissionGridReady</c> yayınlanır (aynı <c>[Transactional]</c>
+/// = outbox, D13). Draft'ta event/Excel YOK (erken tetikleme önlenir). İdempotent: zaten Ready ise event
+/// tekrar yayılmaz.
 /// </summary>
 public static class FinalizeMerchantCommissionGrid
 {
@@ -49,17 +51,10 @@ public static class FinalizeMerchantCommissionGrid
             foreach (var criteria in allCriteria)
             {
                 merchantByCriteria.TryGetValue(criteria, out var mc);
-                var hasBank = bankByCriteria.TryGetValue(criteria, out var bank);
-                decimal? rate = mc?.Rate;
-                decimal? bankMax = hasBank ? bank.Max : null;
 
                 // Eksik hücre → RET.
-                if (rate == null)
+                if (mc?.Rate == null)
                     return Error(CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED);
-
-                // Banka-servisli kombinasyonda tavan aşımı → RET.
-                if (bankMax != null && !GetMerchantCommissions.ComputeBelowBankCeiling(rate, bankMax))
-                    return Error(CommonResourceConstants.COMMON_MESSAGE_INVALID_RANGE);
             }
 
             var grid = await session.LoadAsync<MerchantCommissionGrid>(cmd.MerchantId, ct)

@@ -10,6 +10,11 @@ doğrulanır). Kapsam: quote + taksit seçimi + durum. **Çekim yok.**
   `chat` resource olarak tanımlı; `payment-agent` bunu tüketir.
 - PosAccount'lar seed edilmiş olmalı (taksit gridleri) — yoksa quote boş döner. `pos-accounts`
   endpoint'lerinden en az bir aktif POS + komisyon gridi oluştur.
+- **`cardToken` artık gerçek (017)**: sabit fixture token'ları (`tok_credit_taksitli` vb.) KALKTI —
+  `SimulatedCardVault` token'ı gerçek `StoredCard` kaydından çözer. Önce vault'a tokenize et
+  (`POST api/v1.0/merchants/{merchantId}/vault/cards`, scope `cards.write`, Active merchant token'ı)
+  ve dönen `{token}`'ı bu akışta `cardToken` olarak kullan. BIN katalogda (008 bincards.json) bulunan
+  bir PAN seç — aksi resolve null döner. Revoked kart → resolve RET.
 
 ## Çalıştırma
 
