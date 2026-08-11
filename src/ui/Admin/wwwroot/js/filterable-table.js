@@ -3,8 +3,8 @@
 //   - <table> (satırlarında data-* eksen öznitelikleri; select[data-filter] value'su ile eşleşir)
 //   - select[data-filter="<eksen>"]  → satırdaki data-<eksen> ile filtreler (birlikte daraltır)
 //   - [data-role="prev"|"next"|"page-info"]  → 20'li sayfalama kontrolleri (opsiyonel)
-//   - [data-role="fill-rate"] + [data-role="fill-empty"]  → görünen (açık sayfa) boş hücreleri
-//     girilen oranla doldur (opsiyonel; yalnız düzenlenebilir gridlerde)
+//   - [data-role="fill-rate"] + [data-role="fill-empty"]  → filtre/sayfa fark etmeksizin TÜM
+//     doldurulmamış hücreleri girilen oranla doldur (opsiyonel; yalnız düzenlenebilir gridlerde)
 // Backend'e dokunmaz; yalnız DOM görünürlüğü ve boş rate input'larını düzenler. Tüm <input>'lar
 // DOM'da kalır — kalıcılık normal form gönderimiyle olur.
 (function () {
@@ -70,19 +70,48 @@
             currentPage++; render();
         });
 
-        // Opsiyonel: görünen (açık sayfa + filtre) boş hücreleri doldur.
+        // Opsiyonel: TÜM doldurulmamış hücreleri doldur (filtre/sayfa görünürlüğünden bağımsız —
+        // dolu hücreye dokunmaz; sayfa sayfa gezme derdini kaldırır).
         if (fillBtn && fillRate) {
             fillBtn.addEventListener("click", function () {
                 var raw = fillRate.value.trim();
                 if (raw === "") { fillRate.focus(); return; }
                 rows.forEach(function (row) {
-                    if (row.style.display === "none") return; // yalnız açık sayfadaki görünenler
                     var input = row.querySelector("input.rate");
                     if (!input) return;
                     if (input.value.trim() === "") {
                         input.value = raw;
                         row.classList.remove("missing");
                     }
+                });
+            });
+        }
+
+        // Dirty-cell submit: yalnız DEĞİŞEN satırlar POST'a girer (değişmeyenin input'ları disable
+        // edilir; kalanlar MVC list binding için Cells[0..n] yeniden indekslenir). İlk toplu dolduruş
+        // yine büyüktür — o yol Program.cs'teki ValueCountLimit artışıyla açık.
+        var gridForm = root.querySelector("form");
+        if (gridForm && gridForm.method.toLowerCase() === "post") {
+            rows.forEach(function (row) {
+                var input = row.querySelector("input.rate");
+                if (input) input.setAttribute("data-initial", input.value.trim());
+            });
+
+            gridForm.addEventListener("submit", function () {
+                var k = 0;
+                rows.forEach(function (row) {
+                    var input = row.querySelector("input.rate");
+                    if (!input) return;
+                    var dirty = input.value.trim() !== input.getAttribute("data-initial");
+                    var rowInputs = Array.prototype.slice.call(row.querySelectorAll("input"));
+                    if (!dirty) {
+                        rowInputs.forEach(function (i) { i.disabled = true; });
+                        return;
+                    }
+                    rowInputs.forEach(function (i) {
+                        i.name = i.name.replace(/\[\d+\]/, "[" + k + "]");
+                    });
+                    k++;
                 });
             });
         }

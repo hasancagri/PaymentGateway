@@ -6,7 +6,7 @@ namespace Admin.Pages.MerchantCommissions;
 
 /// <summary>
 /// Merchant komisyonlarının salt-görünüm listesi (enriched): oran + banka aralığı (min–max) +
-/// tavan-altı işareti (read-time). Düzenleme grid'de (Create). Banka kodu filtresi YOK (FR-017).
+/// tavan-altı işareti (read-time). Düzenleme grid'de (CreateOrUpdate). Banka kodu filtresi YOK (FR-017).
 /// </summary>
 public class IndexModel : BasePageModel
 {
