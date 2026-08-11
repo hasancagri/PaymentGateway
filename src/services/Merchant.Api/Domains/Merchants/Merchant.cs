@@ -253,8 +253,7 @@ public class Merchant : AggregateRoot
 }
 
 /// <summary>
-/// Merchant yaşam döngüsü durumu. Şimdilik düz enum (kullanıcı direktifi); ileride gerekirse
-/// Enumeration smart-enum'a dönüştürülür. Referans mimari de status için düz enum kullanıyor.
+/// Merchant yaşam döngüsü durumu. Düz enum (kullanıcı direktifi); referans mimari de status için düz enum kullanıyor.
 /// </summary>
 public enum MerchantStatus
 {
