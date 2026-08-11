@@ -6,12 +6,12 @@ public static class MerchantEndpointExtension
     public static void AddMerchantGroupEndpointExtension(this WebApplication app, ApiVersionSet apiVersionSet)
     {
         app.MapGroup("api/v{version:apiVersion}/merchants").WithTags("merchants").WithApiVersionSet(apiVersionSet)
-            .CreateMerchantGroupItemEndpoint()
             .GetMerchantGroupItemEndpoint()
             .GetMerchantByKeyGroupItemEndpoint()
             .GetAllMerchantsGroupItemEndpoint()
             .SetMerchantStatusGroupItemEndpoint()
             .RedeemActivationGroupItemEndpoint()
-            .SetReturnUrlGroupItemEndpoint();
+            .SetReturnUrlGroupItemEndpoint()
+            .FinalizeMerchantGroupItemEndpoint();
     }
 }

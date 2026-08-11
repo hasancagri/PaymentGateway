@@ -9,11 +9,11 @@ namespace Admin.Pages.BankCommissions;
 /// tüm kombinasyonları satır olur; dolu/eksik işaretlenir; doldurulanlar tek işlemde upsert edilir.
 /// Grid eksenleri domain enum'larından gelir (GET /bank-commissions/criteria-options) — UI kopyalamaz.
 /// </summary>
-public class CreateModel : BasePageModel
+public class CreateOrUpdateModel : BasePageModel
 {
     private readonly ICommissionApiClient _api;
 
-    public CreateModel(ICommissionApiClient api) => _api = api;
+    public CreateOrUpdateModel(ICommissionApiClient api) => _api = api;
 
     [BindProperty(SupportsGet = true)] public string? BankCode { get; set; }
 
@@ -28,6 +28,10 @@ public class CreateModel : BasePageModel
     public async Task OnGetAsync(CancellationToken ct)
     {
         await LoadBanksAsync(ct);
+
+        // İlk açılışta banka seçili gelsin: parametre yoksa listedeki ilk banka ile grid kurulur.
+        if (string.IsNullOrWhiteSpace(BankCode))
+            BankCode = Banks.FirstOrDefault()?.Code;
 
         if (!string.IsNullOrWhiteSpace(BankCode))
             await BuildGridAsync(BankCode, ct);
@@ -53,14 +57,14 @@ public class CreateModel : BasePageModel
         if (items.Count == 0)
         {
             Flash = "Doldurulan hücre yok; değişiklik kaydedilmedi.";
-            return RedirectToPage("Create", new { bankCode = BankCode });
+            return RedirectToPage("CreateOrUpdate", new { bankCode = BankCode });
         }
 
         var result = await _api.BulkUpsertBankCommissionsAsync(new BulkBankCommissionsRequest(BankCode!, items), ct);
         if (result.IsSuccess)
         {
             Flash = $"Kaydedildi: {result.Data?.Created ?? 0} eklendi, {result.Data?.Updated ?? 0} güncellendi.";
-            return RedirectToPage("Create", new { bankCode = BankCode });
+            return RedirectToPage("CreateOrUpdate", new { bankCode = BankCode });
         }
 
         AddErrors(result.Messages);

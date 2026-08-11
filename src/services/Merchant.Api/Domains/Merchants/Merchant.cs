@@ -8,7 +8,6 @@ namespace Merchant.Api.Domains.Merchants;
 /// </summary>
 public class Merchant : AggregateRoot
 {
-    private static readonly Regex MccRegex = new(@"^\d{4}$", RegexOptions.Compiled);
     private static readonly Regex EmailRegex =
         new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
 
@@ -70,42 +69,6 @@ public class Merchant : AggregateRoot
 
     /// <summary>Redeem anı; doluysa bilet kullanılmıştır (tek-kullanım işareti).</summary>
     public DateTime? ActivationRedeemedAtUtc { get; private set; }
-
-    /// <summary>
-    /// Saf format doğrulaması. Varlık (lookup) doğrulaması handler'da. <paramref name="merchantKey"/>
-    /// handler tarafından üretilip (benzersizlik denetlenmiş) geçirilir; burada yalnız boş-değil kontrolü.
-    /// </summary>
-    /// <remarks>Handler: CreateMerchantCommandHandler</remarks>
-    public static ResultDomain<Merchant> Create(
-        string merchantKey,
-        string name,
-        string email,
-        string phone,
-        string countryCode,
-        string cityCode,
-        string mcc,
-        string webhookUrl)
-    {
-        if (string.IsNullOrWhiteSpace(merchantKey))
-            return ResultDomain<Merchant>.Error(Required(nameof(MerchantKey)));
-
-        var validation = Validate(name, email, phone, countryCode, cityCode, mcc, webhookUrl);
-        if (validation is not null)
-            return ResultDomain<Merchant>.Error(validation);
-
-        return ResultDomain<Merchant>.Ok(new Merchant
-        {
-            MerchantKey = merchantKey,
-            Name = name,
-            Email = email,
-            Phone = phone,
-            CountryCode = countryCode,
-            CityCode = cityCode,
-            Mcc = mcc,
-            WebhookUrl = webhookUrl,
-            Status = MerchantStatus.Active
-        });
-    }
 
     /// <summary>
     /// Onboarding hattı fabrikası (013): merchant onayla <b>Provisioning</b> statüsünde doğar.
@@ -218,33 +181,35 @@ public class Merchant : AggregateRoot
     }
 
     /// <summary>
-    /// Saf iç değerlendirme (013 D10): 3 koşul (settlement + gridReady + ReturnUrl) doluysa
-    /// Provisioning→Active geçer. İdempotent — zaten Active ya da koşul eksikse <c>Error</c>
-    /// (geçiş yok = beklenen no-op, HTTP hatası değil). Geçiş gerçekleştiyse <c>Ok</c> döner
-    /// (handler <c>IsSuccess</c> ile <c>MerchantStatusChanged(Active)</c> yayınlar).
+    /// Provisioning→Active geçişi. 3-koşul şartı (settlement + gridReady + ReturnUrl) 2026-08-11'de
+    /// KALDIRILDI (dev sadeleştirmesi; komisyon tavan kuralıyla birlikte yeniden tasarlanacak —
+    /// bkz. Obsidian DropShop/Yapılacaklar). İdempotent — zaten Active ise <c>Error</c> (beklenen
+    /// no-op). Geçiş gerçekleştiyse <c>Ok</c> döner (handler <c>IsSuccess</c> ile
+    /// <c>MerchantStatusChanged(Active)</c> yayınlar).
     /// </summary>
-    /// <remarks>Handler: MerchantCommissionGridReadyHandler, CreateSettlementAccountCommandHandler, SetReturnUrlCommandHandler</remarks>
+    /// <remarks>Handler: MerchantCommissionGridReadyHandler, CreateSettlementAccountCommandHandler, SetReturnUrlCommandHandler, FinalizeMerchantCommandHandler</remarks>
     public ResultDomain TryActivate()
     {
         if (Status != MerchantStatus.Provisioning)
             return ResultDomain.Error(InvalidOperation());
-
-        if (!HasSettlementAccount || !CommissionGridReady || string.IsNullOrWhiteSpace(ReturnUrl))
-            return ResultDomain.Error(InvalidOperation());
-
+        
         Status = MerchantStatus.Active;
         IsActive = true;
         UpdatedTime = DateTime.UtcNow;
         return ResultDomain.Ok();
     }
 
-    /// <summary>Statüyü Active yapar, IsActive=true.</summary>
+    /// <summary>Statüyü Active yapar, IsActive=true. Yalnız Provisioning'den (2026-08-11 kuralı).</summary>
     /// <remarks>Handler: SetMerchantStatusCommandHandler</remarks>
-    public void Activate()
+    public ResultDomain Activate()
     {
+        if (Status != MerchantStatus.Provisioning)
+            return ResultDomain.Error(InvalidOperation());
+
         Status = MerchantStatus.Active;
         IsActive = true;
         UpdatedTime = DateTime.UtcNow;
+        return ResultDomain.Ok();
     }
 
     /// <summary>Statüyü Passive yapar, IsActive=false.</summary>
@@ -264,40 +229,6 @@ public class Merchant : AggregateRoot
         IsActive = false;
         UpdatedTime = DateTime.UtcNow;
     }
-
-    private static MessageItem? Validate(
-        string name,
-        string email,
-        string phone,
-        string countryCode,
-        string cityCode,
-        string mcc,
-        string webhookUrl)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            return Required(nameof(Name));
-        if (string.IsNullOrWhiteSpace(email))
-            return Required(nameof(Email));
-        if (string.IsNullOrWhiteSpace(phone))
-            return Required(nameof(Phone));
-        if (string.IsNullOrWhiteSpace(countryCode))
-            return Required(nameof(CountryCode));
-        if (string.IsNullOrWhiteSpace(cityCode))
-            return Required(nameof(CityCode));
-
-        if (!EmailRegex.IsMatch(email))
-            return InvalidFormat(nameof(Email));
-        if (string.IsNullOrWhiteSpace(mcc) || !MccRegex.IsMatch(mcc))
-            return InvalidFormat(nameof(Mcc));
-        if (!IsAbsoluteHttpUrl(webhookUrl))
-            return InvalidFormat(nameof(WebhookUrl));
-
-        return null;
-    }
-
-    private static bool IsAbsoluteHttpUrl(string url) =>
-        Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
-        (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
     private static bool IsHttpsUrl(string url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
@@ -343,6 +274,6 @@ public enum MerchantStatus
 public static class MerchantKeyGenerator
 {
     /// <summary>Aday merchantKey üretir (mk_ + 32 hane hex); benzersizlik handler döngüsünde.</summary>
-    /// <remarks>Handler: CreateMerchantCommandHandler, ApproveRegisterRequestCommandHandler</remarks>
+    /// <remarks>Handler: ApproveRegisterRequestCommandHandler</remarks>
     public static string Generate() => "mk_" + Guid.NewGuid().ToString("N");
 }

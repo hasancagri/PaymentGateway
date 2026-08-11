@@ -4,9 +4,9 @@ namespace Admin.Clients;
 
 public interface IMerchantApiClient
 {
-    Task<ApiResult<IdResult>> CreateAsync(CreateMerchantRequest request, CancellationToken ct = default);
     Task<ApiResult<MerchantDetail>> GetAsync(Guid id, CancellationToken ct = default);
     Task<ApiResult<MerchantsResponse>> GetAllAsync(CancellationToken ct = default);
+    Task<ApiResult<FinalizeResult>> FinalizeAsync(Guid id, CancellationToken ct = default);
 }
 
 public class MerchantApiClient : ApiClientBase, IMerchantApiClient
@@ -15,12 +15,12 @@ public class MerchantApiClient : ApiClientBase, IMerchantApiClient
     {
     }
 
-    public Task<ApiResult<IdResult>> CreateAsync(CreateMerchantRequest request, CancellationToken ct = default) =>
-        SendAsync<IdResult>(() => Http.PostAsJsonAsync("/api/v1/merchants", request, ct), ct);
-
     public Task<ApiResult<MerchantDetail>> GetAsync(Guid id, CancellationToken ct = default) =>
         SendAsync<MerchantDetail>(() => Http.GetAsync($"/api/v1/merchants/{id}", ct), ct);
 
     public Task<ApiResult<MerchantsResponse>> GetAllAsync(CancellationToken ct = default) =>
         SendAsync<MerchantsResponse>(() => Http.GetAsync("/api/v1/merchants", ct), ct);
+
+    public Task<ApiResult<FinalizeResult>> FinalizeAsync(Guid id, CancellationToken ct = default) =>
+        SendAsync<FinalizeResult>(() => Http.PostAsync($"/api/v1/merchants/{id}/finalize", null, ct), ct);
 }

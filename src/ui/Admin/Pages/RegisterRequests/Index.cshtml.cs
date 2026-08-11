@@ -5,8 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace Admin.Pages.RegisterRequests;
 
 /// <summary>
-/// US2 — "Merchant Talepleri": bekleyen (Pending) başvuruları listeler; onayla/reddet. Onay → merchant
-/// Provisioning statüsünde doğar + aktivasyon maili (backend). UI yalnız API sonucunu gösterir.
+/// US2 — "Merchant Talepleri": tüm başvuruları statüsüyle listeler (tarihçe korunur — başvuru anı
+/// görünür kalır); onayla/reddet yalnız Pending satırlarda. Onay → merchant Provisioning statüsünde
+/// doğar + aktivasyon maili (backend). UI yalnız API sonucunu gösterir.
 /// </summary>
 public class IndexModel : BasePageModel
 {
@@ -48,7 +49,7 @@ public class IndexModel : BasePageModel
 
     private async Task LoadAsync(CancellationToken ct)
     {
-        var result = await _api.GetPendingAsync(ct);
+        var result = await _api.GetAllAsync(ct);
         if (result.IsSuccess)
             Requests = result.Data?.Items ?? new();
         else

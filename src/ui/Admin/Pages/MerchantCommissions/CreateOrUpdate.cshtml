@@ -1,16 +1,12 @@
 @page
 @using System.Globalization
-@model Admin.Pages.MerchantCommissions.CreateModel
+@model Admin.Pages.MerchantCommissions.CreateOrUpdateModel
 @{
-    ViewData["Title"] = "Merchant Komisyon Grid";
+    ViewData["Title"] = "Yeni Merchant Komisyonu Ekle";
     string Inv(decimal d) => d.ToString(CultureInfo.InvariantCulture);
 }
 
 <partial name="_Messages" />
-
-<div class="actions">
-    <a class="btn" asp-page="Index" style="background:#6e7781;">Merchant komisyon listesi</a>
-</div>
 
 <form method="get">
     <label asp-for="MerchantId">Merchant</label>
@@ -61,13 +57,13 @@ else
         </div>
         <div class="bulk-fill">
             <input type="number" step="0.01" min="0" data-role="fill-rate" class="rate" placeholder="oran" />
-            <button type="button" data-role="fill-empty" class="inline">Boşları doldur</button>
+            <button type="button" data-role="fill-empty" class="inline">Tamamını doldur</button>
         </div>
     </div>
 
     <form method="post" id="grid-form">
         <input type="hidden" name="MerchantId" value="@Model.MerchantId" />
-        <p class="muted">Boş (eksik) hücreler işaretlidir. Kırmızı satır: merchant oranı banka tavanının (max) altında/eşit — bilgi amaçlı, engellemez. "Boşları doldur" yalnız görünen (filtreli, açık sayfa) boş hücreleri doldurur.</p>
+        <p class="muted">Boş (eksik) hücreler işaretlidir. Kırmızı satır: merchant oranı banka tavanının (max) altında/eşit — bilgi amaçlı, engellemez. "Tamamını doldur" filtre/sayfa fark etmeksizin TÜM boş hücreleri doldurur; dolu hücreye dokunmaz.</p>
         <table>
             <thead>
                 <tr><th>Marka</th><th>Tip</th><th>Bölge</th><th>Taksit</th><th>Banka Aralığı</th><th>Oran (%)</th></tr>

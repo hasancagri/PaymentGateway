@@ -40,7 +40,9 @@ public static class SetMerchantStatus
             switch (target)
             {
                 case MerchantStatus.Active:
-                    merchant.Activate();
+                    var activate = merchant.Activate();
+                    if (!activate.IsSuccess)
+                        return FeatureObjectResultModel<SetMerchantStatusResponse>.Error(activate.Messages);
                     break;
                 case MerchantStatus.Passive:
                     merchant.Deactivate();

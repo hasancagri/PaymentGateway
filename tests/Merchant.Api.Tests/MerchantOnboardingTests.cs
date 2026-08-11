@@ -50,24 +50,9 @@ public class MerchantOnboardingTests
     }
 
     [Fact]
-    public void TryActivate_iki_kosulla_Active_olmaz()
+    public void TryActivate_Provisioning_Active_olur()
     {
         var m = Onboard();
-        m.MarkSettlementAccountPresent();
-        m.MarkCommissionGridReady();
-        // ReturnUrl eksik
-
-        Assert.False(m.TryActivate().IsSuccess);
-        Assert.Equal(MerchantStatus.Provisioning, m.Status);
-    }
-
-    [Fact]
-    public void TryActivate_uc_kosulla_Active_olur()
-    {
-        var m = Onboard();
-        m.MarkSettlementAccountPresent();
-        m.MarkCommissionGridReady();
-        m.SetReturnUrl("https://acme.com/return");
 
         var activated = m.TryActivate();
 

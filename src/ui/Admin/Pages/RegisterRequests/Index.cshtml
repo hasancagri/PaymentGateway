@@ -8,7 +8,7 @@
 
 @if (Model.Requests.Count == 0)
 {
-    <p class="muted">Bekleyen başvuru yok.</p>
+    <p class="muted">Başvuru yok.</p>
 }
 else
 {
@@ -28,15 +28,18 @@ else
                     <td>@r.Status</td>
                     <td>@r.CreatedTime.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>
-                        <form method="post" style="display:inline">
-                            <input type="hidden" name="id" value="@r.Id" />
-                            <button class="btn" asp-page-handler="Approve">Onayla</button>
-                        </form>
-                        <form method="post" style="display:inline">
-                            <input type="hidden" name="id" value="@r.Id" />
-                            <input type="text" name="note" placeholder="Not (opsiyonel)" />
-                            <button class="btn" asp-page-handler="Reject">Reddet</button>
-                        </form>
+                        @if (r.Status == "Pending")
+                        {
+                            <form method="post" style="display:inline">
+                                <input type="hidden" name="id" value="@r.Id" />
+                                <button class="btn" asp-page-handler="Approve">Onayla</button>
+                            </form>
+                            <form method="post" style="display:inline">
+                                <input type="hidden" name="id" value="@r.Id" />
+                                <input type="text" name="note" placeholder="Not (opsiyonel)" />
+                                <button class="btn" asp-page-handler="Reject">Reddet</button>
+                            </form>
+                        }
                     </td>
                 </tr>
             }
