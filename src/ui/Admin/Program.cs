@@ -49,6 +49,14 @@ builder.Services.AddHttpClient<IBinCardApiClient, BinCardApiClient>(client =>
         client.BaseAddress = new Uri("http://payment-api"))
     .AddHttpMessageHandler<AdminTokenHandler>();
 
+// 019: Merchant.Agent A2A chat (komisyon pazarlık ekranı). A2A yüzeyi auth istemez → token handler yok;
+// timeout geniş (LLM + MCP tool zinciri tek yanıtta koşar).
+builder.Services.AddHttpClient<IMerchantAgentClient, MerchantAgentClient>(client =>
+{
+    client.BaseAddress = new Uri("http://merchant-agent");
+    client.Timeout = TimeSpan.FromMinutes(3);
+});
+
 var app = builder.Build();
 
 app.MapDefaultEndpoints();

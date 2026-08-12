@@ -34,7 +34,10 @@ public static class ReviseCommissionDraftMcpTool
     [Description("Komisyon taslağını yapılandırılmış işlemlerle revize eder ve uygulanan diff'i (satır, " +
                  "eski → yeni) döner. İşlem biçimleri: {op:'set', row:37, rate:1.85} | {op:'set', " +
                  "bank:'Akbank', installment:6, rate:1.8} | {op:'delta', filter:{installment:12}, " +
-                 "delta:-0.2} | {op:'set', filter:{bank:'Akbank'}, rate:1.9}. YALNIZ admin'in açıkça " +
+                 "delta:-0.2} | {op:'set', filter:{bank:'Akbank'}, rate:1.9}. Adresleme bu üç biçimden " +
+                 "biri ZORUNLU: row (tek satır) | bank+installment (İKİSİ BİRLİKTE) | filter. Banka " +
+                 "verilmeden 'tüm N taksitler' için filter:{installment:N} kullan — üst düzey " +
+                 "installment'ı banka olmadan tek başına KOYMA. YALNIZ admin'in açıkça " +
                  "söylediği değerleri koy; hesap sunucuda yapılır. Banka oranının altına inen değişiklik " +
                  "BÜTÜN olarak reddedilir; merchant'a hiçbir şey gönderilmez.")]
     public static Task<FeatureObjectResultModel<AgentRevise.ReviseCommissionDraftResponse>>

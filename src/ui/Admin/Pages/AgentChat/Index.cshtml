@@ -1,0 +1,47 @@
+@page
+@model Admin.Pages.AgentChat.IndexModel
+@{
+    ViewData["Title"] = "Agent Chat";
+}
+
+<partial name="_Messages" />
+
+<p class="muted">
+    Merchant.Agent ile komisyon pazarlığı: <em>"ECommerce Demo A.Ş.'ye ilk komisyon teklifimizi sun"</em>,
+    <em>"satır 37'yi 1.85 yap"</em>, <em>"tüm 12 taksitleri 0.2 düşür"</em>, <em>"merchant'a gönder"</em>,
+    <em>"teklif ne durumda?"</em>
+</p>
+
+<div class="chat-log">
+    @if (Model.Transcript.Count == 0)
+    {
+        <p class="muted">Henüz mesaj yok.</p>
+    }
+    else
+    {
+        @foreach (var line in Model.Transcript)
+        {
+            <div class="chat-line chat-@line.Role">
+                <strong>@(line.Role == "admin" ? "Admin" : "Agent")</strong>
+                <pre>@line.Text</pre>
+            </div>
+        }
+    }
+</div>
+
+<form method="post">
+    <input type="hidden" asp-for="ContextId" />
+    <input type="hidden" asp-for="TranscriptJson" />
+    <div class="chat-input">
+        <input type="text" asp-for="Input" placeholder="Mesajını yaz..." autofocus autocomplete="off" style="width: 70%" />
+        <button type="submit" class="btn">Gönder</button>
+    </div>
+</form>
+
+<style>
+    .chat-log { margin: 1rem 0; max-width: 60rem; }
+    .chat-line { margin-bottom: .75rem; }
+    .chat-line pre { margin: .25rem 0 0; white-space: pre-wrap; font-family: inherit; }
+    .chat-admin strong { color: #1a6; }
+    .chat-agent strong { color: #36c; }
+</style>

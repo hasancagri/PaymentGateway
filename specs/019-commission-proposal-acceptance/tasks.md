@@ -101,7 +101,7 @@ son faz temizlik (Finalize söküm) + polish.
 - [X] T033 FR-013 söküm: `src/services/Commission.Api/Domains/MerchantCommissions/Features/Commands/FinalizeMerchantCommissionGrid.cs` sil; `MerchantCommissionGrid` aggregate + `GridStatus` sil; endpoint extension + `Program.cs` kayıtlarını temizle (defansif migration YOK — dev DB sıfırlanır)
 - [X] T034 `src/ui/Admin`: Finalize butonu + merchant komisyon upsert çağrılarını kaldır; grid salt-okuma (Commission.Api'deki upsert ucu admin-düzlem gereksinimi kalmadıysa kaldır/işaretle)
 - [X] T035 [P] `dotnet build` 0 hata + `dotnet test tests/Commission.Api.Tests` ve `tests/Merchant.Api.Tests` yeşil; Wolverine handler adlarının TEKİL "Handler" bittiğini doğrula (çoğul tuzak)
-- [ ] T036 Quickstart S1-S5 canlı doğrulama (Aspire + Mailpit; agent chat ile uçtan uca) — elle
+- [X] T036 Quickstart S1-S5 canlı doğrulama (Aspire + Mailpit; agent chat ile uçtan uca) — elle
 - [X] T037 [P] `CLAUDE.md` güncelle: 019 özeti (CommissionDraft/CommissionProposal, Commission /mcp yüzeyi, SendEmailRequested Attachment, Finalize söküm) + anayasa PATCH amendment hatırlatması (BaseModel/Enumeration bayat atfı — research R7, ayrı iş)
 
 ## Dependencies
