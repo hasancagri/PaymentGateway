@@ -23,15 +23,17 @@ Central Package Management açık (sürümler `Directory.Packages.props`); tek i
 src/
 ├── aspire/           AppHost + ServiceDefaults (orkestrasyon)
 ├── agents/
-│   └── Payment.Agent A2A host + LLM router + MCP client (007) — BC değil, stateless adaptör
+│   ├── Payment.Agent A2A host + LLM router + MCP client (007) — BC değil, stateless adaptör
+│   └── Merchant.Agent A2A başvuru + komisyon pazarlık host'u (013/019) — BC değil, stateless
 ├── services/
-│   ├── Payment.Api   Ödeme BC (CP.VPOS sanal POS + BinCard katalog + A2A ödeme oturumu/MCP)
+│   ├── Payment.Api   Ödeme BC (CP.VPOS sanal POS + BinCard katalog + A2A ödeme oturumu/MCP + kart vault 017)
 │   ├── Merchant.Api  Merchant BC (onboarding + settlement hesapları)
-│   ├── Commission.Api Komisyon BC (banka + komisyon)
+│   ├── Commission.Api Komisyon BC (banka + komisyon grid + teklif/pazarlık 019)
 │   └── Reference.Api Referans veri BC (event-only, HTTP yüzeyi yok — 010)
-├── ui/Admin          Razor Pages yönetim arayüzü (makine token'ıyla API çağırır)
+├── ui/Admin          Razor Pages yönetim arayüzü (makine token'ıyla API çağırır) + Agent Chat (019)
 └── others/           Common (domain base, Result, auth) + Shared (integration event)
-                      + Identity.Server (OpenIddict M2M IdP — 011)
+                      + Identity.Server (OpenIddict M2M IdP — 011) + Excel.Mcp (generic MCP)
+                      + Mail.Worker (RabbitMQ→SMTP consumer, 016 — MCP değil)
 ```
 
 Bir feature = bir static class (record command/query + Response + Handler + endpoint). Handler'lar
@@ -42,11 +44,11 @@ Bir feature = bir static class (record command/query + Response + Handler + endp
 
 | BC | Sorumluluk |
 |----|-----------|
-| **Payment** | Sanal POS ödeme; `BankRouter` maliyet-sıralı banka adayları; `PosAccount` aggregate (banka anlaşması + komisyon); BIN kart katalogu (008); A2A ödeme oturumu + MCP tool'ları (007). |
-| **Merchant** | Merchant onboarding (agentik başvuru + insan onayı + kademeli yetki, 013); settlement (payout) banka hesapları. |
-| **Commission** | Banka referansı, banka komisyonları, merchant komisyonları; grid finalize → hazır event (013). |
+| **Payment** | Sanal POS ödeme; `BankRouter` maliyet-sıralı banka adayları; `PosAccount` aggregate (banka anlaşması + komisyon); BIN kart katalogu (008); A2A ödeme oturumu + MCP tool'ları (007); kart vault — `StoredCard` tokenizasyon (017). |
+| **Merchant** | Merchant onboarding (agentik başvuru + insan onayı + kademeli yetki, 013/015); settlement (payout) banka hesapları. |
+| **Commission** | Banka referansı, banka komisyon grid'i; merchant komisyonunun TEK yazma yolu **teklif kabulü** (019: `CommissionDraft` + `CommissionProposal` + anonim karar linkleri). |
 
-Ayrıca **altyapı** (BC değil): `Identity.Server` (OpenIddict IdP), `Merchant.Agent` (A2A başvuru host'u, 013), `Mail.Mcp` + `Excel.Mcp` (generic MCP servisleri, 013), Admin BFF (Razor Pages). Dev'de `Mailpit` (SMTP catch-all).
+Ayrıca **altyapı** (BC değil): `Identity.Server` (OpenIddict IdP), `Merchant.Agent` (A2A başvuru + komisyon pazarlık host'u, 013/019), `Excel.Mcp` (generic MCP servisi), `Mail.Worker` (016 — MCP DEĞİL; `mail.delivery` fanout → SMTP, ClosedXML xlsx eki), Admin BFF (Razor Pages + Agent Chat). Dev'de `Mailpit` (SMTP catch-all).
 
 ## Merchant BC — Settlement hesapları (feature 004) + Admin ekranları (005)
 
@@ -219,75 +221,98 @@ Merchant adayının başvurudan **Active** merchant'a kadar tüm yaşam döngüs
 DEĞİL, ayrı **RegisterRequest** kaydıdır; merchant ancak onayla doğar (İlke V amendment v1.4.0:
 token verme statü-kapılı **ve kademeli**).
 
-### Akış (US1→US5)
+### Akış (015 sadeleştirmesiyle — challenge KALDIRILDI, push-inline)
 
 ```
-Aday site (ECommerce) --A2A/MCP--> Merchant.Agent/Merchant.Api
-  submit_registration(descriptorUrl): descriptor oku + HTTP-01 domain-control challenge doğrula
-    → RegisterRequest(Pending) + admin bildirim maili        [US1]
+Aday site (ECommerce admin chat) --MCP--> Merchant.Api
+  submit_registration(domain, legalName, taxId, contactEmail, webhookUrl):
+    alanlar push-inline gelir (descriptor çekme YOK) → RegisterRequest(Pending) + ack maili   [US1]
 Admin (Admin UI "Merchant Talepleri") --onay-->
-    Merchant(Provisioning) doğar (MerchantKey üretilir) + ActivationTicket + aktivasyon maili   [US2]
+    Merchant(Provisioning) doğar (MerchantKey üretilir) + aktivasyon maili   [US2]
 Aktivasyon sayfası (Identity.Server /activation) --redeem-->
-    MerchantKey BİR KEZ gösterilir + MerchantProvisioned event → OpenIddict client (Provisioning demeti)  [US3]
-Settlement hesabı + komisyon grid Ready(event) + ReturnUrl (3/3) --TryActivate-->
-    Merchant OTOMATİK Active + MerchantStatusChanged(Active) → tam demet   [US5]
+    MerchantKey BİR KEZ gösterilir + MerchantProvisioned event → OpenIddict client   [US3]
+Settlement hesabı + komisyon teklifi KABULü (019, MerchantCommissionGridReady event) --TryActivate-->
+    Merchant OTOMATİK Active + MerchantStatusChanged(Active) → tam demet (cards.write dahil)   [US5]
 ```
 
-### Aggregate'ler + kademeli statü
+### Aggregate'ler + kademeli statü (015: 5→2 aggregate)
 
-- **`RegisterRequest`** (Pending/Approved/Rejected) — descriptor doğrulanmış kopyası + challenge sonucu.
-  Yalnız challenge `Passed` ile oluşur (FR-003); mükerrer koruma domain-bazlı (FR-020).
-- **`DomainControlChallenge`** — tek-kullanım/TTL sahiplik bileti (HTTP-01 tarzı; `expectedValue`
-  aday sitede yayınlanır, gateway senkron GET ile doğrular).
-- **`ActivationTicket`** — tek-kullanım/TTL key-teslim bileti; ikinci redeem RET (key yeniden gösterilmez).
-- **`OnboardingNotification`** — deterministik mail gönderim kaydı (FR-019: Sent/Failed + retry görünürlüğü).
-- **`Merchant`** genişler: `Provisioning(4)` statüsü + `ReturnUrl`/`ExternalRef`/`HasSettlementAccount`/
-  `CommissionGridReady`/`ActivatedAtUtc` + `TryActivate()` (3-koşul, **idempotent**, saf iç metot).
-- Kademeli yetki: **Provisioning** = `merchant.read`/`write` (kendi kaydı + settlement + ReturnUrl; **charge HARİÇ**);
-  **Active** = tam demet (charge dahil; G5). Charge hiçbir alt-statüde verilmez (fail-closed). OpenIddict
-  client yalnız aktivasyon (`MerchantProvisioned`) anında provision edilir — aktivasyon öncesi token YOK.
+- **`RegisterRequest`** (Pending/Approved/Rejected) — başvuru alanlarının kaydı; sahiplik/uygunluk
+  denetimi admin'in insan incelemesi (challenge kaldırıldı). Mükerrer koruma domain-bazlı (FR-020).
+- **`Merchant`**: `Provisioning(4)` statüsü + aktivasyon bileti alanları (ayrı `ActivationTicket`
+  aggregate'i Merchant'a katlandı) + `HasSettlementAccount`/`CommissionGridReady` + `TryActivate()`
+  (3-koşul, **idempotent**). `OnboardingNotification` silindi — mail kaydı yok, outbox publish yeter.
+- Kademeli yetki: **Provisioning** = `merchant.read`/`write` (kendi kaydı + settlement; **charge HARİÇ**);
+  **Active** = tam demet (`cards.write` dahil). OpenIddict client aktivasyon anında provision edilir.
 
-### Komisyon (B kararı — gateway-otoriter, pazarlık YOK)
+## Komisyon Teklifi ve Metin-Sürümlü Pazarlık (feature 019)
 
-Admin grid'i doldurur → **Draft**; **Finalize** bütünlüğü doğrular (eksik hücre yok + banka tavan-altı)
-→ **Ready** + `MerchantCommissionGridReady` yayınlanır (aynı `[Transactional]` = outbox). Merchant.Api
-tekil `MerchantCommissionGridReadyHandler` ile tüketip Active koşulu #2'yi işaretler. Merchant kabul/ret/
-karşı-teklif YAPMAZ (Approved/Rejected kavramı yok; pazarlık → 014).
+Merchant komisyonunun **tek yazma yolu teklif kabulüdür** — elle upsert ve eski Finalize/`MerchantCommissionGrid`
+SÖKÜLDÜ (FR-013). Admin pazarlığı Merchant.Agent chat'iyle metin üzerinden yürütür; **LLM oran üretmez/
+hesaplamaz** — yalnız admin'in açık değerlerini taşır, hesap ve bekçi sunucudadır.
 
-### MCP yüzeyleri + iki mail sınıfı
+- **`CommissionDraft`** — merchant başına TEK çalışma kopyası (`Id = MerchantId`); deterministik sıralı +
+  1-tabanlı satır no'lu `DraftRow` ("satır 37" adreslemesi). `CreateFromBankGrid` = banka oranı +
+  `CommissionProposalOption.DefaultMarginPoints`. `Revise` set/delta işlemlerini SUNUCUDA uygular
+  (adresleme: `row` | `bank+installment` | `filter`); **taban bekçisi** banka oranı altını BÜTÜN-veya-hiç
+  reddeder; başarıda diff (satır, eski → yeni) döner. Kabulde `Lock` — sonrası revizyon RET.
+- **`CommissionProposal`** — gönderilmiş immutable fotoğraf (Pending/Accepted/Rejected/Superseded);
+  tek-kullanımlık + TTL `DecisionTicket` (`cp_…`). Pending varken yeni gönderim eskiyi **Supersede** eder
+  (yalnız son maildeki linkler çalışır); Accepted varken yeni teklif RET.
+- **Mail**: teklif gönderiminde `SendEmailRequested(to, subject, body, attachment)` outbox publish —
+  `EmailAttachmentTable` (generic Headers+Rows) Mail.Worker'da ClosedXML ile `komisyon-teklifi.xlsx`e
+  çevrilir; gövdede mutlak Kabul/Ret linkleri. Revizyon merchant'a HİÇBİR ŞEY göndermez; mail yalnız
+  açık "gönder" komutuyla çıkar (FR-010).
+- **Karar uçları** — ANONİM mini HTML (yetki = bilet): `commission-proposals/decision/{ticket}/accept|reject`.
+  Kabul tek `[Transactional]`da: Accept + draft Lock + satırlar `MerchantCommission`'a kopya (banka
+  çakışmasında MAX oran) + `MerchantCommissionGridReady` publish → mevcut aktivasyon zinciri. Ret gerekçe
+  formu alır; gerekçe `commission_proposal_status` ile admin'e görünür.
+- **Admin UI**: merchant komisyon ekranı salt-okuma + teklif durumu; **Agent Chat** sayfası (`/AgentChat`)
+  Merchant.Agent'a A2A JSON-RPC ile bağlanır — pazarlık komutları ekrandan yazılır.
 
-- **Merchant.Api `/mcp`** (`merchant.write`): `submit_registration`, `registration_status`, `get_merchant`.
-- **Commission.Api `/mcp`** (`commission.read`): `get_merchant_commission_grid` (Ready grid → düz tablo).
-- **Deterministik mailler** (BC handler → `Common.IMailSender` → Mail.Mcp): aktivasyon (tek-seferlik key
-  linki) + admin bildirim — LLM'e VERİLMEZ, `OnboardingNotification`'a kaydedilir.
-- **Agentik mail** (harici LLM/MCP orkestrasyon — **013 dışı**, client sabitlenmez): komisyon Excel'i.
-  013 yalnız yüzeyleri sağlar: `get_merchant` → `get_merchant_commission_grid` → **Excel.Mcp**
-  `generate_spreadsheet` (ClosedXML .xlsx) → **Mail.Mcp** `send_email` (ekli).
+### MCP yüzeyleri + mail
+
+- **Merchant.Api `/mcp`** (`merchant.write`): `submit_registration`, `registration_status`, `get_merchant`
+  (isim araması → id + email).
+- **Commission.Api `/mcp`** (tek policy `commission.write`): `submit_commission_proposal`,
+  `revise_commission_draft`, `show_commission_draft`, `commission_proposal_status`,
+  `get_merchant_commission_grid` (Accepted-teklif kapılı).
+- **Deterministik mailler** (BC handler → `[Transactional]` outbox `SendEmailRequested` → RabbitMQ
+  `mail.delivery` fanout → **Mail.Worker** → SMTP/Mailpit): başvuru ack + aktivasyon linki + komisyon
+  teklifi (xlsx ekli). `IMailSender`/`Mail.Mcp` KALDIRILDI (016) — BC'den MCP çağrısı yok.
 
 ### Altyapı (BC değil)
 
-- **Merchant.Agent** — Payment.Agent şablonu; A2A host + LLM router + MCP client (yalnız başvuru; komisyon yok).
-- **Mail.Mcp** / **Excel.Mcp** — generic, domain bilmez; scope-korumalı (`mail.send` / `document.generate`).
+- **Merchant.Agent** — A2A host + LLM router; iki MCP client (Merchant.Api + Commission.Api `/mcp`,
+  tek token iki audience). Skill'ler: `register`, `registration_status` + 019 komisyon dörtlüsü.
+- **Excel.Mcp** — generic MCP (`document.generate`); yalnız agent/LLM çağırır (MCP = yalnız Agent yüzeyi, 016).
+- **Mail.Worker** — MCP değil; durable `mail.delivery-send` kuyruğu, SMTP retry (1s/5s/15s) + error queue.
 - **Mailpit** — dev SMTP catch-all (SMTP :1025, web UI :8025); gerçek adres gerekmez.
-- Yeni Identity scope'ları (`mail.send`, `document.generate`) + client'lar (`merchant-agent`, `merchant-api`,
-  `identity-activation`, `ecommerce-onboarding`; `admin-ui`'ye mail/doc scope'ları eklendi).
 
-Karşı-uç (aday site) işleri **ECommerceWithAgentFramework** repo'sunda (E1): descriptor + challenge
-yayını + otomatik kayıt sürüşü. Cross-BC tüm sıçramalar **outbox** (dual-write yok); tüketiciler tekil
-`...Handler` + idempotent.
+Karşı-uç (aday site) işleri **ECommerceWithAgentFramework** repo'sunda (032/033): admin chat persona +
+onboarding MCP + MerchantId/MerchantKey kayıt ekranı. Cross-BC tüm sıçramalar **outbox** (dual-write yok);
+tüketiciler tekil `...Handler` + idempotent (çoğul "Handlers" Wolverine'de sessizce keşfedilmez — tuzak).
+
+## Kart Vault — tokenizasyon (feature 017)
+
+`StoredCard` aggregate (Payment BC): PAN şifreli saklanır (`EncryptedPan`), kanalda yalnız `card_…`
+token + BIN + son 4 dolaşır. Uçlar merchant-scoped `merchants/{merchantId}/vault/cards`
+(Tokenize/Update/Revoke; scope `cards.write` — yalnız **Active** merchant token'ında). Liste/GET ucu
+bilinçli yok — kartı yalnız sahibi merchant yönetir; ECommerce tarafı müşteri cüzdanından tüketir.
 
 ## Test
 
 Saf domain birim testleri; handler/HTTP/Razor Pages/A2A/MCP/LLM entegrasyonu test edilmez (quickstart ile elle).
 
 - `tests/Payment.Api.Tests` — `PaymentSession` faz geçişleri + Model A taksit hesabı (008 BinCard testleri dahil).
-- `tests/Merchant.Api.Tests` — `MerchantTests`, `SettlementAccountTests` (IBAN mod-97, TR kısıtı);
-  013: `RegisterRequestTests`, `DomainControlChallengeTests`, `ActivationTicketTests`,
-  `MerchantOnboardingTests` (Provisioning + `TryActivate` 3-koşul + ReturnUrl/externalRef). (75 test)
+- `tests/Merchant.Api.Tests` — `MerchantTests`, `SettlementAccountTests` (IBAN mod-97, TR kısıtı),
+  `RegisterRequestTests`, `MerchantOnboardingTests` (Provisioning + `TryActivate`). (50 test)
 - `tests/Commission.Api.Tests` — `BankTests`, `BulkUpsertCriteriaMatchTests`, `BankCommissionTests`,
-  `MerchantCommissionTests`; 013: `MerchantCommissionGridTests` (Draft/Ready + tavan-altı). (44 test)
+  `MerchantCommissionTests`; 019: draft üretimi (marj/sıra/satır no), revizyon (set/delta/taban
+  bekçisi/bütün-veya-hiç), proposal durum makinesi (bilet TTL/tek kullanım/Supersede), kilit. (64 test)
 
-013 uçtan uca (S1–S6) iki sistem (DropShop + ECommerce) üzerinde quickstart ile canlı doğrulandı.
+013 (S1–S6) ve 019 (S1–S5: teklif → ret → metinle revizyon → kabul → merchant Active → kart saklama)
+iki sistem (DropShop + ECommerce) üzerinde quickstart ile canlı doğrulandı.
 
 ## Geliştirme akışı
 

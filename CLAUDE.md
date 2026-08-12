@@ -47,7 +47,11 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   `POST merchants/activation/redeem` (AdminPlaneOnly; `MerchantProvisioned` yayınlar, key bir kez döner).
 - `src/agents/Merchant.Agent` — 013 A2A başvuru host'u (Payment.Agent şablonu). BC değil, stateless.
   013 skill'leri: `register` + `registration_status`; Merchant.Api `/mcp`'yi kendi client'ıyla
-  (`merchant-agent`, `merchant.write`) tüketir. Komisyon/pazarlık YOK (014).
+  (`merchant-agent`, scope `merchant.read merchant.write commission.write`) tüketir. **019**: ikinci MCP
+  client Commission.Api `/mcp`'ye (aynı token, iki audience); 4 komisyon skill'i: `propose_commission`
+  (get_merchant isim→id+email → submit_commission_proposal), `revise_commission_draft` (yalnız admin'in
+  AÇIK değerleri; diff yankılanır), `show_commission_draft`, `commission_proposal_status`. Admin komisyon
+  pazarlığını bu metin kanalıyla yürütür; mail yalnız açık "gönder" komutuyla çıkar.
 - `src/others/Excel.Mcp` — generic altyapı MCP server'ı (BC değil, domain bilmez). `generate_spreadsheet`
   (ClosedXML → .xlsx base64). Scope-korumalı: `document.generate`. **MCP = yalnız Agent yüzeyi** (altyapı
   kuralı, 016): MCP tool'ları YALNIZ agent/LLM çağırır; servisler-arası veya BC→altyapı iletişimi ASLA MCP
@@ -57,11 +61,26 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   (`mail.delivery-send`) ile tüketir; `SendEmailHandler` (tekil "Handler") `System.Net.Mail` → Mailpit ile
   gönderir. **Retry**: `Policies.OnException<SmtpException>().RetryWithCooldown(1s,5s,15s).Then.MoveToErrorQueue()`
   (backoff + dead-letter; message store yok → `ProcessInline`, RabbitMQ redelivery). Deterministik mailler
-  (aktivasyon linki + başvuru ack) BC handler'ından `[Transactional]` outbox ile `bus.PublishAsync(new
-  SendEmailRequested(to,subject,body))` — publish yalnız DB commit'te gider. `IMailSender`/`MailMcpClient`
-  KALDIRILDI (BC→MCP ihlaliydi). Komisyon Excel maili (014, henüz yok) da aynı kuyruğa publish edecek.
+  (aktivasyon linki + başvuru ack + 019 komisyon teklifi) BC handler'ından `[Transactional]` outbox ile
+  `bus.PublishAsync(new SendEmailRequested(to,subject,body,isHtml,attachment?))` — publish yalnız DB
+  commit'te gider. 019: `EmailAttachmentTable(FileName,Headers,Rows)` opsiyonel eki ClosedXML ile .xlsx'e
+  çevirip mail'e ekler (generic tablo — domain bilmez). `IMailSender`/`MailMcpClient` KALDIRILDI.
 - `src/services/Commission.Api` — Commission BC. `Bank` aggregate (katalogdan kod+ad) + banka/merchant
-  komisyon grid'leri (kombinasyon-bazlı, atomik toplu upsert). Banka seed yok.
+  komisyon grid'leri (kombinasyon-bazlı; banka grid'i atomik toplu upsert). Banka seed yok. **019 teklif
+  akışı**: `CommissionDraft` (merchant başına TEK çalışma kopyası, Id=MerchantId; deterministik sıralı +
+  1-tabanlı satır no'lu `DraftRow` — "satır 37" adreslemesi; `CreateFromBankGrid` = banka oranı +
+  `CommissionProposalOption.DefaultMarginPoints`; `Revise` set/delta işlemleri SUNUCUDA hesaplar, taban
+  bekçisi BÜTÜN-veya-hiç, diff döner; kabulde `Lock`) + `CommissionProposal` (gönderilmiş immutable
+  fotoğraf; Pending/Accepted/Rejected/Superseded; tek-kullanımlık + TTL `DecisionTicket`). `/mcp` yüzeyi
+  tek policy `commission.write` (013'teki commission.read'den yükseltildi); tool'lar:
+  `submit_commission_proposal`, `revise_commission_draft`, `show_commission_draft`,
+  `commission_proposal_status`, `get_merchant_commission_grid`. Karar uçları ANONİM mini HTML
+  (`commission-proposals/decision/{ticket}/accept|reject` — yetki=bilet, aktivasyon redeem emsali);
+  kabul tek `[Transactional]`da: Accept + draft Lock + satırlar `MerchantCommission`'a kopya (banka
+  çakışmasında MAX oran) + `MerchantCommissionGridReady` publish (mevcut aktivasyon zinciri). **Finalize
+  + `MerchantCommissionGrid`/`GridStatus` SÖKÜLDÜ (FR-013)** — merchant komisyonunun TEK yazma yolu
+  teklif kabulü; merchant-commission upsert uçları da kaldırıldı (yalnız GET kaldı). Admin komisyon
+  ekranı salt-okuma + teklif durumu. LLM oran üretmez/hesaplamaz (yalnız açık değer taşır).
 - `src/agents/Payment.Agent` — A2A host + LLM router + MCP client (007). Payment BC **DEĞİL** —
   kalıcılık yok, stateless delivery adaptörü. `AddA2AServer(agent)` + `MapA2AJsonRpc` +
   `MapWellKnownAgentCard` (`/.well-known/agent-card.json`). LLM yalnız tool sırasını kurar
@@ -194,3 +213,6 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
   Handler/HTTP/Razor Pages entegrasyonu test edilmez — quickstart senaryolarıyla elle doğrulanır.
 - Diğer BC'ler (Catalog, Order, Supplier...) tasarım gereği henüz yok; her biri kendi
   spec döngüsüyle eklenecek.
+- **Anayasa PATCH amendment bekliyor** (019 research R7): Anayasa II hâlâ "BaseModel'den türer" ve
+  "Enumeration ile modellenir" diyor — ikisi de 2026-08-11 refactor'üyle silindi (AggregateRoot tek
+  base, düz enum). `/speckit-constitution` ile ayrı iş olarak düzeltilecek.

@@ -18,13 +18,14 @@ global using Wolverine;
 global using Wolverine.Attributes;
 global using Wolverine.Marten;
 // --- hoisted (sade using'ler dosyalardan taşındı) ---
+global using Commission.Api.Options;
+global using Commission.Api.Domains.CommissionProposals;
 global using Commission.Api.Domains.BankCommissions.Features.Commands;
 global using Commission.Api.Domains.BankCommissions.Features.Queries;
 global using Commission.Api.Domains.BankCommissions;
 global using Commission.Api.Domains.Banks.Features.Commands;
 global using Commission.Api.Domains.Banks.Features.Queries;
 global using Commission.Api.Domains.Banks;
-global using Commission.Api.Domains.MerchantCommissions.Features.Commands;
 global using Commission.Api.Domains.MerchantCommissions.Features.Queries;
 global using Commission.Api.Domains.MerchantCommissions;
 global using Commission.Api.ReadModels;

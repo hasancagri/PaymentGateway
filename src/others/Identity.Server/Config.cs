@@ -53,12 +53,13 @@ public static class Config
             Scopes = ["payment.read", "payment.write"],
         },
         // 013: Merchant.Agent m2m — başvuru MCP tool'ları (Merchant.Api /mcp, merchant.write).
+        // 019: komisyon teklif/pazarlık MCP tool'ları (Commission.Api /mcp, commission.write) eklendi.
         new ClientSeed
         {
             ClientId = "merchant-agent",
             ClientSecret = RequireSecret(configuration, "merchant-agent"),
             DisplayName = "Merchant agent (m2m)",
-            Scopes = ["merchant.read", "merchant.write"],
+            Scopes = ["merchant.read", "merchant.write", "commission.write"],
         },
         // 013: Identity aktivasyon sayfası → Merchant.Api redeem (sanksiyonlu senkron çağrı).
         // Claim'siz (AdminPlaneOnly geçer); merchant.write ile bileti kullanır.

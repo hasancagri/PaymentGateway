@@ -12,6 +12,8 @@
         <PackageReference Include="WolverineFx" />
         <PackageReference Include="WolverineFx.RuntimeCompilation" />
         <PackageReference Include="WolverineFx.RabbitMQ" />
+        <!-- 019: EmailAttachmentTable → .xlsx eki (SendEmailHandler). -->
+        <PackageReference Include="ClosedXML" />
     </ItemGroup>
 
     <ItemGroup>

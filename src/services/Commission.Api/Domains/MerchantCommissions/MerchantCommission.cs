@@ -24,7 +24,7 @@ public class MerchantCommission : AggregateRoot
     public decimal Rate { get; private set; }
 
     /// <summary>MerchantId/Criteria/Rate doğrular (boş değil, oran > 0) ve yeni komisyon üretir; hata Result döner.</summary>
-    /// <remarks>Handler: BulkUpsertMerchantCommissionsCommandHandler, CreateMerchantCommissionCommandHandler</remarks>
+    /// <remarks>Handler: AcceptCommissionProposalCommandHandler (019 sonrası tek yazma yolu — FR-013)</remarks>
     public static ResultDomain<MerchantCommission> Create(Guid merchantId, Criteria criteria, decimal rate)
     {
         if (merchantId == Guid.Empty)
@@ -63,7 +63,7 @@ public class MerchantCommission : AggregateRoot
     }
 
     /// <summary>Oranı günceller (invariant: > 0) ve UpdatedTime'ı yeniler; geçersiz oranda hata Result döner.</summary>
-    /// <remarks>Handler: BulkUpsertMerchantCommissionsCommandHandler, CreateMerchantCommissionCommandHandler, UpdateMerchantCommissionCommandHandler</remarks>
+    /// <remarks>Handler: AcceptCommissionProposalCommandHandler (019 sonrası tek yazma yolu — FR-013)</remarks>
     public ResultDomain UpdateRate(decimal rate)
     {
         if (rate <= 0)

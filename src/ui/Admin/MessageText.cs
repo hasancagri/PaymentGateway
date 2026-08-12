@@ -15,7 +15,12 @@ public static class MessageText
         ["COMMON_MESSAGE_INVALID_ENUM_TYPE"] = "Geçersiz değer",
         ["COMMON_MESSAGE_INVALID_VALUE"] = "Geçersiz değer",
         ["COMMON_MESSAGE_SERVER_ERROR"] = "Sunucu hatası",
-        ["BANK_HAS_COMMISSIONS"] = "Bankaya bağlı komisyon var, önce onları sil"
+        ["BANK_HAS_COMMISSIONS"] = "Bankaya bağlı komisyon var, önce onları sil",
+        // 019: komisyon teklifi
+        ["RATE_BELOW_BANK_FLOOR"] = "Oran banka oranının (taban) altına inemez",
+        ["DRAFT_LOCKED"] = "Taslak kilitli (teklif kabul edildi)",
+        ["PROPOSAL_ALREADY_ACCEPTED"] = "Kabul edilmiş teklif var; yeni teklif/revizyon yapılamaz",
+        ["PROPOSAL_TICKET_INVALID"] = "Karar bileti geçersiz (kullanılmış, süresi dolmuş veya güncellenmiş)"
     };
 
     public static string Of(ApiMessage message)

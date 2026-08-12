@@ -4,20 +4,19 @@
 @{
     ViewData["Title"] = "Merchant Komisyonları";
     string Inv(decimal d) => d.ToString(CultureInfo.InvariantCulture);
+
+    static string StatusText(string status) => status switch
+    {
+        "None" => "Teklif yok",
+        "Pending" => "Beklemede (merchant kararı bekleniyor)",
+        "Accepted" => "Kabul edildi",
+        "Rejected" => "Reddedildi",
+        "Superseded" => "Geçersiz (yeni teklif gönderildi)",
+        _ => status
+    };
 }
 
 <partial name="_Messages" />
-
-<div class="actions">
-    <a class="btn" asp-page="CreateOrUpdate">Merchant Komisyon Grid</a>
-    @if (Model.MerchantId is { } fid && fid != Guid.Empty)
-    {
-        <form method="post" style="display:inline">
-            <input type="hidden" name="merchantId" value="@fid" />
-            <button class="btn" asp-page-handler="Finalize">Grid'i Finalize Et (Ready)</button>
-        </form>
-    }
-</div>
 
 <form method="get">
     <label asp-for="MerchantId">Merchant</label>
@@ -35,38 +34,71 @@
 {
     <p class="muted">Komisyonları görmek için bir merchant seç.</p>
 }
-else if (Model.Rows.Count == 0)
-{
-    <p class="muted">Bu merchant için girilmiş oran yok. <a asp-page="CreateOrUpdate" asp-route-merchantId="@Model.MerchantId">Grid'de ekle</a>.</p>
-}
 else
 {
-    <p class="muted">Salt-görünüm. Kırmızı satır: merchant oranı banka tavanının (max) altında/eşit (bilgi amaçlı). Düzenleme için grid'i kullan.</p>
-    <table>
-        <thead>
-            <tr><th>Marka</th><th>Tip</th><th>Bölge</th><th>Taksit</th><th>Banka Aralığı</th><th>Merchant Oranı (%)</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var row in Model.Rows)
-            {
-                <tr class="@(row.BelowBankCeiling ? "below-ceiling" : "")">
-                    <td>@row.Criteria.CardBrand</td>
-                    <td>@row.Criteria.CardType</td>
-                    <td>@row.Criteria.TransactionRegion</td>
-                    <td>@row.Criteria.InstallmentCount</td>
-                    <td>
-                        @if (row.BankMax.HasValue)
-                        {
-                            <span>@Inv(row.BankMin!.Value) – @Inv(row.BankMax.Value)</span>
-                        }
-                        else
-                        {
-                            <span class="muted">banka yok</span>
-                        }
-                    </td>
-                    <td>@(row.Rate.HasValue ? Inv(row.Rate.Value) : "")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    @* 019 US5: teklif durumu — süreç Merchant.Agent metin kanalından yürür; burası salt gösterim. *@
+    <h2>Teklif Durumu</h2>
+    @if (Model.ProposalStatus is { } ps)
+    {
+        <table>
+            <tbody>
+                <tr><th>Durum</th><td>@StatusText(ps.Status)</td></tr>
+                @if (ps.DecidedTime is { } decided)
+                {
+                    <tr><th>Karar Zamanı (UTC)</th><td>@decided.ToString("dd.MM.yyyy HH:mm")</td></tr>
+                }
+                @if (!string.IsNullOrWhiteSpace(ps.RejectReason))
+                {
+                    <tr><th>Ret Gerekçesi</th><td>@ps.RejectReason</td></tr>
+                }
+                @if (ps.RowCount > 0)
+                {
+                    <tr><th>Teklif Satır Sayısı</th><td>@ps.RowCount</td></tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="muted">Teklif durumu alınamadı.</p>
+    }
+
+    <h2>Komisyon Oranları</h2>
+    @if (Model.Rows.Count == 0)
+    {
+        <p class="muted">Bu merchant için oluşmuş oran yok. Oranlar, merchant'ın komisyon teklifini
+            kabul etmesiyle oluşur (teklif süreci Merchant.Agent üzerinden metinle yürütülür).</p>
+    }
+    else
+    {
+        <p class="muted">Salt-okuma: oranlar teklif kabulüyle oluşur, buradan düzenlenemez.
+            Kırmızı satır: merchant oranı banka tavanının (max) altında/eşit (bilgi amaçlı).</p>
+        <table>
+            <thead>
+                <tr><th>Marka</th><th>Tip</th><th>Bölge</th><th>Taksit</th><th>Banka Aralığı</th><th>Merchant Oranı (%)</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr class="@(row.BelowBankCeiling ? "below-ceiling" : "")">
+                        <td>@row.Criteria.CardBrand</td>
+                        <td>@row.Criteria.CardType</td>
+                        <td>@row.Criteria.TransactionRegion</td>
+                        <td>@row.Criteria.InstallmentCount</td>
+                        <td>
+                            @if (row.BankMax.HasValue)
+                            {
+                                <span>@Inv(row.BankMin!.Value) – @Inv(row.BankMax.Value)</span>
+                            }
+                            else
+                            {
+                                <span class="muted">banka yok</span>
+                            }
+                        </td>
+                        <td>@(row.Rate.HasValue ? Inv(row.Rate.Value) : "")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 }

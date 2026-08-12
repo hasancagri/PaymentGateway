@@ -32,5 +32,10 @@ public static class IntegrationEvents
 
     // 016: deterministik mail gönderimi — BC handler'ı [Transactional] outbox ile yayınlar, Mail.Worker
     // tüketip SMTP ile gönderir (MCP DEĞİL — yalnız Agent MCP çağırır). Generic (domain sızmaz).
-    public record SendEmailRequested(string To, string Subject, string Body, bool IsHtml = false);
+    // 019: opsiyonel generic tablo eki — Mail.Worker ClosedXML ile .xlsx üretip mail'e ekler.
+    public record SendEmailRequested(string To, string Subject, string Body, bool IsHtml = false,
+        EmailAttachmentTable? Attachment = null);
+
+    // 019: xlsx'e dönüşecek generic tablo (domain bilgisi taşımaz; Headers + string satırlar).
+    public record EmailAttachmentTable(string FileName, string[] Headers, string[][] Rows);
 }

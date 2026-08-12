@@ -19,9 +19,11 @@ builder.Services.AddMarten(opts =>
         opts.Schema.For<MerchantCommission>();
         opts.Schema.For<Bank>();
 
-        // 013: merchant grid başlık kaydı (Draft/Ready) — kimlik = MerchantId.
-        opts.Schema.For<Commission.Api.Domains.MerchantCommissions.MerchantCommissionGrid>()
-            .Identity(x => x.MerchantId);
+        // 019: teklif akışı — draft kimliği = MerchantId (AggregateRoot.Id'ye atanır);
+        // proposal her gönderimde yeni kayıt. MerchantCommissionGrid (Draft/Ready) SÖKÜLDÜ (FR-013):
+        // "hazır" olmanın tek kaynağı Accepted proposal; dev DB sıfırlanır, migration yok.
+        opts.Schema.For<Commission.Api.Domains.CommissionDrafts.CommissionDraft>();
+        opts.Schema.For<Commission.Api.Domains.CommissionProposals.CommissionProposal>();
 
         // Reference.Api banka kataloğunun yerel read-model izdüşümü (id = Code). Event ile beslenir.
         opts.Schema.For<ReferenceBank>().Identity(x => x.Code);
@@ -48,12 +50,19 @@ builder.Host.UseWolverine(opts =>
 
     opts.ListenToRabbitQueue("commission.reference-sync").UseDurableInbox();
 
-    // 013: grid finalize → Merchant.Api tüketir (Active koşulu #2). Fanout exchange; event state
+    // 013/019: komisyon hazır → Merchant.Api tüketir (Active koşulu #2). Fanout exchange; event state
     // değişikliğiyle aynı [Transactional] commit'te outbox'a yazılır (dual-write yok — D13).
+    // 019'da kaynak teklif kabul handler'ıdır (AcceptCommissionProposal).
     rabbit.DeclareExchange(RabbitMqConstants.MerchantCommission.Exchange,
         e => { e.ExchangeType = ExchangeType.Fanout; });
     opts.PublishMessage<Shared.IntegrationEvents.MerchantCommissionGridReady>()
         .ToRabbitExchange(RabbitMqConstants.MerchantCommission.Exchange);
+
+    // 019: teklif maili (Excel tablolu) → Mail.Worker tüketir. Outbox: yalnız DB commit'te gider.
+    rabbit.DeclareExchange(RabbitMqConstants.MailDelivery.Exchange,
+        e => { e.ExchangeType = ExchangeType.Fanout; });
+    opts.PublishMessage<Shared.IntegrationEvents.SendEmailRequested>()
+        .ToRabbitExchange(RabbitMqConstants.MailDelivery.Exchange);
 
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
@@ -74,6 +83,9 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     AuthorizationScopes.CommissionWrite);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
+
+// 019: teklif ayarları (marj + bilet TTL + public link tabanı) — strongly-typed POCO.
+builder.Services.AddOptionsExt();
 
 // 013 US4: MCP server — komisyon Excel orkestrasyonu için get_merchant_commission_grid ([McpServerToolType]).
 builder.Services
@@ -96,7 +108,15 @@ app.AddBankGroupEndpointExtension(apiVersionSet);
 app.AddBankCommissionGroupEndpointExtension(apiVersionSet);
 app.AddMerchantCommissionGroupEndpointExtension(apiVersionSet);
 
-// 013 US4: MCP endpoint (harici LLM/MCP client, commission.read).
-app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.CommissionRead);
+// 019: merchant'a dönük ANONİM karar uçları — yetki = tek-kullanımlık + TTL bilet (FR-004).
+app.AddCommissionProposalDecisionEndpointExtension();
+
+// 019 US5: admin-düzlem teklif durumu sorgusu (commission.read).
+app.AddCommissionProposalGroupEndpointExtension(apiVersionSet);
+
+// 013 US4 → 019: MCP endpoint. 019 teklif/revizyon tool'ları mutasyon içerdiğinden yüzey tek policy
+// commission.write (Payment /mcp = payment.write deseni). Tüketiciler (admin-ui, merchant-agent)
+// commission.write scope'una sahip.
+app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.CommissionWrite);
 
 await app.RunAsync();
