@@ -26,5 +26,6 @@ global using Shared;
 global using System.ComponentModel;
 global using Wolverine.RabbitMQ;
 global using Commission.Api.Provider;
-global using Commission.Api.Domains.Payouts;
-global using Commission.Api.Domains.TransactionReports;
+global using Commission.Api.Provider.Payout;
+global using Commission.Api.Provider.Reporting;
+global using Commission.Api.Domains.CommissionPolicies;

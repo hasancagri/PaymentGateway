@@ -76,4 +76,7 @@ var apiVersionSet = app.NewApiVersionSet()
     .ReportApiVersions()
     .Build();
 
+// 024: Commission BC gerçek domain — marj politikası + efektif komisyon uçları.
+app.AddCommissionPolicyGroupEndpointExtension(apiVersionSet);
+
 await app.RunAsync();
