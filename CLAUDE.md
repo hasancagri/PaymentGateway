@@ -24,11 +24,13 @@ dotnet build                                        # tüm çözüm (PaymentGate
 dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile başlat (Postgres + RabbitMQ)
 dotnet test tests/Merchant.Api.Tests                # saf domain birim testleri (Merchant)
 dotnet test tests/Commission.Api.Tests              # saf domain birim testleri (Commission)
+dotnet test tests/Iyzipay.Tests                     # Iyzipay SDK deterministik testleri (020)
 ```
 
 - Sistemi her zaman AppHost üzerinden başlat; servisler conn-string'leri Aspire'dan alır.
-- Central Package Management açık: sürümler `Directory.Packages.props`'ta. Tek istisna
-  `CP.VPOS.csproj` (bilinçli CPM dışı, kendi sürümlerini tutar — dokunma).
+- Central Package Management açık: sürümler `Directory.Packages.props`'ta. İstisna: harici
+  olduğu-gibi kütüphaneler (`CP.VPOS`, 020'de Iyzipay ailesi) bilinçli CPM dışı, kendi
+  sürümlerini tutar — dokunma.
 
 ## Yapı ve kurallar
 
@@ -97,10 +99,18 @@ dotnet test tests/Commission.Api.Tests              # saf domain birim testleri 
 - `src/ui/Admin` — Razor Pages BFF (yetki yok). Merchant/Bank/komisyon/settlement ekranları; typed
   `HttpClient`'lar Aspire service discovery ile API'leri çağırır (`http://merchant-api` vb.). Backend'e
   kural sızdırmaz — yalnız API sonucunu (`ApiResult`/`MessageText` Türkçe) gösterir.
-- `src/otherProjects/CP.VPOS` — sanal POS kütüphanesi, OLDUĞU GİBİ taşındı (eski stil, nullable
-  kapalı). `otherProjects` altında (versiyonlanmaz) ama Payment BC'nin aktif bağımlılığı —
-  Payment.Api buradan referans verir. CP.VPOS tipleri slice sınırını GEÇMEZ: handler
-  `SaleResponse`'u domain'e çevirir.
+- `src/services/CP.VPOS` — sanal POS kütüphanesi, OLDUĞU GİBİ taşındı (eski stil, nullable
+  kapalı; gitignore'lu — versiyonlanmaz) ama Payment BC'nin aktif bağımlılığı — Payment.Api
+  buradan referans verir. CP.VPOS tipleri slice sınırını GEÇMEZ: handler `SaleResponse`'u
+  domain'e çevirir.
+- `src/services/Iyzipay` (+ `Iyzipay.Samples`) — iyzico resmî .NET SDK'sı, 020 ile
+  `src/otherProjects`'ten (klasör silindi) sürüm kontrolüne taşındı; net10.0, CPM dışı,
+  Nullable/ImplicitUsings kapalı (CP.VPOS emsali; ImplicitUsings açılırsa kütüphanenin kendi
+  `HttpClient` tipi `System.Net.Http.HttpClient` ile çakışır). Testler: `tests/Iyzipay.Tests`
+  (deterministik, koşar) + `tests/Iyzipay.Tests.Functional` (canlı sandbox, `IsTestProject=false`
+  — yalnız derlenir; elle koşu `-p:IsTestProject=true` + API anahtarı). Samples yalnız derlenir.
+  Henüz hiçbir proje Iyzipay'e referans VERMEZ — ödeme kanalı entegrasyonu ayrı spec.
+  NUnit 3.14'te SABİT (NUnit 4 klasik assert'leri kaldırır, kaynak derlenmez).
 - `BankRouter` (domain service, saf hesap): komisyon + kart BIN/programı + taksit desteğine göre
   maliyet sıralı banka adayları döner. Failover: handler sıralı adayları dener; 3D'de yalnız ilk aday.
 - `PosAccount` aggregate: banka POS anlaşması (credentials + taksit başına komisyon). Komisyon

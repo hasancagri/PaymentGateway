@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- SDK kullanım örnekleri: canlı sandbox'a istek atar, hiçbir otomatik koşuya girmez.
+         NUnit yalnız [Test]/[SetUp] atributlarının derlenmesi için referanslıdır. -->
+    <IsTestProject>false</IsTestProject>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Iyzipay\Iyzipay.csproj" />
+  </ItemGroup>
+
+</Project>

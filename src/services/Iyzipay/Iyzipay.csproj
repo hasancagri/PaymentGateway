@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Iyzipay</AssemblyName>
+    <RootNamespace>Iyzipay</RootNamespace>
+    <!-- Harici olduğu-gibi kütüphane (CP.VPOS emsali): CPM dışı, kendi sürümlerini tutar. -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+  </ItemGroup>
+
+</Project>
