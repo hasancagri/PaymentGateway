@@ -28,9 +28,8 @@ public class Bank : AggregateRoot
     public IReadOnlyList<int> SupportedInstallments => _supportedInstallments;
 
     /// <summary>
-    /// Banka oluşturur. Ad artık Reference-beslemeli read-model'den türer ve handler tarafından
-    /// parametreyle geçilir (yerel <c>BankCatalog</c> kaldırıldı — tek kaynak Reference.Api).
-    /// Boş ad = katalogda yok anlamına gelir → reddedilir.
+    /// Banka oluşturur. Ad kullanıcı girdisinden gelir (021: Reference kataloğu söküldü);
+    /// boş ad reddedilir.
     /// </summary>
     /// <remarks>Handler: CreateBankCommandHandler</remarks>
     public static ResultDomain<Bank> Create(string code, string name, IEnumerable<int> installments)

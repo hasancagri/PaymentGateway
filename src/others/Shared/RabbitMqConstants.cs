@@ -12,11 +12,6 @@ public static class RabbitMqConstants
         public const string Exchange = "payment.failed";
     }
 
-    public static class ReferenceDataUpdated
-    {
-        public const string Exchange = "reference.data-updated";
-    }
-
     public static class MerchantLifecycle
     {
         public const string Exchange = "merchant.lifecycle";

@@ -28,7 +28,6 @@ global using Commission.Api.Domains.Banks.Features.Queries;
 global using Commission.Api.Domains.Banks;
 global using Commission.Api.Domains.MerchantCommissions.Features.Queries;
 global using Commission.Api.Domains.MerchantCommissions;
-global using Commission.Api.ReadModels;
 global using Common.Dependencies;
 global using Common.Exceptions;
 global using Common.Extensions;

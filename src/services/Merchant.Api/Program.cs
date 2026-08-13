@@ -19,12 +19,6 @@ builder.Services.AddMarten(opts =>
 
         // Onboarding başvuru document'ı (challenge yok — descriptor + admin onayı; aktivasyon Merchant'a gömülü).
         opts.Schema.For<RegisterRequest>();
-
-        // Reference.Api katalog verisinin yerel read-model izdüşümü (id = Code). Event ile beslenir.
-        opts.Schema.For<ReferenceCountry>().Identity(x => x.Code);
-        opts.Schema.For<ReferenceCity>().Identity(x => x.Code);
-        opts.Schema.For<ReferenceMcc>().Identity(x => x.Code);
-        opts.Schema.For<ReferenceBank>().Identity(x => x.Code);
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -35,18 +29,8 @@ builder.Host.UseWolverine(opts =>
     if (builder.Environment.IsDevelopment())
         opts.Durability.Mode = DurabilityMode.Solo;
 
-    // Reference tüketimi: fanout exchange'e bağlı durable queue'yu dinle; Handle(ReferenceDataUpdated)
-    // assembly taramasıyla keşfedilir. Durable inbox → restart'ta kayıp yok, at-least-once + idempotent.
     var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
         .AutoProvision();
-
-    rabbit.DeclareExchange(RabbitMqConstants.ReferenceDataUpdated.Exchange,
-        e => { e.ExchangeType = ExchangeType.Fanout; });
-    rabbit.DeclareQueue("merchant.reference-sync");
-    rabbit.BindExchange(RabbitMqConstants.ReferenceDataUpdated.Exchange)
-        .ToQueue("merchant.reference-sync");
-
-    opts.ListenToRabbitQueue("merchant.reference-sync").UseDurableInbox();
 
     // 012: merchant yaşam döngüsü yayını — Identity.Server tüketir (OpenIddict istemci senkronu).
     rabbit.DeclareExchange(RabbitMqConstants.MerchantLifecycle.Exchange,
@@ -103,12 +87,6 @@ builder.Services.AddOptions<Merchant.Api.Options.Onboarding>().BindConfiguration
 builder.Services.AddSingleton<Merchant.Api.Options.Onboarding>(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Merchant.Api.Options.Onboarding>>().Value);
 
-// 013: MCP server — Merchant.Agent'a başvuru tool'larını sunar ([McpServerToolType]). Stateless HTTP.
-builder.Services
-    .AddMcpServer()
-    .WithHttpTransport(o => o.Stateless = true)
-    .WithToolsFromAssembly();
-
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -120,12 +98,5 @@ var apiVersionSet = app.NewApiVersionSet()
     .ReportApiVersions()
     .Build();
 
-app.AddMerchantGroupEndpointExtension(apiVersionSet);
-app.AddSettlementAccountGroupEndpointExtension(apiVersionSet);
-app.AddRegisterRequestGroupEndpointExtension(apiVersionSet);
-
-// 013: MCP endpoint (Streamable HTTP) — Merchant.Agent + harici LLM (get_merchant) buraya bağlanır.
-// Yüzey merchant.write ister (agent + admin-ui taşır; merchant kendi token'ı bu iç yüzeye girmez).
-app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.MerchantWrite);
 
 await app.RunAsync();

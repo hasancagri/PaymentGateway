@@ -73,7 +73,8 @@ public static class SubmitCommissionProposalForAgent
                     .Where(c => !c.IsDeleted)
                     .ToListAsync(ct);
 
-                var bankNames = (await session.Query<ReferenceBank>().ToListAsync(ct))
+                // 021: katalog söküldü — ad kaynağı Commission'ın kendi Bank kayıtları.
+                var bankNames = (await session.Query<Bank>().Where(b => !b.IsDeleted).ToListAsync(ct))
                     .ToDictionary(b => b.Code, b => b.Name);
 
                 var sourceRows = bankCommissions

@@ -14,7 +14,6 @@ var rabbit = builder.AddRabbitMQ("rabbitmq")
 var paymentDb = postgres.AddDatabase("paymentDb");
 var merchantDb = postgres.AddDatabase("merchantDb");
 var commissionDb = postgres.AddDatabase("commissionDb");
-var referenceDb = postgres.AddDatabase("referenceDb");
 var identityDb = postgres.AddDatabase("identityDb");
 
 // 011: OpenIddict IdP — sabit https://localhost:5101 (launchSettings https profili; issuer birebir).
@@ -33,14 +32,6 @@ var paymentApi = builder.AddProject<Projects.Payment_Api>("payment-api")
     .WaitFor(paymentDb)
     .WaitFor(rabbit)
     .WaitFor(identityServer);
-
-// Referans veri kaynak-of-truth BC. HTTP yüzeyi yok — katalog verisini yalnız ReferenceDataUpdated
-// fanout event'iyle yayar; Merchant/Commission durable queue ile tüketir (yerel read-model).
-builder.AddProject<Projects.Reference_Api>("reference-api")
-    .WithReference(referenceDb)
-    .WithReference(rabbit)
-    .WaitFor(referenceDb)
-    .WaitFor(rabbit);
 
 // 013: Mailpit — dev SMTP catch-all (SMTP :1025, web UI :8025). Gerçek adres gerekmez; tüm
 // giden mail tek inbox'ta görünür. Mail.Worker buraya SMTP ile bağlanır (localhost:1025).

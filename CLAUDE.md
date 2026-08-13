@@ -36,18 +36,14 @@ dotnet test tests/Iyzipay.Tests                     # Iyzipay SDK deterministik 
 
 - `src/services/Payment.Api` — Payment BC. `Domains/<Aggregate>/Features/{Commands,Queries}`
   vertical slice düzeni; bir feature = bir static class (record command + Response + Handler + endpoint).
-- `src/services/Merchant.Api` — Merchant BC. `Merchant` aggregate (onboarding) + `MerchantSettlementAccount`
-  aggregate (payout banka hesabı; IBAN mod-97 saf doğrulama, yerel `BankCatalog` kopyası, endpoint'ler
-  merchant-scoped `merchants/{merchantId}/settlement-accounts`). Aynı vertical slice deseni.
-  013 onboarding: `RegisterRequest` aggregate (başvuru — merchant'tan AYRI, onayla doğar) +
-  `DomainControlChallenge` (HTTP-01 tarzı sahiplik bileti) + `ActivationTicket` (tek-kullanım key
-  teslim bileti) + `OnboardingNotification` (deterministik mail kaydı, FR-019). `Merchant`'a
-  **Provisioning** statüsü + `ReturnUrl`/`ExternalRef`/`HasSettlementAccount`/`CommissionGridReady` +
-  `TryActivate()` (3-koşul idempotent → Active). `/mcp` yüzeyi (`submit_registration`,
-  `registration_status`, `get_merchant`; policy `merchant.write`). `merchant.commission` fanout tüketir
-  (`MerchantCommissionGridReadyHandler` tekil — Active koşulu #2). Redeem ucu
-  `POST merchants/activation/redeem` (AdminPlaneOnly; `MerchantProvisioned` yayınlar, key bir kez döner).
+- `src/services/Merchant.Api` — Merchant BC. **021'de SOYULDU**: tüm Features slice'ları,
+  endpoint extension'lar ve MCP yüzeyi SİLİNDİ (iyzico pivotu — 023'te SubMerchant modeliyle
+  yeniden kurulacak). Kalan: aggregate'ler (`Merchant`, `SettlementAccount`, `RegisterRequest`),
+  `MerchantCommissionGridReadyHandler` (merchant.commission tüketimi) ve `merchant.lifecycle`
+  yayın kaydı. HTTP/MCP ucu YOK; Admin merchant/settlement ekranları ve Merchant.Agent
+  skill'leri bu yüzden fiilen ÇALIŞMAZ (derlenir), 023'te yeniden bağlanır.
 - `src/agents/Merchant.Agent` — 013 A2A başvuru host'u (Payment.Agent şablonu). BC değil, stateless.
+  **021 NOT**: Merchant.Api MCP yüzeyi söküldü — merchant skill'leri 023'e kadar ölü.
   013 skill'leri: `register` + `registration_status`; Merchant.Api `/mcp`'yi kendi client'ıyla
   (`merchant-agent`, scope `merchant.read merchant.write commission.write`) tüketir. **019**: ikinci MCP
   client Commission.Api `/mcp`'ye (aynı token, iki audience); 4 komisyon skill'i: `propose_commission`
@@ -67,7 +63,8 @@ dotnet test tests/Iyzipay.Tests                     # Iyzipay SDK deterministik 
   `bus.PublishAsync(new SendEmailRequested(to,subject,body,isHtml,attachment?))` — publish yalnız DB
   commit'te gider. 019: `EmailAttachmentTable(FileName,Headers,Rows)` opsiyonel eki ClosedXML ile .xlsx'e
   çevirip mail'e ekler (generic tablo — domain bilmez). `IMailSender`/`MailMcpClient` KALDIRILDI.
-- `src/services/Commission.Api` — Commission BC. `Bank` aggregate (katalogdan kod+ad) + banka/merchant
+- `src/services/Commission.Api` — Commission BC. `Bank` aggregate (kod+ad kullanıcı girdisi — 021:
+  Reference kataloğu söküldü, `GetBankCatalog` ucu yok) + banka/merchant
   komisyon grid'leri (kombinasyon-bazlı; banka grid'i atomik toplu upsert). Banka seed yok. **019 teklif
   akışı**: `CommissionDraft` (merchant başına TEK çalışma kopyası, Id=MerchantId; deterministik sıralı +
   1-tabanlı satır no'lu `DraftRow` — "satır 37" adreslemesi; `CreateFromBankGrid` = banka oranı +
@@ -147,10 +144,10 @@ dotnet test tests/Iyzipay.Tests                     # Iyzipay SDK deterministik 
 - **Wolverine event-handler kuralı (sık hata: static/async + ad son eki)**: integration-event
   tüketicisi `public static class` + `public static async Task Handle(<Event> message, ...)`
   olacak — instance class, `async void`, sync `void Handle` YASAK. Sınıf adı **"Handler" ile
-  TEKİL** bitecek (`ReferenceEventHandler` ✓); **"Handlers" (çoğul) Wolverine 6.4'te SESSİZCE
+  TEKİL** bitecek (`SendEmailHandler` ✓); **"Handlers" (çoğul) Wolverine 6.4'te SESSİZCE
   keşfedilmiyor** — "No known handler ... discarded", dead-letter YOK, mesaj kaybolur (012'de
   `MerchantEventHandlers` ve `MerchantClientEventHandlers` bu yüzden tekile taşındı). Şablon:
-  Commission `ReadModels/ReferenceBankReadModel.cs`. Canlı doğrulama: consumer log'unda
+  Identity.Server `MerchantClientEventHandler`. Canlı doğrulama: consumer log'unda
   "Successfully processed message" var, "No known handler" yok.
 
 ## Kod standartları

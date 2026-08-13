@@ -8,7 +8,6 @@ public static class BankEndpointExtension
         app.MapGroup("api/v{version:apiVersion}/banks").WithTags("banks")
             .WithApiVersionSet(apiVersionSet)
             .CreateBankGroupItemEndpoint()
-            .GetBankCatalogGroupItemEndpoint()
             .GetBanksGroupItemEndpoint()
             .GetBankGroupItemEndpoint()
             .UpdateBankGroupItemEndpoint()
