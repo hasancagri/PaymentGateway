@@ -14,15 +14,10 @@
   <Folder Name="/src/others/">
     <Project Path="src/others/Common/Common.csproj" />
     <Project Path="src/others/Mail.Worker/Mail.Worker.csproj" />
-    <Project Path="src/others/Excel.Mcp/Excel.Mcp.csproj" />
     <Project Path="src/others/Identity.Server/Identity.Server.csproj" />
     <Project Path="src/others/Shared/Shared.csproj" />
-    <Project Path="src/others/SharedKernel/SharedKernel.csproj" />
   </Folder>
   <Folder Name="/src/services/">
-    <Project Path="src/services/CP.VPOS/CP.VPOS.csproj" />
-    <Project Path="src/services/Iyzipay/Iyzipay.csproj" />
-    <Project Path="src/services/Iyzipay.Samples/Iyzipay.Samples.csproj" />
     <Project Path="src/services/gateway/Gateway/Gateway.csproj" />
     <Project Path="src/services/Payment.Api/Payment.Api.csproj" />
     <Project Path="src/services/Merchant.Api/Merchant.Api.csproj" />
@@ -32,10 +27,5 @@
     <Project Path="src/ui/Admin/Admin.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Payment.Api.Tests/Payment.Api.Tests.csproj" />
-    <Project Path="tests/Merchant.Api.Tests/Merchant.Api.Tests.csproj" />
-    <Project Path="tests/Commission.Api.Tests/Commission.Api.Tests.csproj" />
-    <Project Path="tests/Iyzipay.Tests/Iyzipay.Tests.csproj" />
-    <Project Path="tests/Iyzipay.Tests.Functional/Iyzipay.Tests.Functional.csproj" />
   </Folder>
 </Solution>

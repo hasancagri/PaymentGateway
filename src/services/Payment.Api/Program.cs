@@ -14,21 +14,8 @@ builder.Services.AddMarten(opts =>
             {
                 s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
             });
-
-        opts.Schema.For<Payment.Api.Domains.PosAccounts.PosAccount>();
-        opts.Schema.For<Payment.Api.Domains.BinCards.BinCard>()
-            .Identity(x => x.BinNumber)
-            .Index(x => x.CardProgram);
-        // 007 A2A: ödeme oturumu (agent-başlatımlı akışın kalıcı izdüşümü).
-        opts.Schema.For<Payment.Api.Domains.PaymentSessions.PaymentSession>();
-        // 017: kayıtlı kart (vault) — kimlik opak Token, merchant-scoped index.
-        opts.Schema.For<Payment.Api.Domains.StoredCards.StoredCard>()
-            .Identity(x => x.Token)
-            .Index(x => x.MerchantId);
     })
     .IntegrateWithWolverine()
-    // Katalog boşsa gömülü bincards.json'dan bir kez seed (idempotent).
-    .InitializeWith(new Payment.Api.Domains.BinCards.BinCardSeeder())
     .ApplyAllDatabaseChangesOnStartup();
 
 builder.Host.UseWolverine(opts =>
@@ -72,13 +59,6 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
-// 007 A2A: MCP server — Payment.Agent'a agent tool'larını sunar (assembly'deki [McpServerToolType]).
-// Stateless HTTP transport (ölçek için affinity gerektirmez). Tool gövdeleri IMessageBus ile slice sarar.
-builder.Services
-    .AddMcpServer()
-    .WithHttpTransport(o => o.Stateless = true)
-    .WithToolsFromAssembly();
-
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -89,15 +69,5 @@ var apiVersionSet = app.NewApiVersionSet()
     .HasApiVersion(new ApiVersion(1, 0))
     .ReportApiVersions()
     .Build();
-
-app.AddPosAccountGroupEndpointExtension(apiVersionSet);
-app.AddBinCardGroupEndpointExtension(apiVersionSet);
-// 017: merchant-scoped kart vault (Payment.Api'nin ilk {merchantId} route grubu).
-app.AddStoredCardGroupEndpointExtension(apiVersionSet);
-
-// 007 A2A: MCP endpoint (Streamable HTTP) — Payment.Agent MCP client buraya bağlanır.
-// 011: yüzey tek policy ile korunur (payment.write) — tool'lar session açar/değiştirir;
-// tek çağıran payment-agent zaten write taşır (ince ayrım gerekirse tool-başına policy sonraki feature).
-app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.PaymentWrite);
 
 await app.RunAsync();

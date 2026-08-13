@@ -19,8 +19,6 @@ public static class Config
             ["merchant.write"] = "merchant.api",
             ["commission.read"] = "commission.api",
             ["commission.write"] = "commission.api",
-            // 013: altyapı MCP yüzeyi (Excel.Mcp). 016: Mail.Mcp kaldırıldı (Mail.Worker = RabbitMQ, MCP değil).
-            ["document.generate"] = "excel.mcp",
         };
 
     public static IEnumerable<string> AllApiScopes => ScopeResources.Keys;
@@ -29,8 +27,7 @@ public static class Config
     // (appsettings dev varsayılanı + user-secrets/env override); store hash'leyerek saklar.
     public static IReadOnlyList<ClientSeed> Clients(IConfiguration configuration) =>
     [
-        // Admin BFF m2m: tüm yönetim ekranları + 013 komisyon Excel orkestrasyonu (harici LLM/MCP
-        // client admin-düzlemi token). document.generate (Excel.Mcp) eklendi (merchant_id claim'siz).
+        // Admin BFF m2m: tüm yönetim ekranları (admin-düzlemi token).
         new ClientSeed
         {
             ClientId = "admin-ui",
@@ -41,7 +38,6 @@ public static class Config
                 "merchant.read", "merchant.write",
                 "commission.read", "commission.write",
                 "payment.read", "payment.write",
-                "document.generate",
             ],
         },
         // Payment.Agent m2m: MCP tool çağrıları (yüzey tek policy: payment.write).
