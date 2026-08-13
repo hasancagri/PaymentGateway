@@ -24,7 +24,7 @@ global using System.ComponentModel;
 global using System.Text.Json;
 global using System.Text.RegularExpressions;
 global using Merchant.Api.Provider;
-global using Merchant.Api.Domains.SubMerchants;
+global using Merchant.Api.Provider.Onboarding;
 global using Merchant.Api.Domains.Merchants;
 global using Merchant.Api.Domains.Merchants.Features.Commands;
 global using Merchant.Api.Domains.Merchants.Features.Queries;
