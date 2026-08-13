@@ -93,5 +93,7 @@ var apiVersionSet = app.NewApiVersionSet()
     .ReportApiVersions()
     .Build();
 
+// 023: merchant CRUD + statü uçları (policy'ler slice endpoint'lerinde açıkça beyanlı).
+app.AddMerchantGroupEndpointExtension(apiVersionSet);
 
 await app.RunAsync();

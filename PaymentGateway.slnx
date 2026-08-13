@@ -27,5 +27,6 @@
     <Project Path="src/ui/Admin/Admin.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Merchant.Api.Tests/Merchant.Api.Tests.csproj" />
   </Folder>
 </Solution>
