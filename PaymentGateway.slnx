@@ -27,7 +27,6 @@
     <Project Path="src/services/Payment.Api/Payment.Api.csproj" />
     <Project Path="src/services/Merchant.Api/Merchant.Api.csproj" />
     <Project Path="src/services/Commission.Api/Commission.Api.csproj" />
-    <Project Path="src/services/Reference.Api/Reference.Api.csproj" />
   </Folder>
   <Folder Name="/src/ui/">
     <Project Path="src/ui/Admin/Admin.csproj" />
@@ -36,7 +35,6 @@
     <Project Path="tests/Payment.Api.Tests/Payment.Api.Tests.csproj" />
     <Project Path="tests/Merchant.Api.Tests/Merchant.Api.Tests.csproj" />
     <Project Path="tests/Commission.Api.Tests/Commission.Api.Tests.csproj" />
-    <Project Path="tests/Reference.Api.Tests/Reference.Api.Tests.csproj" />
     <Project Path="tests/Iyzipay.Tests/Iyzipay.Tests.csproj" />
     <Project Path="tests/Iyzipay.Tests.Functional/Iyzipay.Tests.Functional.csproj" />
   </Folder>

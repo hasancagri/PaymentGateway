@@ -24,9 +24,6 @@ builder.Services.AddMarten(opts =>
         // "hazır" olmanın tek kaynağı Accepted proposal; dev DB sıfırlanır, migration yok.
         opts.Schema.For<Commission.Api.Domains.CommissionDrafts.CommissionDraft>();
         opts.Schema.For<Commission.Api.Domains.CommissionProposals.CommissionProposal>();
-
-        // Reference.Api banka kataloğunun yerel read-model izdüşümü (id = Code). Event ile beslenir.
-        opts.Schema.For<ReferenceBank>().Identity(x => x.Code);
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -37,18 +34,8 @@ builder.Host.UseWolverine(opts =>
     if (builder.Environment.IsDevelopment())
         opts.Durability.Mode = DurabilityMode.Solo;
 
-    // Reference tüketimi: fanout exchange'e bağlı durable queue; Handle(ReferenceDataUpdated) yalnız
-    // Kind=="Bank" ile ilgilenir. Durable inbox → restart dayanıklı, at-least-once + idempotent upsert.
     var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
         .AutoProvision();
-
-    rabbit.DeclareExchange(RabbitMqConstants.ReferenceDataUpdated.Exchange,
-        e => { e.ExchangeType = ExchangeType.Fanout; });
-    rabbit.DeclareQueue("commission.reference-sync");
-    rabbit.BindExchange(RabbitMqConstants.ReferenceDataUpdated.Exchange)
-        .ToQueue("commission.reference-sync");
-
-    opts.ListenToRabbitQueue("commission.reference-sync").UseDurableInbox();
 
     // 013/019: komisyon hazır → Merchant.Api tüketir (Active koşulu #2). Fanout exchange; event state
     // değişikliğiyle aynı [Transactional] commit'te outbox'a yazılır (dual-write yok — D13).

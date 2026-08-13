@@ -3,9 +3,10 @@ namespace Commission.Api.Domains.Banks.Features.Commands;
 
 public static class CreateBank
 {
-    // Ad katalogdan gelir; komut yalnız katalog seçimini (Code) + taksitleri taşır.
+    // 021: katalog söküldü — ad kullanıcı girdisinden gelir.
     public record CreateBankCommand(
         string Code,
+        string Name,
         List<int> SupportedInstallments);
 
     public class CreateBankResponse
@@ -36,10 +37,7 @@ public static class CreateBank
                 });
             }
 
-            // Banka adı Reference-beslemeli read-model'den türer (id = Code); yoksa Create reddeder.
-            var reference = await session.LoadAsync<ReferenceBank>(cmd.Code?.Trim() ?? string.Empty, ct);
-
-            var result = Bank.Create(cmd.Code, reference?.Name ?? string.Empty,
+            var result = Bank.Create(cmd.Code, cmd.Name,
                 cmd.SupportedInstallments ?? new List<int>());
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<CreateBankResponse>.Error(result.Messages);
