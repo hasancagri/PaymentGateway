@@ -21,6 +21,8 @@
   </Folder>
   <Folder Name="/src/services/">
     <Project Path="src/services/CP.VPOS/CP.VPOS.csproj" />
+    <Project Path="src/services/Iyzipay/Iyzipay.csproj" />
+    <Project Path="src/services/Iyzipay.Samples/Iyzipay.Samples.csproj" />
     <Project Path="src/services/gateway/Gateway/Gateway.csproj" />
     <Project Path="src/services/Payment.Api/Payment.Api.csproj" />
     <Project Path="src/services/Merchant.Api/Merchant.Api.csproj" />
@@ -35,5 +37,7 @@
     <Project Path="tests/Merchant.Api.Tests/Merchant.Api.Tests.csproj" />
     <Project Path="tests/Commission.Api.Tests/Commission.Api.Tests.csproj" />
     <Project Path="tests/Reference.Api.Tests/Reference.Api.Tests.csproj" />
+    <Project Path="tests/Iyzipay.Tests/Iyzipay.Tests.csproj" />
+    <Project Path="tests/Iyzipay.Tests.Functional/Iyzipay.Tests.Functional.csproj" />
   </Folder>
 </Solution>
