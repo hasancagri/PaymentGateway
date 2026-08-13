@@ -29,16 +29,23 @@ dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile ba
 - Sistemi her zaman AppHost üzerinden başlat; servisler conn-string'leri Aspire'dan alır.
 - Central Package Management açık ve İSTİSNASIZ: sürümler yalnız `Directory.Packages.props`'ta
   (022: CP.VPOS/Iyzipay adaları silindi).
-- Test projesi ŞU AN YOK (022'de ölü aggregate testleri silindi); 023+ yeni domain testleri getirir.
+- Test: `tests/Merchant.Api.Tests` (023 ile geri geldi — xUnit, saf domain, DB/ağ yok);
+  `dotnet test` yeşil tutulur. Diğer BC'lerin testleri kendi spec'leriyle döner.
 
 ## Yapı ve kurallar
 
 - `src/services/Payment.Api` — Payment BC. `Domains/<Aggregate>/Features/{Commands,Queries}`
   vertical slice düzeni; bir feature = bir static class (record command + Response + Handler + endpoint).
-- `src/services/Merchant.Api` — 022 ARA DURUM: aggregate/slice/endpoint/MCP YOK (021+022'de
-  kullanıcı sildi). `Provider/` (iyzico istemci çekirdeği kopyası) + `Domains/SubMerchants/`
-  (iyzico SubMerchant model/istekleri — 023'ün hammaddesi). `merchant.lifecycle` yayın kaydı
-  Program.cs'te durur (Shared event tipleri).
+- `src/services/Merchant.Api` — Merchant BC (023 ile yeniden kuruldu). `Domains/Merchants/`:
+  `Merchant` aggregate (iyzico SubMerchant sözleşmesiyle hizalı alan seti; tip-uyum matrisi
+  Personal/PrivateCompany/LimitedOrJointStockCompany, TR IBAN mod-97 + e-posta inline
+  doğrulama, statü makinesi Active/Passive/Suspended, `"mk_"+Guid` MerchantKey — yalnız
+  oluşturma yanıtında bir kez) + 5 slice (CRUD + statü; yazma/liste/statü `AdminPlaneOnly`,
+  tekil GET `MerchantScoped`). Oluşturmada `MerchantCreated`, gerçek statü değişiminde
+  `MerchantStatusChanged` outbox'la yayınlanır (aynı statü idempotent no-op, yayın yok);
+  Identity.Server tüketir (012 zinciri yaşıyor). **Merchant = gateway müşterisi SİTE**
+  (ör. ECommerce) — pazaryeri/split DEĞİL. `Provider/` + `Domains/SubMerchants/` iyzico
+  istemci hammaddesi uyur (SubMerchantKey hep null; iyzico'ya çağrı yok — ayrı iş).
 - `src/agents/Merchant.Agent` — A2A host (BC değil, stateless). **022 NOT**: Merchant/Commission
   MCP yüzeyleri söküldü — tüm skill'leri (register, komisyon pazarlığı) 023/024'e kadar ÖLÜ;
   proje derlenir.
