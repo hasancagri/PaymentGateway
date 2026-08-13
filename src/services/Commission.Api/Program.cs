@@ -15,15 +15,6 @@ builder.Services.AddMarten(opts =>
                 s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
             });
 
-        opts.Schema.For<BankCommission>();
-        opts.Schema.For<MerchantCommission>();
-        opts.Schema.For<Bank>();
-
-        // 019: teklif akışı — draft kimliği = MerchantId (AggregateRoot.Id'ye atanır);
-        // proposal her gönderimde yeni kayıt. MerchantCommissionGrid (Draft/Ready) SÖKÜLDÜ (FR-013):
-        // "hazır" olmanın tek kaynağı Accepted proposal; dev DB sıfırlanır, migration yok.
-        opts.Schema.For<Commission.Api.Domains.CommissionDrafts.CommissionDraft>();
-        opts.Schema.For<Commission.Api.Domains.CommissionProposals.CommissionProposal>();
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -74,12 +65,6 @@ builder.Services.AddAllDependencies();
 // 019: teklif ayarları (marj + bilet TTL + public link tabanı) — strongly-typed POCO.
 builder.Services.AddOptionsExt();
 
-// 013 US4: MCP server — komisyon Excel orkestrasyonu için get_merchant_commission_grid ([McpServerToolType]).
-builder.Services
-    .AddMcpServer()
-    .WithHttpTransport(o => o.Stateless = true)
-    .WithToolsFromAssembly();
-
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -90,20 +75,5 @@ var apiVersionSet = app.NewApiVersionSet()
     .HasApiVersion(new ApiVersion(1, 0))
     .ReportApiVersions()
     .Build();
-
-app.AddBankGroupEndpointExtension(apiVersionSet);
-app.AddBankCommissionGroupEndpointExtension(apiVersionSet);
-app.AddMerchantCommissionGroupEndpointExtension(apiVersionSet);
-
-// 019: merchant'a dönük ANONİM karar uçları — yetki = tek-kullanımlık + TTL bilet (FR-004).
-app.AddCommissionProposalDecisionEndpointExtension();
-
-// 019 US5: admin-düzlem teklif durumu sorgusu (commission.read).
-app.AddCommissionProposalGroupEndpointExtension(apiVersionSet);
-
-// 013 US4 → 019: MCP endpoint. 019 teklif/revizyon tool'ları mutasyon içerdiğinden yüzey tek policy
-// commission.write (Payment /mcp = payment.write deseni). Tüketiciler (admin-ui, merchant-agent)
-// commission.write scope'una sahip.
-app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.CommissionWrite);
 
 await app.RunAsync();

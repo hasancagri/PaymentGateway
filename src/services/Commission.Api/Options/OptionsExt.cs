@@ -8,13 +8,6 @@ public static class OptionsExt
 {
     public static IServiceCollection AddOptionsExt(this IServiceCollection services)
     {
-        services.AddOptions<CommissionProposalOption>()
-            .BindConfiguration(nameof(CommissionProposalOption))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-        services.AddSingleton<CommissionProposalOption>(sp =>
-            sp.GetRequiredService<IOptions<CommissionProposalOption>>().Value);
-
         return services;
     }
 }

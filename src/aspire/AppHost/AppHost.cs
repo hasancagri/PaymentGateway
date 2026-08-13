@@ -47,12 +47,6 @@ builder.AddProject<Projects.Mail_Worker>("mail-worker")
     .WaitFor(rabbit)
     .WaitFor(mailpit);
 
-// 013: generic altyapı MCP server'ı (BC değil). Excel.Mcp = generate_spreadsheet (.xlsx).
-// Yüzey scope-korumalı (document.generate); yalnız Agent/LLM çağırır.
-builder.AddProject<Projects.Excel_Mcp>("excel-mcp")
-    .WithReference(identityServer)
-    .WaitFor(identityServer);
-
 var merchantApi = builder.AddProject<Projects.Merchant_Api>("merchant-api")
     .WithReference(merchantDb)
     .WithReference(rabbit)

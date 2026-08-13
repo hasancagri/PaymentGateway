@@ -14,11 +14,6 @@ builder.Services.AddMarten(opts =>
                 s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
             });
 
-        opts.Schema.For<Merchant.Api.Domains.Merchants.Merchant>();
-        opts.Schema.For<Merchant.Api.Domains.SettlementAccounts.SettlementAccount>();
-
-        // Onboarding başvuru document'ı (challenge yok — descriptor + admin onayı; aktivasyon Merchant'a gömülü).
-        opts.Schema.For<RegisterRequest>();
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();

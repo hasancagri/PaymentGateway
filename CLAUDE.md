@@ -9,51 +9,42 @@ kurallar ECommerceWithAgentFramework projesinden devralındı: her mikroservis b
 Bounded Context, Vertical Slice + CQRS, zengin aggregate'ler, Result pattern,
 Aspire + Marten + Wolverine.
 
-Mevcut BC'ler: **Payment** (CP.VPOS sanal POS), **Merchant** (onboarding + settlement
-hesapları), **Commission** (banka referansı + komisyon grid). Ayrıca **Admin** (Razor Pages
-BFF) API'leri service discovery ile tüketir; **Identity.Server** (OpenIddict, BC değil —
-altyapı servisi) makine token'ı verir. 013: **Merchant.Agent** (A2A başvuru host'u, BC değil),
-**Excel.Mcp** (generic MCP altyapı servisi, BC değil), **Mailpit** (dev SMTP catch-all). 016:
-**Mail.Worker** (düz mail projesi — MCP DEĞİL; RabbitMQ consumer → SMTP). Her BC kendi spec
-döngüsüyle (spec-kit, `specs/<NNN>/`) eklendi.
+**BÜYÜK PİVOT (021-022, 2026-08-13)**: sistem iyzico ödeme kanalına dönüyor. CP.VPOS,
+BankRouter/PosAccount/BinCard, Reference.Api, SharedKernel, CardVault, Excel.Mcp ve TÜM eski
+BC feature'ları SÖKÜLDÜ. Üç BC (**Payment**, **Merchant**, **Commission**) şu an "yapısal ara
+durum"da: Domains'lerinde iyzico istemci malzemesi (davranışsız model/istek tipleri) +
+`Provider/` istemci çekirdeği taşıyor; endpoint/MCP/aggregate YOK. 023 (SubMerchant merchant
+modeli) ve 024 (komisyon: iyzico maliyeti + marj) gerçek domain'i bu malzemeden kuracak.
+Yaşayan altyapı: **Admin** (Razor Pages BFF — çoğu ekranı ölü), **Identity.Server**
+(OpenIddict), **Mail.Worker** (RabbitMQ→SMTP), **Mailpit**, agent host'ları (Payment.Agent,
+Merchant.Agent — skill'leri ölü). Her iş kendi spec döngüsüyle (spec-kit, `specs/<NNN>/`).
 
 ## Komutlar
 
 ```bash
 dotnet build                                        # tüm çözüm (PaymentGateway.slnx)
 dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile başlat (Postgres + RabbitMQ)
-dotnet test tests/Merchant.Api.Tests                # saf domain birim testleri (Merchant)
-dotnet test tests/Commission.Api.Tests              # saf domain birim testleri (Commission)
-dotnet test tests/Iyzipay.Tests                     # Iyzipay SDK deterministik testleri (020)
 ```
 
 - Sistemi her zaman AppHost üzerinden başlat; servisler conn-string'leri Aspire'dan alır.
-- Central Package Management açık: sürümler `Directory.Packages.props`'ta. İstisna: harici
-  olduğu-gibi kütüphaneler (`CP.VPOS`, 020'de Iyzipay ailesi) bilinçli CPM dışı, kendi
-  sürümlerini tutar — dokunma.
+- Central Package Management açık ve İSTİSNASIZ: sürümler yalnız `Directory.Packages.props`'ta
+  (022: CP.VPOS/Iyzipay adaları silindi).
+- Test projesi ŞU AN YOK (022'de ölü aggregate testleri silindi); 023+ yeni domain testleri getirir.
 
 ## Yapı ve kurallar
 
 - `src/services/Payment.Api` — Payment BC. `Domains/<Aggregate>/Features/{Commands,Queries}`
   vertical slice düzeni; bir feature = bir static class (record command + Response + Handler + endpoint).
-- `src/services/Merchant.Api` — Merchant BC. **021'de SOYULDU**: tüm Features slice'ları,
-  endpoint extension'lar ve MCP yüzeyi SİLİNDİ (iyzico pivotu — 023'te SubMerchant modeliyle
-  yeniden kurulacak). Kalan: aggregate'ler (`Merchant`, `SettlementAccount`, `RegisterRequest`),
-  `MerchantCommissionGridReadyHandler` (merchant.commission tüketimi) ve `merchant.lifecycle`
-  yayın kaydı. HTTP/MCP ucu YOK; Admin merchant/settlement ekranları ve Merchant.Agent
-  skill'leri bu yüzden fiilen ÇALIŞMAZ (derlenir), 023'te yeniden bağlanır.
-- `src/agents/Merchant.Agent` — 013 A2A başvuru host'u (Payment.Agent şablonu). BC değil, stateless.
-  **021 NOT**: Merchant.Api MCP yüzeyi söküldü — merchant skill'leri 023'e kadar ölü.
-  013 skill'leri: `register` + `registration_status`; Merchant.Api `/mcp`'yi kendi client'ıyla
-  (`merchant-agent`, scope `merchant.read merchant.write commission.write`) tüketir. **019**: ikinci MCP
-  client Commission.Api `/mcp`'ye (aynı token, iki audience); 4 komisyon skill'i: `propose_commission`
-  (get_merchant isim→id+email → submit_commission_proposal), `revise_commission_draft` (yalnız admin'in
-  AÇIK değerleri; diff yankılanır), `show_commission_draft`, `commission_proposal_status`. Admin komisyon
-  pazarlığını bu metin kanalıyla yürütür; mail yalnız açık "gönder" komutuyla çıkar.
-- `src/others/Excel.Mcp` — generic altyapı MCP server'ı (BC değil, domain bilmez). `generate_spreadsheet`
-  (ClosedXML → .xlsx base64). Scope-korumalı: `document.generate`. **MCP = yalnız Agent yüzeyi** (altyapı
-  kuralı, 016): MCP tool'ları YALNIZ agent/LLM çağırır; servisler-arası veya BC→altyapı iletişimi ASLA MCP
-  değil (messaging veya HTTP). Nerede MCP nerede HTTP belirsizliğini bu kural keser.
+- `src/services/Merchant.Api` — 022 ARA DURUM: aggregate/slice/endpoint/MCP YOK (021+022'de
+  kullanıcı sildi). `Provider/` (iyzico istemci çekirdeği kopyası) + `Domains/SubMerchants/`
+  (iyzico SubMerchant model/istekleri — 023'ün hammaddesi). `merchant.lifecycle` yayın kaydı
+  Program.cs'te durur (Shared event tipleri).
+- `src/agents/Merchant.Agent` — A2A host (BC değil, stateless). **022 NOT**: Merchant/Commission
+  MCP yüzeyleri söküldü — tüm skill'leri (register, komisyon pazarlığı) 023/024'e kadar ÖLÜ;
+  proje derlenir.
+- **MCP = yalnız Agent yüzeyi** (altyapı kuralı, 016 — yaşamaya devam eder): MCP tool'ları
+  YALNIZ agent/LLM çağırır; servisler-arası veya BC→altyapı iletişimi ASLA MCP değil (messaging
+  veya HTTP). (`Excel.Mcp` 022'de silindi; `document.generate` scope'u Identity seed'inden çıktı.)
 - `src/others/Mail.Worker` — düz mail projesi (016; eski `Mail.Mcp` MCP'den çıkarıldı). **MCP DEĞİL** —
   HTTP yüzeyi/auth yok, yalnız Wolverine RabbitMQ consumer. `mail.delivery` fanout'unu durable queue
   (`mail.delivery-send`) ile tüketir; `SendEmailHandler` (tekil "Handler") `System.Net.Mail` → Mailpit ile
@@ -63,55 +54,24 @@ dotnet test tests/Iyzipay.Tests                     # Iyzipay SDK deterministik 
   `bus.PublishAsync(new SendEmailRequested(to,subject,body,isHtml,attachment?))` — publish yalnız DB
   commit'te gider. 019: `EmailAttachmentTable(FileName,Headers,Rows)` opsiyonel eki ClosedXML ile .xlsx'e
   çevirip mail'e ekler (generic tablo — domain bilmez). `IMailSender`/`MailMcpClient` KALDIRILDI.
-- `src/services/Commission.Api` — Commission BC. `Bank` aggregate (kod+ad kullanıcı girdisi — 021:
-  Reference kataloğu söküldü, `GetBankCatalog` ucu yok) + banka/merchant
-  komisyon grid'leri (kombinasyon-bazlı; banka grid'i atomik toplu upsert). Banka seed yok. **019 teklif
-  akışı**: `CommissionDraft` (merchant başına TEK çalışma kopyası, Id=MerchantId; deterministik sıralı +
-  1-tabanlı satır no'lu `DraftRow` — "satır 37" adreslemesi; `CreateFromBankGrid` = banka oranı +
-  `CommissionProposalOption.DefaultMarginPoints`; `Revise` set/delta işlemleri SUNUCUDA hesaplar, taban
-  bekçisi BÜTÜN-veya-hiç, diff döner; kabulde `Lock`) + `CommissionProposal` (gönderilmiş immutable
-  fotoğraf; Pending/Accepted/Rejected/Superseded; tek-kullanımlık + TTL `DecisionTicket`). `/mcp` yüzeyi
-  tek policy `commission.write` (013'teki commission.read'den yükseltildi); tool'lar:
-  `submit_commission_proposal`, `revise_commission_draft`, `show_commission_draft`,
-  `commission_proposal_status`, `get_merchant_commission_grid`. Karar uçları ANONİM mini HTML
-  (`commission-proposals/decision/{ticket}/accept|reject` — yetki=bilet, aktivasyon redeem emsali);
-  kabul tek `[Transactional]`da: Accept + draft Lock + satırlar `MerchantCommission`'a kopya (banka
-  çakışmasında MAX oran) + `MerchantCommissionGridReady` publish (mevcut aktivasyon zinciri). **Finalize
-  + `MerchantCommissionGrid`/`GridStatus` SÖKÜLDÜ (FR-013)** — merchant komisyonunun TEK yazma yolu
-  teklif kabulü; merchant-commission upsert uçları da kaldırıldı (yalnız GET kaldı). Admin komisyon
-  ekranı salt-okuma + teklif durumu. LLM oran üretmez/hesaplamaz (yalnız açık değer taşır).
+- `src/services/Commission.Api` — 022 ARA DURUM: aggregate/slice/endpoint/MCP YOK. `Provider/`
+  (iyzico çekirdeği + V2 zarf tipleri) + `Domains/{Payouts,TransactionReports}/` (iyzico
+  payout/rapor tipleri — 024'ün hammaddesi). `merchant.commission` + `mail.delivery` yayın
+  kayıtları Program.cs'te durur.
 - `src/agents/Payment.Agent` — A2A host + LLM router + MCP client (007). Payment BC **DEĞİL** —
-  kalıcılık yok, stateless delivery adaptörü. `AddA2AServer(agent)` + `MapA2AJsonRpc` +
+  kalıcılık yok, stateless delivery adaptörü. **022 NOT**: Payment.Api MCP yüzeyi söküldü —
+  taksit/oturum skill'leri ödeme akışı yeniden kurulana kadar ÖLÜ; proje derlenir. `AddA2AServer(agent)` + `MapA2AJsonRpc` +
   `MapWellKnownAgentCard` (`/.well-known/agent-card.json`). LLM yalnız tool sırasını kurar
   (`get_installment_options` → `select_installment`); tutar/banka/kart üretmez (domain'den).
   Chat anahtarı agent config'inden (`OpenAI:ApiKey`/user-secrets). Tüm A2A/Agent Framework paketleri
   preview — `Directory.Packages.props`'ta pin.
-- Payment.Api MCP yüzeyi (007): agent'a açık işlemler `Domains/PaymentSessions/Features/**Agent**/`
-  altında (Commands/Queries değil); MCP tool'ları `PaymentSessionMcpTools.cs`'te her tool ayrı
-  `[McpServerToolType]`, yalnız `IMessageBus.InvokeAsync` ile slice'ı sarar. Kayıt:
-  `AddMcpServer().WithToolsFromAssembly()` + `MapMcp("/mcp")`. `PaymentSession` aggregate = A2A
-  akışının kalıcı izdüşümü (faz: Opened→QuoteProvided→InstallmentSelected/Failed). Token→BIN çözümü
-  `CardVault/ICardVault` (`SimulatedCardVault` → 008 `ResolveBinCard`; PAN kanala girmez). Model A
-  quote = kullanıcı tutarı sepet tutarı (komisyon yalnız `BankRouter` POS seçiminde). Çekim 007 dışı.
+- `src/services/Payment.Api` — 022 ARA DURUM: endpoint/MCP/aggregate YOK. `Provider/` (iyzico
+  istemci çekirdeği: `ProviderOptions`, `RestHttpClientV2`, `HashGeneratorV2`, `JsonBuilder`…)
+  + `Domains/{Payments,Installments,StoredCards}/` (iyzico model/istek tipleri — davranışsız
+  malzeme). Sağlayıcı tipleri BC DIŞINA SIZMAZ (eski CP.VPOS sınır kuralının devamı).
 - `src/ui/Admin` — Razor Pages BFF (yetki yok). Merchant/Bank/komisyon/settlement ekranları; typed
   `HttpClient`'lar Aspire service discovery ile API'leri çağırır (`http://merchant-api` vb.). Backend'e
   kural sızdırmaz — yalnız API sonucunu (`ApiResult`/`MessageText` Türkçe) gösterir.
-- `src/services/CP.VPOS` — sanal POS kütüphanesi, OLDUĞU GİBİ taşındı (eski stil, nullable
-  kapalı; gitignore'lu — versiyonlanmaz) ama Payment BC'nin aktif bağımlılığı — Payment.Api
-  buradan referans verir. CP.VPOS tipleri slice sınırını GEÇMEZ: handler `SaleResponse`'u
-  domain'e çevirir.
-- `src/services/Iyzipay` (+ `Iyzipay.Samples`) — iyzico resmî .NET SDK'sı, 020 ile
-  `src/otherProjects`'ten (klasör silindi) sürüm kontrolüne taşındı; net10.0, CPM dışı,
-  Nullable/ImplicitUsings kapalı (CP.VPOS emsali; ImplicitUsings açılırsa kütüphanenin kendi
-  `HttpClient` tipi `System.Net.Http.HttpClient` ile çakışır). Testler: `tests/Iyzipay.Tests`
-  (deterministik, koşar) + `tests/Iyzipay.Tests.Functional` (canlı sandbox, `IsTestProject=false`
-  — yalnız derlenir; elle koşu `-p:IsTestProject=true` + API anahtarı). Samples yalnız derlenir.
-  Henüz hiçbir proje Iyzipay'e referans VERMEZ — ödeme kanalı entegrasyonu ayrı spec.
-  NUnit 3.14'te SABİT (NUnit 4 klasik assert'leri kaldırır, kaynak derlenmez).
-- `BankRouter` (domain service, saf hesap): komisyon + kart BIN/programı + taksit desteğine göre
-  maliyet sıralı banka adayları döner. Failover: handler sıralı adayları dener; 3D'de yalnız ilk aday.
-- `PosAccount` aggregate: banka POS anlaşması (credentials + taksit başına komisyon). Komisyon
-  oranları buradan yönetilir; router'ın girdisidir.
 - Integration event'ler `src/others/Shared` (`PaymentCompletedEvent/PaymentFailedEvent`, fanout exchange).
   Henüz tüketici yok; Order BC gelince bağlanır. 012: `MerchantCreated/MerchantStatusChanged`
   (`merchant.lifecycle` fanout) — Merchant.Api yayınlar, Identity.Server tüketir (OpenIddict
@@ -151,6 +111,11 @@ dotnet test tests/Iyzipay.Tests                     # Iyzipay SDK deterministik 
   "Successfully processed message" var, "No known handler" yok.
 
 ## Kod standartları
+
+> **022 notu**: Aşağıdaki kurallardaki örnek tip adları (`Merchant.TryActivate`, `PosAccount`,
+> `BinCardSeeder`, `PaymentSessionMcpTools`, `SettlementAccount.UpdateDetails`, MCP tool
+> örnekleri…) 022 pivotunda SİLİNMİŞ tarihî koddan; KURALLAR aynen geçerli, örnekler 023+
+> yeni domain kurulurken bu desenlerle yeniden doğar.
 
 - **Sonuç sözleşmesi (014)**: Handler'dan (Command/Query slice) çağrılan aggregate davranış/fabrika
   metotları `ResultDomain` / `ResultDomain<T>` döner — **void mutator dahil** (durum değiştiren ama
@@ -216,8 +181,9 @@ dotnet test tests/Iyzipay.Tests                     # Iyzipay SDK deterministik 
 
 ## Bilinçli ertelemeler
 
-- Test: saf domain birim testleri var (`tests/Merchant.Api.Tests`, `tests/Commission.Api.Tests`).
-  Handler/HTTP/Razor Pages entegrasyonu test edilmez — quickstart senaryolarıyla elle doğrulanır.
+- Test: 022 sonrası test projesi YOK (ölü aggregate testleri silindi); 023+ saf domain birim
+  testlerini geri getirir. Handler/HTTP/Razor Pages entegrasyonu test edilmez — quickstart
+  senaryolarıyla elle doğrulanır.
 - Diğer BC'ler (Catalog, Order, Supplier...) tasarım gereği henüz yok; her biri kendi
   spec döngüsüyle eklenecek.
 - **Anayasa PATCH amendment bekliyor** (019 research R7): Anayasa II hâlâ "BaseModel'den türer" ve
