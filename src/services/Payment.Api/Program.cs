@@ -64,6 +64,17 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
+// 032: iyzico sağlayıcı ayarları — Options pattern (BindConfiguration + Validate); sandbox key
+// user-secrets'tan. Handler'lar düz ProviderOptions inject eder (settings'ten map'lenmiş singleton).
+builder.Services.AddOptions<Payment.Api.Options.IyzicoProviderSettings>()
+    .BindConfiguration(nameof(Payment.Api.Options.IyzicoProviderSettings))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<Payment.Api.Provider.ProviderOptions>(sp =>
+{
+    var s = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.IyzicoProviderSettings>>().Value;
+    return new Payment.Api.Provider.ProviderOptions { ApiKey = s.ApiKey, SecretKey = s.SecretKey, BaseUrl = s.BaseUrl };
+});
+
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();

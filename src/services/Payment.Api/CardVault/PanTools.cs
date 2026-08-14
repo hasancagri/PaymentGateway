@@ -2,47 +2,24 @@ using Payment.Api.Domains.StoredCards;
 
 namespace Payment.Api.CardVault;
 
-/// <summary>
-/// PAN üzerinden saf yardımcılar (altyapı, aggregate DEĞİL → private helper serbest). Tokenize
-/// anında Luhn doğrulama + bin/last4/brand türetimi. Hepsi deterministik, saf → domain birim testi.
-/// </summary>
-public static class LuhnValidator
+// 032 (Model A): PAN artık iyzico'da saklanır, gateway'de Luhn/AES yok. Bu dosya yalnız gösterim
+// türetimlerini + sağlayıcı marka eşlemesini tutar (saf, altyapı). LuhnValidator/IPanProtector 032'de
+// SİLİNDİ (iyzico doğrular). Bin/Last4/BrandDetector FALLBACK: iyzico gösterim alanını vermezse.
+
+/// <summary>iyzico <c>CardAssociation</c> string'ini BC-içi <see cref="CardBrand"/>'e eşler.</summary>
+public static class CardAssociationMapper
 {
-    /// <summary>ISO/IEC 7812 Luhn kontrol basamağı doğrulaması. Yalnız rakam + 12–19 hane kabul.</summary>
-    public static bool IsValid(string? pan)
+    public static CardBrand Map(string? association) => (association ?? string.Empty).ToUpperInvariant() switch
     {
-        if (string.IsNullOrWhiteSpace(pan))
-            return false;
-
-        var digits = pan.Trim();
-        if (digits.Length < 12 || digits.Length > 19)
-            return false;
-
-        var sum = 0;
-        var doubleDigit = false;
-        for (var i = digits.Length - 1; i >= 0; i--)
-        {
-            var c = digits[i];
-            if (c < '0' || c > '9')
-                return false;
-
-            var d = c - '0';
-            if (doubleDigit)
-            {
-                d *= 2;
-                if (d > 9)
-                    d -= 9;
-            }
-
-            sum += d;
-            doubleDigit = !doubleDigit;
-        }
-
-        return sum % 10 == 0;
-    }
+        "VISA" => CardBrand.Visa,
+        "MASTER_CARD" => CardBrand.MasterCard,
+        "AMERICAN_EXPRESS" => CardBrand.Amex,
+        "TROY" => CardBrand.Troy,
+        _ => CardBrand.Unknown
+    };
 }
 
-/// <summary>PAN'dan BIN (ilk 6 hane) çıkarır (denetim/gösterim; ödeme akışında resolve girdisi).</summary>
+/// <summary>PAN'dan BIN (ilk 6 hane) çıkarır (fallback gösterim; iyzico normalde döndürür).</summary>
 public static class BinExtractor
 {
     public static string Extract(string pan)

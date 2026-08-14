@@ -1,9 +1,13 @@
+using Payment.Api.Provider;
+using Payment.Api.Provider.StoredCards;
+
 namespace Payment.Api.Domains.StoredCards.Features.Commands;
 
 /// <summary>
-/// Merchant kartını soft iptal eder (Status=Revoked; fiziksel durur). Idempotent. Sahiplik: kart
-/// route <c>{merchantId}</c>'ye ait olmalı (aksi RECORD_NOT_FOUND — sahiplik sızdırmaz) —
-/// MerchantScoped'ın üstüne ikinci kapı.
+/// 032 (Model A): Merchant kartını iyzico Saklı Kart'ından siler (best-effort) + yerel soft iptal
+/// eder (Status=Revoked). iyzico'ya ulaşılamazsa yerel iptal yine tamamlanır (fail-open, FR-006).
+/// Idempotent. Sahiplik: kart route <c>{merchantId}</c>'ye ait olmalı (aksi RECORD_NOT_FOUND —
+/// sahiplik sızdırmaz).
 /// </summary>
 public static class RevokeCard
 {
@@ -18,7 +22,7 @@ public static class RevokeCard
     public class RevokeCardCommandHandler
     {
         public async Task<FeatureObjectResultModel<RevokeCardResponse>> Handle(
-            RevokeCardCommand cmd, IDocumentSession session, CancellationToken ct)
+            RevokeCardCommand cmd, IDocumentSession session, ProviderOptions providerOptions, CancellationToken ct)
         {
             var card = await session.LoadAsync<StoredCard>(cmd.Token, ct);
             if (card is null || card.MerchantId != cmd.MerchantId)
@@ -28,6 +32,22 @@ public static class RevokeCard
                     Property = nameof(cmd.Token),
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
+            }
+
+            // iyzico'dan sil (best-effort) — hata yerel iptali bloklamaz (FR-006 fail-open).
+            try
+            {
+                await Card.Delete(new DeleteCardRequest
+                {
+                    Locale = "tr",
+                    ConversationId = "vault-del",
+                    CardUserKey = card.CardUserKey,
+                    CardToken = card.CardToken
+                }, providerOptions);
+            }
+            catch
+            {
+                // yut: yerel iptal devam eder
             }
 
             var result = card.Revoke();

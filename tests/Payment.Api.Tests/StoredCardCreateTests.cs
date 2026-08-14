@@ -1,26 +1,22 @@
 namespace Payment.Api.Tests;
 
-// 031: StoredCard.Create davranış testleri — saf domain (DB/HTTP yok). Protector no-op sarmalayıcıyla
-// test edilir (koruma çıktısı test kapsamı değil; PAN'ın ham dönmediği DB'de doğrulanır — quickstart).
-// Geçerli Visa test PAN'ı: 4111111111111111 (Luhn geçerli).
+// 032 (Model A): StoredCard.Create artık sağlayıcı (iyzico) kimliklerini alır — Luhn/expiry/AES YOK
+// (iyzico handler'da doğrular). Bu testler yalnız aggregate sarma invariant'larını kapsar.
 public class StoredCardCreateTests
 {
-    private sealed class PassThroughProtector : IPanProtector
-    {
-        public string Protect(string pan) => "enc(" + pan + ")";
-    }
-
-    private static readonly IPanProtector Protector = new PassThroughProtector();
-
     private static ResultDomain<StoredCard> Create(
-        string pan = "4111111111111111",
-        string expiry = "12/34",
+        string cardUserKey = "iyz-user-1",
+        string cardToken = "iyz-card-1",
+        string bin = "552879",
+        string last4 = "0008",
+        CardBrand brand = CardBrand.MasterCard,
+        string expiry = "12/30",
         string holder = "CARD HOLDER",
         Guid? merchantId = null)
-        => StoredCard.Create(merchantId ?? Guid.NewGuid(), pan, expiry, holder, Protector);
+        => StoredCard.Create(merchantId ?? Guid.NewGuid(), cardUserKey, cardToken, bin, last4, brand, expiry, holder);
 
     [Fact]
-    public void Create_GecerliKart_TokenVeTuretimlerDogru()
+    public void Create_GecerliKimlikler_TokenVeAlanlarDogru()
     {
         var result = Create();
 
@@ -28,77 +24,25 @@ public class StoredCardCreateTests
         var card = result.Data!;
         Assert.StartsWith("card_", card.Token);
         Assert.Equal(StoredCardStatus.Active, card.Status);
-        Assert.Equal("411111", card.Bin);
-        Assert.Equal("1111", card.Last4);
-        Assert.Equal(CardBrand.Visa, card.Brand);
+        Assert.Equal("iyz-user-1", card.CardUserKey);
+        Assert.Equal("iyz-card-1", card.CardToken);
+        Assert.Equal("552879", card.Bin);
+        Assert.Equal("0008", card.Last4);
+        Assert.Equal(CardBrand.MasterCard, card.Brand);
     }
 
     [Fact]
-    public void Create_MastercardPan_MarkaMasterCard()
+    public void Create_BosCardUserKey_Reddedilir()
     {
-        // 5555555555554444 — Luhn geçerli Mastercard test PAN'ı.
-        var result = Create(pan: "5555555555554444");
-
-        Assert.True(result.IsSuccess);
-        Assert.Equal(CardBrand.MasterCard, result.Data!.Brand);
-    }
-
-    [Fact]
-    public void Create_BoslukluTireliPan_NormalizeEdilipGecer()
-    {
-        var result = Create(pan: "4111-1111 1111-1111");
-
-        Assert.True(result.IsSuccess);
-        Assert.Equal("411111", result.Data!.Bin);
-        Assert.Equal("1111", result.Data!.Last4);
-    }
-
-    [Fact]
-    public void Create_LuhnGecersiz_Reddedilir()
-    {
-        var result = Create(pan: "4111111111111112");
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains(result.Messages, m => m.Code == CommonResourceConstants.COMMON_MESSAGE_INVALID_FORMAT);
-    }
-
-    [Fact]
-    public void Create_On2HanedenKisa_Reddedilir()
-    {
-        var result = Create(pan: "41111111111"); // 11 hane
+        var result = Create(cardUserKey: "  ");
 
         Assert.False(result.IsSuccess);
     }
 
     [Fact]
-    public void Create_On9HanedenUzun_Reddedilir()
+    public void Create_BosCardToken_Reddedilir()
     {
-        var result = Create(pan: "41111111111111111111"); // 20 hane
-
-        Assert.False(result.IsSuccess);
-    }
-
-    [Fact]
-    public void Create_GecmisExpiry_Reddedilir()
-    {
-        var result = Create(expiry: "01/20");
-
-        Assert.False(result.IsSuccess);
-        Assert.Contains(result.Messages, m => m.Property == "expiry");
-    }
-
-    [Fact]
-    public void Create_BozukExpiryBicimi_Reddedilir()
-    {
-        var result = Create(expiry: "2029-12");
-
-        Assert.False(result.IsSuccess);
-    }
-
-    [Fact]
-    public void Create_BosHolder_Reddedilir()
-    {
-        var result = Create(holder: "  ");
+        var result = Create(cardToken: "");
 
         Assert.False(result.IsSuccess);
     }
@@ -112,7 +56,7 @@ public class StoredCardCreateTests
     }
 
     [Fact]
-    public void Create_AyniPan_HerCagridaFarkliToken()
+    public void Create_HerCagri_FarkliOpakToken()
     {
         var first = Create().Data!;
         var second = Create().Data!;
@@ -121,13 +65,13 @@ public class StoredCardCreateTests
     }
 
     [Fact]
-    public void Create_GercekKoruyucu_HamPanEncOutputtaGorunmez()
+    public void Create_PanAlaniYok_YalnizSaglayiciKimlikleri()
     {
-        // Gerçek DevPanProtector (AES) ile: korunmuş çıktı ham PAN'ı içermez (SC-002 zemini).
-        var result = StoredCard.Create(Guid.NewGuid(), "4111111111111111", "12/34", "CARD HOLDER",
-            new DevPanProtector());
+        // Model A kanıtı: aggregate'te ham/şifreli PAN alanı yok; yalnız sağlayıcı kimlikleri + gösterim.
+        var card = Create().Data!;
 
-        Assert.True(result.IsSuccess);
-        Assert.DoesNotContain("4111111111111111", result.Data!.EncryptedPan);
+        Assert.Null(typeof(StoredCard).GetProperty("EncryptedPan"));
+        Assert.NotNull(typeof(StoredCard).GetProperty("CardUserKey"));
+        Assert.NotNull(typeof(StoredCard).GetProperty("CardToken"));
     }
 }
