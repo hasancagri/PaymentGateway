@@ -32,10 +32,12 @@ public class IdResult
     public Guid Id { get; set; }
 }
 
-// ---- Commission.Api (024 komisyon politikaları) ----
+// ---- Commission.Api (024/030 komisyon politikaları) ----
 
-/// <summary>RatePercent ondalık orandır (0.02 = %2, tavan 0.20); FixedFee TL (tavan 100).</summary>
-public record CreateCommissionPolicyRequest(Guid MerchantId, decimal RatePercent, decimal FixedFee);
+/// <summary>Kademe: FromAmount TL (dahil, ilki 0); RatePercent ondalık oran (0.02 = %2, tavan 0.20); FixedFee TL (tavan 100).</summary>
+public record TierDto(decimal FromAmount, decimal RatePercent, decimal FixedFee);
+
+public record CreateCommissionPolicyRequest(Guid MerchantId, List<TierDto> Tiers);
 
 public class CommissionPoliciesResponse
 {
@@ -46,8 +48,7 @@ public class CommissionPolicyItem
 {
     public Guid PolicyId { get; set; }
     public Guid MerchantId { get; set; }
-    public decimal RatePercent { get; set; }
-    public decimal FixedFee { get; set; }
+    public List<TierDto> Tiers { get; set; } = new();
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedTime { get; set; }
 }
@@ -56,8 +57,7 @@ public class CommissionPolicyResult
 {
     public Guid PolicyId { get; set; }
     public Guid MerchantId { get; set; }
-    public decimal RatePercent { get; set; }
-    public decimal FixedFee { get; set; }
+    public List<TierDto> Tiers { get; set; } = new();
     public string Status { get; set; } = string.Empty;
 }
 

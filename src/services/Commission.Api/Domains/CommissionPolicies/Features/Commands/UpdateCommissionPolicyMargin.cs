@@ -6,14 +6,13 @@ namespace Commission.Api.Domains.CommissionPolicies.Features.Commands;
 // yoksa RECORD_NOT_FOUND. İleriye dönük (geçmiş hesaplar etkilenmez). AdminPlaneOnly.
 public static class UpdateCommissionPolicyMargin
 {
-    public record UpdateCommissionPolicyMarginCommand(Guid MerchantId, decimal RatePercent, decimal FixedFee);
+    public record UpdateCommissionPolicyMarginCommand(Guid MerchantId, List<TierDto> Tiers);
 
     public class UpdateCommissionPolicyMarginResponse
     {
         public Guid PolicyId { get; set; }
         public Guid MerchantId { get; set; }
-        public decimal RatePercent { get; set; }
-        public decimal FixedFee { get; set; }
+        public List<TierDto> Tiers { get; set; } = new();
         public string Status { get; set; } = string.Empty;
     }
 
@@ -35,7 +34,9 @@ public static class UpdateCommissionPolicyMargin
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
 
-            var updated = policy.UpdateMargin(cmd.RatePercent, cmd.FixedFee);
+            var tiers = (cmd.Tiers ?? new List<TierDto>())
+                .Select(t => (t.FromAmount, t.RatePercent, t.FixedFee)).ToList();
+            var updated = policy.UpdateMargin(tiers);
             if (!updated.IsSuccess)
                 return FeatureObjectResultModel<UpdateCommissionPolicyMarginResponse>.Error(updated.Messages);
 
@@ -45,8 +46,7 @@ public static class UpdateCommissionPolicyMargin
             {
                 PolicyId = policy.Id,
                 MerchantId = policy.MerchantId,
-                RatePercent = policy.Margin.RatePercent,
-                FixedFee = policy.Margin.FixedFee,
+                Tiers = policy.Margin.Tiers.Select(t => new TierDto(t.FromAmount, t.RatePercent, t.FixedFee)).ToList(),
                 Status = policy.Status.ToString()
             });
         }
@@ -55,7 +55,7 @@ public static class UpdateCommissionPolicyMargin
 
 public static class UpdateCommissionPolicyMarginEndpoint
 {
-    public record UpdateCommissionPolicyMarginBody(decimal RatePercent, decimal FixedFee);
+    public record UpdateCommissionPolicyMarginBody(List<TierDto> Tiers);
 
     public static RouteGroupBuilder UpdateCommissionPolicyMarginGroupItemEndpoint(this RouteGroupBuilder group)
     {
@@ -65,7 +65,7 @@ public static class UpdateCommissionPolicyMarginEndpoint
                     var result = await bus
                         .InvokeAsync<FeatureObjectResultModel<UpdateCommissionPolicyMargin.UpdateCommissionPolicyMarginResponse>>(
                             new UpdateCommissionPolicyMargin.UpdateCommissionPolicyMarginCommand(
-                                merchantId, body.RatePercent, body.FixedFee));
+                                merchantId, body.Tiers));
                     return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
                 })
             .WithName("UpdateCommissionPolicyMargin")

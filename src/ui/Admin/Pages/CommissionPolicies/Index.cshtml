@@ -2,31 +2,74 @@
 @model Admin.Pages.CommissionPolicies.IndexModel
 @{
     ViewData["Title"] = "Komisyon Politikaları";
+    var edit = Model.EditPolicy;
 }
 
 <partial name="_Messages" />
 
-<h2>Yeni Politika</h2>
-<form method="post">
-    <label>Merchant</label>
-    <select name="merchantId">
-        <option value="">— merchant seç —</option>
-        @foreach (var m in Model.Merchants)
-        {
-            <option value="@m.MerchantId">@m.Name (@m.Status)</option>
-        }
-    </select>
+@if (edit is null)
+{
+    <h2>Yeni Politika</h2>
+    <form method="post">
+        <label>Merchant</label>
+        <select name="merchantId">
+            <option value="">— merchant seç —</option>
+            @foreach (var m in Model.Merchants)
+            {
+                <option value="@m.MerchantId">@m.Name (@m.Status)</option>
+            }
+        </select>
 
-    <label>Oran (ondalık; 0.02 = %2, tavan 0.20)</label>
-    <input type="number" name="ratePercent" step="0.001" min="0" max="0.20" value="0.02" />
+        <label>Tarife kademeleri — ilk satır 0'dan başlar; alt sınırlar artan; boş satırlar atlanır.
+            Oran ondalık (0.02 = %2, tavan 0.20); sabit ücret TL (tavan 100).</label>
+        <table>
+            <thead>
+                <tr><th>Alt sınır (TL)</th><th>Oran</th><th>Sabit ücret (TL)</th></tr>
+            </thead>
+            <tbody>
+                @for (var i = 0; i < Admin.Pages.CommissionPolicies.IndexModel.GridRows; i++)
+                {
+                    <tr>
+                        <td><input type="number" name="tiers[@i].FromAmount" step="0.01" min="0" value="@(i == 0 ? "0" : "")" /></td>
+                        <td><input type="number" name="tiers[@i].RatePercent" step="0.001" min="0" max="0.20" /></td>
+                        <td><input type="number" name="tiers[@i].FixedFee" step="0.01" min="0" max="100" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
 
-    <label>Sabit ücret (TL, tavan 100)</label>
-    <input type="number" name="fixedFee" step="0.01" min="0" max="100" value="0" />
-
-    <div>
-        <button class="btn" asp-page-handler="Create">Oluştur</button>
-    </div>
-</form>
+        <div>
+            <button class="btn" asp-page-handler="Create">Oluştur</button>
+        </div>
+    </form>
+}
+else
+{
+    <h2>Tarife Düzenle — @Model.MerchantName(edit.MerchantId)</h2>
+    <form method="post">
+        <input type="hidden" name="merchantId" value="@edit.MerchantId" />
+        <table>
+            <thead>
+                <tr><th>Alt sınır (TL)</th><th>Oran</th><th>Sabit ücret (TL)</th></tr>
+            </thead>
+            <tbody>
+                @for (var i = 0; i < Admin.Pages.CommissionPolicies.IndexModel.GridRows; i++)
+                {
+                    var tier = i < edit.Tiers.Count ? edit.Tiers[i] : null;
+                    <tr>
+                        <td><input type="number" name="tiers[@i].FromAmount" step="0.01" min="0" value="@(tier?.FromAmount.ToString("0.##"))" /></td>
+                        <td><input type="number" name="tiers[@i].RatePercent" step="0.001" min="0" max="0.20" value="@(tier?.RatePercent.ToString("0.###"))" /></td>
+                        <td><input type="number" name="tiers[@i].FixedFee" step="0.01" min="0" max="100" value="@(tier?.FixedFee.ToString("0.##"))" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div>
+            <button class="btn" asp-page-handler="UpdateMargin">Kaydet</button>
+            <a class="btn" asp-page="Index" style="background:#6e7781;">İptal</a>
+        </div>
+    </form>
+}
 
 <h2>Politikalar</h2>
 @if (Model.Policies.Count == 0)
@@ -37,24 +80,18 @@ else
 {
     <table>
         <thead>
-            <tr><th>Merchant</th><th>Oran</th><th>Sabit Ücret</th><th>Durum</th><th>Oluşturma</th><th></th></tr>
+            <tr><th>Merchant</th><th>Tarife</th><th>Durum</th><th>Oluşturma</th><th></th></tr>
         </thead>
         <tbody>
             @foreach (var p in Model.Policies)
             {
                 <tr>
                     <td><a asp-page="/Merchants/Details" asp-route-id="@p.MerchantId">@Model.MerchantName(p.MerchantId)</a></td>
-                    <td>@p.RatePercent.ToString("0.###") (%@((p.RatePercent * 100).ToString("0.#")))</td>
-                    <td>@p.FixedFee.ToString("0.##") TL</td>
+                    <td>@Admin.Pages.CommissionPolicies.IndexModel.TariffText(p.Tiers)</td>
                     <td>@p.Status</td>
                     <td>@p.CreatedTime.ToString("g")</td>
                     <td>
-                        <form method="post" style="display:inline">
-                            <input type="hidden" name="merchantId" value="@p.MerchantId" />
-                            <input type="number" name="ratePercent" step="0.001" min="0" max="0.20" value="@p.RatePercent" style="width:5em" />
-                            <input type="number" name="fixedFee" step="0.01" min="0" max="100" value="@p.FixedFee" style="width:5em" />
-                            <button class="btn" asp-page-handler="UpdateMargin">Güncelle</button>
-                        </form>
+                        <a class="btn" asp-page="Index" asp-route-editMerchantId="@p.MerchantId">Tarife Düzenle</a>
                         <form method="post" style="display:inline">
                             <input type="hidden" name="merchantId" value="@p.MerchantId" />
                             <input type="hidden" name="status" value="@(p.Status == "Active" ? "Passive" : "Active")" />

@@ -17,8 +17,7 @@ public static class ListCommissionPolicies
     {
         public Guid PolicyId { get; set; }
         public Guid MerchantId { get; set; }
-        public decimal RatePercent { get; set; }
-        public decimal FixedFee { get; set; }
+        public List<TierDto> Tiers { get; set; } = new();
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedTime { get; set; }
     }
@@ -46,8 +45,7 @@ public static class ListCommissionPolicies
                 {
                     PolicyId = p.Id,
                     MerchantId = p.MerchantId,
-                    RatePercent = p.Margin.RatePercent,
-                    FixedFee = p.Margin.FixedFee,
+                    Tiers = p.Margin.Tiers.Select(t => new TierDto(t.FromAmount, t.RatePercent, t.FixedFee)).ToList(),
                     Status = p.Status.ToString(),
                     CreatedTime = p.CreatedTime
                 }).ToList()

@@ -11,8 +11,7 @@ public static class GetCommissionPolicy
     public class GetCommissionPolicyResponse
     {
         public Guid MerchantId { get; set; }
-        public decimal RatePercent { get; set; }
-        public decimal FixedFee { get; set; }
+        public List<TierDto> Tiers { get; set; } = new();
         public string Status { get; set; } = string.Empty;
     }
 
@@ -33,8 +32,7 @@ public static class GetCommissionPolicy
             return FeatureObjectResultModel<GetCommissionPolicyResponse>.Ok(new GetCommissionPolicyResponse
             {
                 MerchantId = policy.MerchantId,
-                RatePercent = policy.Margin.RatePercent,
-                FixedFee = policy.Margin.FixedFee,
+                Tiers = policy.Margin.Tiers.Select(t => new TierDto(t.FromAmount, t.RatePercent, t.FixedFee)).ToList(),
                 Status = policy.Status.ToString()
             });
         }
