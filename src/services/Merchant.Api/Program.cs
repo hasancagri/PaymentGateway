@@ -82,6 +82,13 @@ builder.Services.AddOptions<Merchant.Api.Options.Onboarding>().BindConfiguration
 builder.Services.AddSingleton<Merchant.Api.Options.Onboarding>(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Merchant.Api.Options.Onboarding>>().Value);
 
+// 029: MCP server — ECommerce ChatAgent'a başvuru tool'larını sunar ([McpServerToolType]).
+// Stateless HTTP (013 wiring'inin dirilişi).
+builder.Services
+    .AddMcpServer()
+    .WithHttpTransport(o => o.Stateless = true)
+    .WithToolsFromAssembly();
+
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -95,5 +102,12 @@ var apiVersionSet = app.NewApiVersionSet()
 
 // 023: merchant CRUD + statü uçları (policy'ler slice endpoint'lerinde açıkça beyanlı).
 app.AddMerchantGroupEndpointExtension(apiVersionSet);
+
+// 029: kayıt başvurusu admin uçları (liste + onay/red — AdminPlaneOnly).
+app.AddRegisterRequestGroupEndpointExtension(apiVersionSet);
+
+// 029: MCP endpoint (Streamable HTTP) — ECommerce ChatAgent buraya bağlanır. Yüzey merchant.write
+// ister (ecommerce-onboarding istemcisi taşır; merchant kendi token'ı bu iç yüzeye girmez).
+app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.MerchantWrite);
 
 await app.RunAsync();

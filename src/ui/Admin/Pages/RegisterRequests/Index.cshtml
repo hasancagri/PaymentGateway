@@ -8,36 +8,51 @@
 
 @if (Model.Requests.Count == 0)
 {
-    <p class="muted">Başvuru yok.</p>
+    <p class="muted">Kayıt başvurusu yok.</p>
 }
 else
 {
     <table>
         <thead>
             <tr>
-                <th>Alan Adı</th><th>Ünvan</th><th>İletişim</th><th>Durum</th><th>Tarih</th><th></th>
+                <th>Durum</th><th>Tip</th><th>İsim</th><th>E-posta</th><th>Yetkili</th>
+                <th>Başvuru</th><th>Sonuç</th><th></th>
             </tr>
         </thead>
         <tbody>
             @foreach (var r in Model.Requests)
             {
                 <tr>
-                    <td>@r.Domain</td>
-                    <td>@r.LegalName</td>
-                    <td>@r.ContactEmail</td>
                     <td>@r.Status</td>
-                    <td>@r.CreatedTime.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@r.Type</td>
+                    <td>@r.Name</td>
+                    <td>@r.Email</td>
+                    <td>@r.ContactName @r.ContactSurname</td>
+                    <td>@r.CreatedTime.ToString("g")</td>
+                    <td>
+                        @if (r.MerchantId is not null)
+                        {
+                            <a asp-page="/Merchants/Details" asp-route-id="@r.MerchantId">Merchant</a>
+                        }
+                        else if (r.RejectReason is not null)
+                        {
+                            @r.RejectReason
+                        }
+                        else
+                        {
+                            <span class="muted">—</span>
+                        }
+                    </td>
                     <td>
                         @if (r.Status == "Pending")
                         {
                             <form method="post" style="display:inline">
-                                <input type="hidden" name="id" value="@r.Id" />
-                                <button class="btn" asp-page-handler="Approve">Onayla</button>
+                                <button class="btn" asp-page-handler="Approve" asp-route-id="@r.RequestId">Onayla</button>
                             </form>
                             <form method="post" style="display:inline">
-                                <input type="hidden" name="id" value="@r.Id" />
-                                <input type="text" name="note" placeholder="Not (opsiyonel)" />
-                                <button class="btn" asp-page-handler="Reject">Reddet</button>
+                                <input type="text" name="reason" placeholder="red nedeni" />
+                                <button class="btn" asp-page-handler="Reject" asp-route-id="@r.RequestId"
+                                        style="background:#6e7781;">Reddet</button>
                             </form>
                         }
                     </td>

@@ -33,16 +33,14 @@ builder.Services.AddHttpClient<IMerchantApiClient, MerchantApiClient>(client =>
         client.BaseAddress = new Uri("http://merchant-api"))
     .AddHttpMessageHandler<AdminTokenHandler>();
 
-builder.Services.AddHttpClient<ICommissionApiClient, CommissionApiClient>(client =>
-        client.BaseAddress = new Uri("http://commission-api"))
-    .AddHttpMessageHandler<AdminTokenHandler>();
-
-builder.Services.AddHttpClient<ISettlementAccountApiClient, SettlementAccountApiClient>(client =>
-        client.BaseAddress = new Uri("http://merchant-api"))
-    .AddHttpMessageHandler<AdminTokenHandler>();
-
+// 029: kayıt başvuruları (Merchant Talepleri ekranı).
 builder.Services.AddHttpClient<IRegisterRequestApiClient, RegisterRequestApiClient>(client =>
         client.BaseAddress = new Uri("http://merchant-api"))
+    .AddHttpMessageHandler<AdminTokenHandler>();
+
+// 024 (ertelenen Admin UI): komisyon politikaları ekranı.
+builder.Services.AddHttpClient<ICommissionPolicyApiClient, CommissionPolicyApiClient>(client =>
+        client.BaseAddress = new Uri("http://commission-api"))
     .AddHttpMessageHandler<AdminTokenHandler>();
 
 // 019: Merchant.Agent A2A chat (komisyon pazarlık ekranı). A2A yüzeyi auth istemez → token handler yok;
