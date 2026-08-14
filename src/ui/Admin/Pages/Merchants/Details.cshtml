@@ -14,27 +14,37 @@ else
 {
     var m = Model.Merchant;
     <table>
-        <tr><th>Id</th><td class="key">@m.Id</td></tr>
+        <tr><th>MerchantId</th><td class="key">@m.MerchantId</td></tr>
+        <tr><th>MerchantKey</th><td class="key">@m.MerchantKey</td></tr>
         <tr><th>İsim</th><td>@m.Name</td></tr>
-        <tr><th>E-posta</th><td>@m.Email</td></tr>
-        <tr><th>Telefon</th><td>@m.Phone</td></tr>
-        <tr><th>Ülke</th><td>@m.CountryCode @(m.CountryName is null ? "" : $"({m.CountryName})")</td></tr>
-        <tr><th>Şehir</th><td>@m.CityCode @(m.CityName is null ? "" : $"({m.CityName})")</td></tr>
-        <tr><th>MCC</th><td>@m.Mcc @(m.MccName is null ? "" : $"({m.MccName})")</td></tr>
-        <tr><th>Webhook</th><td>@m.WebhookUrl</td></tr>
+        <tr><th>Tip</th><td>@m.Type</td></tr>
         <tr><th>Durum</th><td>@m.Status</td></tr>
+        <tr><th>E-posta</th><td>@m.Email</td></tr>
+        <tr><th>Telefon</th><td>@m.GsmNumber</td></tr>
+        <tr><th>Adres</th><td>@m.Address</td></tr>
+        <tr><th>IBAN</th><td>@m.Iban</td></tr>
+        <tr><th>İletişim</th><td>@m.ContactName @m.ContactSurname</td></tr>
+        @if (m.IdentityNumber is not null)
+        {
+            <tr><th>TCKN</th><td>@m.IdentityNumber</td></tr>
+        }
+        @if (m.TaxOffice is not null)
+        {
+            <tr><th>Vergi Dairesi</th><td>@m.TaxOffice</td></tr>
+        }
+        @if (m.TaxNumber is not null)
+        {
+            <tr><th>Vergi No</th><td>@m.TaxNumber</td></tr>
+        }
+        @if (m.LegalCompanyTitle is not null)
+        {
+            <tr><th>Ticari Unvan</th><td>@m.LegalCompanyTitle</td></tr>
+        }
+        <tr><th>SubMerchantKey</th><td>@(m.SubMerchantKey ?? "—")</td></tr>
         <tr><th>Oluşturma</th><td>@m.CreatedTime.ToString("g")</td></tr>
     </table>
 
     <div class="actions">
-        @if (m.Status == "Provisioning")
-        {
-            <form method="post" style="display:inline">
-                <button class="btn" asp-page-handler="Finalize" asp-route-id="@m.Id">Finalize</button>
-            </form>
-        }
-        <a class="btn" asp-page="/MerchantCommissions/Index" asp-route-merchantId="@m.Id">Komisyonları</a>
-        <a class="btn" asp-page="/SettlementAccounts/Index" asp-route-merchantId="@m.Id">Settlement Hesapları</a>
         <a class="btn" asp-page="Index" style="background:#6e7781;">Listeye dön</a>
     </div>
 }

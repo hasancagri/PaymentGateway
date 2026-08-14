@@ -1,7 +1,8 @@
 namespace Merchant.Api.Domains.Merchants.Features.Queries;
 
-// 023: tekil merchant görüntüleme. Yanıt tipinde MerchantKey alanı HİÇ YOK (SC-004 —
-// serileşme riski sıfır). MerchantScoped: merchant kendi token'ıyla yalnız kendi kaydını okur.
+// 023: tekil merchant görüntüleme. MerchantScoped: merchant kendi token'ıyla yalnız kendi kaydını okur.
+// SC-004 bilinçli delindi (dev kararı, 2026-08-14): MerchantKey yanıtla döner — Admin ekranı açık
+// gösterir, ECommerce tarafına elle taşınır. Redeem-link teslim modeli gelince bu alan kaldırılacak.
 public static class GetMerchant
 {
     public record GetMerchantQuery(Guid MerchantId);
@@ -9,6 +10,7 @@ public static class GetMerchant
     public class GetMerchantResponse
     {
         public Guid MerchantId { get; set; }
+        public string MerchantKey { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
@@ -43,6 +45,7 @@ public static class GetMerchant
             return FeatureObjectResultModel<GetMerchantResponse>.Ok(new GetMerchantResponse
             {
                 MerchantId = merchant.Id,
+                MerchantKey = merchant.MerchantKey,
                 Status = merchant.Status.ToString(),
                 Type = merchant.Type.ToString(),
                 Name = merchant.Name,

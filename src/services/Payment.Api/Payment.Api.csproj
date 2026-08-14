@@ -27,9 +27,4 @@
       <ProjectReference Include="..\..\others\Shared\Shared.csproj" />
     </ItemGroup>
 
-
-    <ItemGroup>
-      <Folder Include="Domains\" />
-    </ItemGroup>
-
 </Project>

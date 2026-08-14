@@ -5,8 +5,8 @@ namespace Admin.Clients;
 public interface IRegisterRequestApiClient
 {
     Task<ApiResult<RegisterRequestsResponse>> GetAllAsync(CancellationToken ct = default);
-    Task<ApiResult<ApproveRegisterResult>> ApproveAsync(Guid id, string? note, CancellationToken ct = default);
-    Task<ApiResult<IdResult>> RejectAsync(Guid id, string? note, CancellationToken ct = default);
+    Task<ApiResult<ApproveRegisterResult>> ApproveAsync(Guid id, CancellationToken ct = default);
+    Task<ApiResult<RejectRegisterResult>> RejectAsync(Guid id, string reason, CancellationToken ct = default);
 }
 
 public class RegisterRequestApiClient : ApiClientBase, IRegisterRequestApiClient
@@ -16,14 +16,12 @@ public class RegisterRequestApiClient : ApiClientBase, IRegisterRequestApiClient
     }
 
     public Task<ApiResult<RegisterRequestsResponse>> GetAllAsync(CancellationToken ct = default) =>
-        SendAsync<RegisterRequestsResponse>(
-            () => Http.GetAsync("/api/v1/register-requests", ct), ct);
+        SendAsync<RegisterRequestsResponse>(() => Http.GetAsync("/api/v1/register-requests", ct), ct);
 
-    public Task<ApiResult<ApproveRegisterResult>> ApproveAsync(Guid id, string? note, CancellationToken ct = default) =>
-        SendAsync<ApproveRegisterResult>(
-            () => Http.PostAsJsonAsync($"/api/v1/register-requests/{id}/approve", new ReviewRequest(note), ct), ct);
+    public Task<ApiResult<ApproveRegisterResult>> ApproveAsync(Guid id, CancellationToken ct = default) =>
+        SendAsync<ApproveRegisterResult>(() => Http.PostAsync($"/api/v1/register-requests/{id}/approve", null, ct), ct);
 
-    public Task<ApiResult<IdResult>> RejectAsync(Guid id, string? note, CancellationToken ct = default) =>
-        SendAsync<IdResult>(
-            () => Http.PostAsJsonAsync($"/api/v1/register-requests/{id}/reject", new ReviewRequest(note), ct), ct);
+    public Task<ApiResult<RejectRegisterResult>> RejectAsync(Guid id, string reason, CancellationToken ct = default) =>
+        SendAsync<RejectRegisterResult>(() =>
+            Http.PostAsJsonAsync($"/api/v1/register-requests/{id}/reject", new { reason }, ct), ct);
 }
