@@ -12,6 +12,7 @@ global using Newtonsoft.Json;
 global using Payment.Api.Dependencies;
 global using Payment.Api.Provider.StoredCards;
 global using Payment.Api.Domains.StoredCards;
+global using Payment.Api.Domains.Payments;
 global using System.Reflection;
 global using Weasel.Core;
 global using Wolverine;

@@ -41,6 +41,9 @@ builder.Host.UseWolverine(opts =>
         .ToRabbitExchange(RabbitMqConstants.PaymentCompleted.Exchange);
     opts.PublishMessage<Shared.IntegrationEvents.PaymentFailedEvent>()
         .ToRabbitExchange(RabbitMqConstants.PaymentFailed.Exchange);
+    // 033: kayıtlı kartla çekim tamamlandı — iyzico maliyeti taşır (komisyon tüketimi ileride).
+    opts.PublishMessage<Shared.IntegrationEvents.PaymentChargedEvent>()
+        .ToRabbitExchange(RabbitMqConstants.PaymentCompleted.Exchange);
 
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
@@ -59,8 +62,10 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.PaymentRead,
     AuthorizationScopes.PaymentWrite,
-    // 017: vault düzlemi — Active merchant token'ının kabul edildiği tek payment scope'u (capability).
-    AuthorizationScopes.CardsWrite);
+    // 017: vault düzlemi — Active merchant token'ının kabul edildiği payment scope'u (capability).
+    AuthorizationScopes.CardsWrite,
+    // 033: çekim düzlemi — Active merchant charge capability.
+    AuthorizationScopes.PaymentCharge);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
@@ -88,5 +93,8 @@ var apiVersionSet = app.NewApiVersionSet()
 
 // 031: kart kasası uçları (merchants/{merchantId}/vault/cards — cards.write + MerchantScoped).
 app.AddStoredCardGroupEndpointExtension(apiVersionSet);
+
+// 033: kayıtlı kartla ödeme uçları (merchants/{merchantId}/payments — payment.charge + MerchantScoped).
+app.AddPaymentGroupEndpointExtension(apiVersionSet);
 
 await app.RunAsync();
