@@ -14,6 +14,11 @@ builder.Services.AddMarten(opts =>
             {
                 s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
             });
+
+        // 031: kayıtlı kart (vault) — kimlik opak Token (string; Guid Id değil), merchant-scoped index.
+        opts.Schema.For<StoredCard>()
+            .Identity(x => x.Token)
+            .Index(x => x.MerchantId);
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -69,5 +74,8 @@ var apiVersionSet = app.NewApiVersionSet()
     .HasApiVersion(new ApiVersion(1, 0))
     .ReportApiVersions()
     .Build();
+
+// 031: kart kasası uçları (merchants/{merchantId}/vault/cards — cards.write + MerchantScoped).
+app.AddStoredCardGroupEndpointExtension(apiVersionSet);
 
 await app.RunAsync();
