@@ -1,14 +1,11 @@
-using System.Globalization;
-using Payment.Api.CardVault;
-
 namespace Payment.Api.Domains.StoredCards;
 
 /// <summary>
-/// Kayıtlı kartın kayıt-otoritesi (Payment BC document). Kimlik = opak <see cref="Token"/>. Ham PAN
-/// yalnız korunmuş <see cref="EncryptedPan"/> olarak durur (write-only bu feature'da); resolve
-/// yalnız <see cref="Bin"/> kullanır → PAN Payment BC sınırını ham geçmez. bin/last4/brand tokenize
-/// anında PAN'dan türetilir ve immutable; silme soft (<see cref="Revoke"/>). 031: PAN girişte
-/// normalize edilir (rakam-dışı ayıklanır); güncelleme ucu YAGNI kırpıldı (ECommerce çağırmıyor).
+/// Kayıtlı kartın kayıt-otoritesi (Payment BC document). Kimlik = opak <see cref="Token"/>. 032
+/// (Model A): kart iyzico Saklı Kart'ında durur — gateway PAN SAKLAMAZ, yalnız sağlayıcı kimliklerini
+/// (<see cref="CardUserKey"/> + <see cref="CardToken"/>, per-kart) + gösterim alanlarını tutar. Luhn/
+/// expiry/AES doğrulaması aggregate'ten kalktı (iyzico doğrular; handler çağırır). Silme soft
+/// (<see cref="Revoke"/>).
 /// </summary>
 public class StoredCard : AggregateRoot
 {
@@ -16,25 +13,28 @@ public class StoredCard : AggregateRoot
     {
     }
 
-    /// <summary>Marten identity; opak, tahmin-edilemez (<c>card_</c> + Guid "N"); PAN'dan türetilmez; immutable.</summary>
+    /// <summary>Marten identity; opak, tahmin-edilemez (<c>card_</c> + Guid "N"); immutable; ECommerce'e dönen.</summary>
     public string Token { get; private set; } = string.Empty;
 
     /// <summary>Sahip merchant (tenant sınırı); index; immutable.</summary>
     public Guid MerchantId { get; private set; }
 
-    /// <summary><see cref="IPanProtector"/> ile korunmuş PAN (enc-at-rest); hiç okunmaz/dönmez; immutable.</summary>
-    public string EncryptedPan { get; private set; } = string.Empty;
+    /// <summary>iyzico kullanıcı-kimliği (per-kart, 032/R2 — gruplama ertelendi); ödeme girdisi; immutable.</summary>
+    public string CardUserKey { get; private set; } = string.Empty;
 
-    /// <summary>PAN'dan türetilen ilk 6 hane; denetim/gösterim; immutable.</summary>
+    /// <summary>iyzico kart-kimliği; ödeme girdisi; immutable.</summary>
+    public string CardToken { get; private set; } = string.Empty;
+
+    /// <summary>İlk 6 hane (iyzico yanıtından; denetim/gösterim); immutable.</summary>
     public string Bin { get; private set; } = string.Empty;
 
-    /// <summary>PAN son 4 hane; denetim/gösterim; immutable.</summary>
+    /// <summary>Son 4 hane (iyzico yanıtından; denetim/gösterim); immutable.</summary>
     public string Last4 { get; private set; } = string.Empty;
 
-    /// <summary>PAN prefix'inden türetilen marka; immutable.</summary>
+    /// <summary>Kart markası (iyzico CardAssociation'dan eşlenir); immutable.</summary>
     public CardBrand Brand { get; private set; }
 
-    /// <summary>Son kullanma (<c>MM/yy</c>); immutable (güncelleme ucu yok — 031 YAGNI).</summary>
+    /// <summary>Son kullanma (<c>MM/yy</c>); immutable.</summary>
     public string Expiry { get; private set; } = string.Empty;
 
     /// <summary>Kart sahibi; immutable.</summary>
@@ -43,45 +43,29 @@ public class StoredCard : AggregateRoot
     public StoredCardStatus Status { get; private set; }
 
     /// <summary>
-    /// PAN'ı normalize eder (rakam-dışı karakter ayıklar) + doğrular (Luhn) + son kullanmayı
-    /// (gelecekte, <c>MM/yy</c>) kontrol eder, opak token üretir, bin/last4/brand'i türetir, PAN'ı
-    /// korur ve <see cref="StoredCardStatus.Active"/> kart döndürür. PAN/expiry/holder boş olamaz.
-    /// Non-idempotent: aynı PAN her çağrıda YENİ token (FR-006).
+    /// Sağlayıcı (iyzico) kimlikleriyle kayıt oluşturur. PAN/Luhn/expiry doğrulaması BURADA YOK —
+    /// iyzico Saklı Kart çağrısı handler'da yapılır, bu fabrika dönen kimlikleri + gösterim alanlarını
+    /// sarar. Zorunlu: merchantId, cardUserKey, cardToken. Opak token üretir, <see cref="StoredCardStatus.Active"/> doğar.
     /// </summary>
     /// <remarks>Handler: TokenizeCardCommandHandler</remarks>
     public static ResultDomain<StoredCard> Create(
-        Guid merchantId, string pan, string expiry, string holderName, IPanProtector protector)
+        Guid merchantId,
+        string cardUserKey,
+        string cardToken,
+        string bin,
+        string last4,
+        CardBrand brand,
+        string expiry,
+        string holderName)
     {
-        if (merchantId == Guid.Empty || string.IsNullOrWhiteSpace(pan) ||
-            string.IsNullOrWhiteSpace(expiry) || string.IsNullOrWhiteSpace(holderName))
+        if (merchantId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(cardUserKey) ||
+            string.IsNullOrWhiteSpace(cardToken))
         {
             return ResultDomain<StoredCard>.Error(new MessageItem
             {
-                Property = nameof(pan),
+                Property = nameof(cardToken),
                 Code = CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED
-            });
-        }
-
-        // 031: boşluk/tire vb. ayıklanır — kullanıcı dostu; Luhn/türetim normalize haneyle çalışır.
-        var digits = new string(pan.Where(char.IsDigit).ToArray());
-
-        if (!LuhnValidator.IsValid(digits))
-        {
-            return ResultDomain<StoredCard>.Error(new MessageItem
-            {
-                Property = nameof(pan),
-                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_FORMAT
-            });
-        }
-
-        if (!DateTime.TryParseExact(expiry.Trim(), "MM/yy", CultureInfo.InvariantCulture,
-                DateTimeStyles.None, out var parsed) ||
-            new DateTime(parsed.Year, parsed.Month, 1).AddMonths(1).AddDays(-1) < DateTime.UtcNow.Date)
-        {
-            return ResultDomain<StoredCard>.Error(new MessageItem
-            {
-                Property = nameof(expiry),
-                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_FORMAT
             });
         }
 
@@ -89,17 +73,18 @@ public class StoredCard : AggregateRoot
         {
             Token = "card_" + Guid.NewGuid().ToString("N"),
             MerchantId = merchantId,
-            EncryptedPan = protector.Protect(digits),
-            Bin = BinExtractor.Extract(digits),
-            Last4 = Last4Extractor.Extract(digits),
-            Brand = BrandDetector.Detect(digits),
-            Expiry = expiry.Trim(),
-            HolderName = holderName.Trim(),
+            CardUserKey = cardUserKey.Trim(),
+            CardToken = cardToken.Trim(),
+            Bin = (bin ?? string.Empty).Trim(),
+            Last4 = (last4 ?? string.Empty).Trim(),
+            Brand = brand,
+            Expiry = (expiry ?? string.Empty).Trim(),
+            HolderName = (holderName ?? string.Empty).Trim(),
             Status = StoredCardStatus.Active
         });
     }
 
-    /// <summary>Kartı soft iptal eder (fiziksel durur; resolve RET). Idempotent: zaten Revoked → Ok.</summary>
+    /// <summary>Kartı soft iptal eder (fiziksel durur). Idempotent: zaten Revoked → Ok.</summary>
     /// <remarks>Handler: RevokeCardCommandHandler</remarks>
     public ResultDomain Revoke()
     {

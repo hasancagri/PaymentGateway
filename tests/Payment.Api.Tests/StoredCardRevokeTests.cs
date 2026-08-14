@@ -1,16 +1,11 @@
 namespace Payment.Api.Tests;
 
-// 031: StoredCard.Revoke — soft + idempotent.
+// 032: StoredCard.Revoke — soft + idempotent (davranış 031'den değişmedi; Create imzası değişti).
 public class StoredCardRevokeTests
 {
-    private sealed class PassThroughProtector : IPanProtector
-    {
-        public string Protect(string pan) => pan;
-    }
-
     private static StoredCard NewCard() =>
-        StoredCard.Create(Guid.NewGuid(), "4111111111111111", "12/34", "CARD HOLDER",
-            new PassThroughProtector()).Data!;
+        StoredCard.Create(Guid.NewGuid(), "iyz-user-1", "iyz-card-1", "552879", "0008",
+            CardBrand.MasterCard, "12/30", "CARD HOLDER").Data!;
 
     [Fact]
     public void Revoke_ActiveKart_RevokedOlur()
