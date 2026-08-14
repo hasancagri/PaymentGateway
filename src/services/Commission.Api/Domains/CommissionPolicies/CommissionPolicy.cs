@@ -4,11 +4,12 @@ using Commission.Api.Domains.CommissionPolicies.ValueObjects;
 namespace Commission.Api.Domains.CommissionPolicies;
 
 /// <summary>
-/// Gateway marj politikası (024) — bir merchant için iyzico maliyetinin üstüne uygulanacak gateway
-/// marjını (oran + sabit ücret) tutar ve verili işlem bağlamı için efektif komisyonu hesaplar.
-/// İş kuralları (marj doğrulama, statü geçişi, hesap aritmetiği + tutarsızlık reddi) burada yaşar;
-/// iyzico maliyeti hesaba GİRDİ olarak gelir (işlem-sonrası rapordan; FR-012) — canlı iyzico çağrısı
-/// YOK. Tekil-aktif kuralı (FR-005) handler-sorgusuyla uygulanır (aggregate cross-aggregate görmez).
+/// Gateway marj politikası (024, 030'da kademeli) — bir merchant için iyzico maliyetinin üstüne
+/// uygulanacak tutar-kademeli marj tarifesini (<see cref="MarginTariff"/>) tutar ve verili işlem
+/// bağlamı için efektif komisyonu hesaplar. İş kuralları (tarife doğrulama, statü geçişi, hesap
+/// aritmetiği + tutarsızlık reddi) burada yaşar; iyzico maliyeti hesaba GİRDİ olarak gelir
+/// (işlem-sonrası rapordan; FR-012) — canlı iyzico çağrısı YOK. Tekil-aktif kuralı (FR-005)
+/// handler-sorgusuyla uygulanır (aggregate cross-aggregate görmez).
 /// </summary>
 public class CommissionPolicy : AggregateRoot
 {
@@ -20,17 +21,19 @@ public class CommissionPolicy : AggregateRoot
     /// <summary>Politikanın bağlı olduğu merchant (dış referans — Merchant BC; cross-BC doğrulanmaz).</summary>
     public Guid MerchantId { get; private set; }
 
-    /// <summary>Gateway marjı — oran (%) + sabit ücret.</summary>
-    public MarginRule Margin { get; private set; } = default!;
+    /// <summary>Gateway marj tarifesi — tutar-kademeli (030).</summary>
+    public MarginTariff Margin { get; private set; } = default!;
 
     public CommissionPolicyStatus Status { get; private set; } = CommissionPolicyStatus.Active;
 
     /// <summary>
-    /// Politika fabrikası: boş merchant reddi + marj doğrulama (<see cref="MarginRule.Create"/>).
+    /// Politika fabrikası: boş merchant reddi + tarife doğrulama (<see cref="MarginTariff.Create"/>).
     /// Geçerse Active doğar.
     /// </summary>
     /// <remarks>Handler: CreateCommissionPolicyCommandHandler</remarks>
-    public static ResultDomain<CommissionPolicy> Create(Guid merchantId, decimal ratePercent, decimal fixedFee)
+    public static ResultDomain<CommissionPolicy> Create(
+        Guid merchantId,
+        IReadOnlyList<(decimal FromAmount, decimal RatePercent, decimal FixedFee)> tiers)
     {
         if (merchantId == Guid.Empty)
             return ResultDomain<CommissionPolicy>.Error(new MessageItem
@@ -39,30 +42,31 @@ public class CommissionPolicy : AggregateRoot
                 Code = CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED
             });
 
-        var margin = MarginRule.Create(ratePercent, fixedFee);
-        if (!margin.IsSuccess)
-            return ResultDomain<CommissionPolicy>.Error(margin.Messages);
+        var tariff = MarginTariff.Create(tiers);
+        if (!tariff.IsSuccess)
+            return ResultDomain<CommissionPolicy>.Error(tariff.Messages);
 
         return ResultDomain<CommissionPolicy>.Ok(new CommissionPolicy
         {
             MerchantId = merchantId,
-            Margin = margin.Data!,
+            Margin = tariff.Data!,
             Status = CommissionPolicyStatus.Active
         });
     }
 
     /// <summary>
-    /// Marjı günceller (FR-002) — yeni oran/ücret doğrulanır, geçerse yürürlüğe girer. İleriye
-    /// dönük (geçmiş hesaplar yeniden fiyatlanmaz).
+    /// Tarifeyi bütün olarak yeni tabloyla değiştirir (FR-004) — tablo doğrulanır, hatada mevcut
+    /// tarife DEĞİŞMEZ. İleriye dönük (geçmiş hesaplar yeniden fiyatlanmaz).
     /// </summary>
     /// <remarks>Handler: UpdateCommissionPolicyMarginCommandHandler</remarks>
-    public ResultDomain UpdateMargin(decimal ratePercent, decimal fixedFee)
+    public ResultDomain UpdateMargin(
+        IReadOnlyList<(decimal FromAmount, decimal RatePercent, decimal FixedFee)> tiers)
     {
-        var margin = MarginRule.Create(ratePercent, fixedFee);
-        if (!margin.IsSuccess)
-            return ResultDomain.Error(margin.Messages);
+        var tariff = MarginTariff.Create(tiers);
+        if (!tariff.IsSuccess)
+            return ResultDomain.Error(tariff.Messages);
 
-        Margin = margin.Data!;
+        Margin = tariff.Data!;
         UpdatedTime = DateTime.UtcNow;
         return ResultDomain.Ok();
     }
@@ -133,8 +137,10 @@ public class CommissionPolicy : AggregateRoot
             });
 
         var iyzicoCost = commissionCost + feeCost;
+        // 030 FR-003: tutarın düştüğü TEK kademe tüm tutara uygulanır (bracket; seçim ham tutarla).
+        var tier = Margin.ResolveTier(paidPrice);
         var gatewayMargin = Math.Round(
-            paidPrice * Margin.RatePercent + Margin.FixedFee, 2, MidpointRounding.AwayFromZero);
+            paidPrice * tier.RatePercent + tier.FixedFee, 2, MidpointRounding.AwayFromZero);
         var effective = iyzicoCost + gatewayMargin;
 
         if (effective > paidPrice)

@@ -7,14 +7,13 @@ namespace Commission.Api.Domains.CommissionPolicies.Features.Commands;
 // başka aggregate'i göremez. AdminPlaneOnly: claim'li merchant token'ı giremez.
 public static class CreateCommissionPolicy
 {
-    public record CreateCommissionPolicyCommand(Guid MerchantId, decimal RatePercent, decimal FixedFee);
+    public record CreateCommissionPolicyCommand(Guid MerchantId, List<TierDto> Tiers);
 
     public class CreateCommissionPolicyResponse
     {
         public Guid PolicyId { get; set; }
         public Guid MerchantId { get; set; }
-        public decimal RatePercent { get; set; }
-        public decimal FixedFee { get; set; }
+        public List<TierDto> Tiers { get; set; } = new();
         public string Status { get; set; } = string.Empty;
     }
 
@@ -39,7 +38,9 @@ public static class CreateCommissionPolicy
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_DUPLICATE
                 });
 
-            var result = CommissionPolicy.Create(cmd.MerchantId, cmd.RatePercent, cmd.FixedFee);
+            var tiers = (cmd.Tiers ?? new List<TierDto>())
+                .Select(t => (t.FromAmount, t.RatePercent, t.FixedFee)).ToList();
+            var result = CommissionPolicy.Create(cmd.MerchantId, tiers);
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<CreateCommissionPolicyResponse>.Error(result.Messages);
 
@@ -50,8 +51,7 @@ public static class CreateCommissionPolicy
             {
                 PolicyId = policy.Id,
                 MerchantId = policy.MerchantId,
-                RatePercent = policy.Margin.RatePercent,
-                FixedFee = policy.Margin.FixedFee,
+                Tiers = policy.Margin.Tiers.Select(t => new TierDto(t.FromAmount, t.RatePercent, t.FixedFee)).ToList(),
                 Status = policy.Status.ToString()
             });
         }

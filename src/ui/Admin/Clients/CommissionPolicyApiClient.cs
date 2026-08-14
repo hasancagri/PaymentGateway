@@ -6,7 +6,7 @@ public interface ICommissionPolicyApiClient
 {
     Task<ApiResult<CommissionPoliciesResponse>> GetAllAsync(CancellationToken ct = default);
     Task<ApiResult<CommissionPolicyResult>> CreateAsync(CreateCommissionPolicyRequest request, CancellationToken ct = default);
-    Task<ApiResult<CommissionPolicyResult>> UpdateMarginAsync(Guid merchantId, decimal ratePercent, decimal fixedFee, CancellationToken ct = default);
+    Task<ApiResult<CommissionPolicyResult>> UpdateMarginAsync(Guid merchantId, List<TierDto> tiers, CancellationToken ct = default);
     Task<ApiResult<CommissionPolicyStatusResult>> ChangeStatusAsync(Guid merchantId, string status, CancellationToken ct = default);
 }
 
@@ -22,10 +22,10 @@ public class CommissionPolicyApiClient : ApiClientBase, ICommissionPolicyApiClie
     public Task<ApiResult<CommissionPolicyResult>> CreateAsync(CreateCommissionPolicyRequest request, CancellationToken ct = default) =>
         SendAsync<CommissionPolicyResult>(() => Http.PostAsJsonAsync("/api/v1/commission-policies", request, ct), ct);
 
-    public Task<ApiResult<CommissionPolicyResult>> UpdateMarginAsync(Guid merchantId, decimal ratePercent, decimal fixedFee, CancellationToken ct = default) =>
+    public Task<ApiResult<CommissionPolicyResult>> UpdateMarginAsync(Guid merchantId, List<TierDto> tiers, CancellationToken ct = default) =>
         SendAsync<CommissionPolicyResult>(() =>
             Http.PutAsJsonAsync($"/api/v1/commission-policies/{merchantId}/margin",
-                new { merchantId, ratePercent, fixedFee }, ct), ct);
+                new { tiers }, ct), ct);
 
     public Task<ApiResult<CommissionPolicyStatusResult>> ChangeStatusAsync(Guid merchantId, string status, CancellationToken ct = default) =>
         SendAsync<CommissionPolicyStatusResult>(() =>
