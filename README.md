@@ -26,7 +26,7 @@ src/
 │   ├── Payment.Agent A2A host + LLM router + MCP client (007) — BC değil, stateless adaptör
 │   └── Merchant.Agent A2A başvuru + komisyon pazarlık host'u (013/019) — BC değil, stateless
 ├── services/
-│   ├── Payment.Api   Ödeme BC (CP.VPOS sanal POS + BinCard katalog + A2A ödeme oturumu/MCP + kart vault 017)
+│   ├── Payment.Api   Ödeme BC (iyzico kanalı — kart saklama/çekim/taksit; transport engine Utils/, 037)
 │   ├── Merchant.Api  Merchant BC (onboarding + settlement hesapları)
 │   ├── Commission.Api Komisyon BC (banka + komisyon grid + teklif/pazarlık 019)
 │   └── Reference.Api Referans veri BC (event-only, HTTP yüzeyi yok — 010)
@@ -44,11 +44,39 @@ Bir feature = bir static class (record command/query + Response + Handler + endp
 
 | BC | Sorumluluk |
 |----|-----------|
-| **Payment** | Sanal POS ödeme; `BankRouter` maliyet-sıralı banka adayları; `PosAccount` aggregate (banka anlaşması + komisyon); BIN kart katalogu (008); A2A ödeme oturumu + MCP tool'ları (007); kart vault — `StoredCard` tokenizasyon (017). |
+| **Payment** | **iyzico** ödeme kanalı (021-022 pivotu): `StoredCard` (iyzico Saklı Kart tokenizasyon, Model A) + `Payment` (kayıtlı kartla NonSecure çekim) aggregate'leri; kart-saklama/çekim/taksit-sorgu slice'ları. iyzico wire tipleri kullanan slice'ın içinde nested; transport engine tek kopya `Utils/` (037). |
 | **Merchant** | Merchant onboarding (agentik başvuru + insan onayı + kademeli yetki, 013/015); settlement (payout) banka hesapları. |
 | **Commission** | Banka referansı, banka komisyon grid'i; merchant komisyonunun TEK yazma yolu **teklif kabulü** (019: `CommissionDraft` + `CommissionProposal` + anonim karar linkleri). |
 
 Ayrıca **altyapı** (BC değil): `Identity.Server` (OpenIddict IdP), `Merchant.Agent` (A2A başvuru + komisyon pazarlık host'u, 013/019), `Excel.Mcp` (generic MCP servisi), `Mail.Worker` (016 — MCP DEĞİL; `mail.delivery` fanout → SMTP, ClosedXML xlsx eki), Admin BFF (Razor Pages + Agent Chat). Dev'de `Mailpit` (SMTP catch-all).
+
+## Payment BC — iyzico ödeme + transport (021-022 pivotu, 037)
+
+Sistem **iyzico** ödeme kanalına döndü (021-022). Payment BC iki canlı aggregate + dört iyzico slice'ı taşır:
+
+- **`StoredCard`** — iyzico Saklı Kart tokenizasyon (Model A: PAN gateway'de saklanmaz, iyzico'ya iletilir,
+  dönen `cardUserKey`+`cardToken` saklanır). Slice'lar: `TokenizeCard` (sakla), `RevokeCard` (sil + yerel soft iptal).
+- **`Payment`** — kayıtlı kartla NonSecure çekim (`ChargePayment`); ödeme öncesi taksit sorgu (`InstallmentOptions`).
+
+### iyzico wire yapısı (037 — `Iyzico.Provider` SDK söküldü)
+
+Paylaşılan `Iyzico.Provider` SDK'sı **silindi**. Yeni yapı:
+
+- **Wire request/response tipleri kullanan slice'ın İÇİNDE nested** — base tip yok, düz camelCase JSON POCO;
+  yanıtlar `Payment.Api.Utils.ProviderResourceV2`'den türer. Slice'ı açan iyzico çağrısını (istek + endpoint + parse)
+  orada görür. Süreç netliği için wire feature'a gömülü; kod tekrarı bilinçli kabul.
+- **Transport engine** (5 dosya: `RestHttpClientV2`/`ProviderResourceV2`/`HashGeneratorV2`/`ProviderConstants`/
+  `ProviderOptions`) `src/services/Payment.Api/Utils/`'te **tek kopya** (ns `Payment.Api.Utils`) — süreç taşımaz,
+  4 slice ortak; V2 akışı JSON gövde + HMAC-SHA256 imza. Ölü V1 PKI zinciri (`ToPKIRequestString` vb.) atıldı.
+- **Kural**: handler metodu içinde Command/Query'den (kullanıcı) gelmeyen **HİÇBİR değer literal yazılmaz** —
+  locale, endpoint yolları, kanal/grup/currency/itemType, "success" durumu, alias, email prefix+domain, id prefix'leri
+  hepsi `Options/IyzicoRequestOptions` config POCO'sundan (appsettings, non-secret) okunur. Transport secret'ı
+  (ApiKey/SecretKey/BaseUrl) ayrı `IyzicoProviderSettings` (user-secrets). Command/Query girdi sözleşmeleri sabit.
+- Domain-uygun 4 VO (`Buyer/Address/BasketItem`, `CardInformation`) `Domains/<Aggregate>/ValueObjects/`'ta;
+  handler VO→slice-nested wire map'ler (anti-corruption sınır). Merchant/Commission iyzico wire kullanmıyor.
+
+> **NOT**: Bu README'nin bazı bölümleri (007 A2A ödeme oturumu/MCP, 017 kart vault, CP.VPOS sanal POS,
+> BinCard, Reference.Api) **022 iyzico pivotundan ÖNCEsini** anlatır ve söküldü; güncel durum CLAUDE.md'dedir.
 
 ## Merchant BC — Settlement hesapları (feature 004) + Admin ekranları (005)
 
