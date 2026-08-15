@@ -108,7 +108,7 @@ public enum StoredCardStatus
 }
 
 /// <summary>
-/// Kart markası (031) — PAN prefix'inden türetilir (<see cref="BrandDetector"/>).
+/// Kart markası (031) — iyzico <c>CardAssociation</c> yanıtından eşlenir (<see cref="CardAssociationMapper"/>; 032 Model A).
 /// BC-içi enum: eski paylaşılan kart taksonomisi (SharedKernel) 021'de silindi; yalnız gösterim/
 /// denetim alanı olduğundan cross-BC taksonomi gerekmez.
 /// </summary>
