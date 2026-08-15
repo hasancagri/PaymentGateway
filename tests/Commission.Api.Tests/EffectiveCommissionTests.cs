@@ -19,7 +19,7 @@ public class EffectiveCommissionTests
     {
         var policy = Policy();
 
-        var result = policy.CalculateEffectiveCommission(1000.00m, "18.50", "0.25", 3);
+        var result = policy.CalculateEffectiveCommission(1000.00m, 18.50m, 0.25m, 3);
 
         Assert.True(result.IsSuccess);
         var ec = result.Data!;
@@ -34,7 +34,7 @@ public class EffectiveCommissionTests
     [Fact]
     public void Calculate_KademeIci_IlkKademedenMarj()
     {
-        var result = TieredPolicy().CalculateEffectiveCommission(500.00m, "2.50", "0.25", 1);
+        var result = TieredPolicy().CalculateEffectiveCommission(500.00m, 2.50m, 0.25m, 1);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(13.50m, result.Data!.GatewayMargin); // 500*0.025 + 1
@@ -43,7 +43,7 @@ public class EffectiveCommissionTests
     [Fact]
     public void Calculate_TamSinir_UstKademedenMarj()
     {
-        var result = TieredPolicy().CalculateEffectiveCommission(1000.00m, "2.50", "0.25", 1);
+        var result = TieredPolicy().CalculateEffectiveCommission(1000.00m, 2.50m, 0.25m, 1);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(21.00m, result.Data!.GatewayMargin); // 1000*0.02 + 1
@@ -52,7 +52,7 @@ public class EffectiveCommissionTests
     [Fact]
     public void Calculate_AcikUcluSonKademe_Marj()
     {
-        var result = TieredPolicy().CalculateEffectiveCommission(20000.00m, "500.00", "0.25", 1);
+        var result = TieredPolicy().CalculateEffectiveCommission(20000.00m, 500.00m, 0.25m, 1);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(360.00m, result.Data!.GatewayMargin); // 20000*0.018 + 0
@@ -64,7 +64,7 @@ public class EffectiveCommissionTests
         // 029 canlı senaryosundaki düz tarife (0.02 + 1): 100 TL → marj 3.00
         var policy = Policy(0.02m, 1m);
 
-        var result = policy.CalculateEffectiveCommission(100.00m, "2.50", "0.25", 1);
+        var result = policy.CalculateEffectiveCommission(100.00m, 2.50m, 0.25m, 1);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(3.00m, result.Data!.GatewayMargin);
@@ -76,7 +76,7 @@ public class EffectiveCommissionTests
         // 100 * 0.015 = 1.5 ; + 0.005 fee -> 1.505 -> AwayFromZero -> 1.51
         var policy = Policy(0.015m, 0.005m);
 
-        var result = policy.CalculateEffectiveCommission(100.00m, "1.00", "0.00", 1);
+        var result = policy.CalculateEffectiveCommission(100.00m, 1.00m, 0.00m, 1);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(1.51m, result.Data!.GatewayMargin);
@@ -88,20 +88,14 @@ public class EffectiveCommissionTests
         var policy = Policy();
         policy.ChangeStatus(CommissionPolicyStatus.Passive);
 
-        var result = policy.CalculateEffectiveCommission(1000m, "10", "1", 1);
+        var result = policy.CalculateEffectiveCommission(1000m, 10m, 1m, 1);
 
         Assert.False(result.IsSuccess);
     }
 
-    [Fact]
-    public void Calculate_AyristirilamazMaliyet_Reddedilir_FR012()
-    {
-        var policy = Policy();
-
-        var result = policy.CalculateEffectiveCommission(1000m, "abc", "1", 1);
-
-        Assert.False(result.IsSuccess);
-    }
+    // NOT (035+): "ayrıştırılamaz string maliyet" artık HANDLER'ın işi (anti-corruption boundary'de
+    // decimal.TryParse); domain decimal alır → o senaryo domain unit-testinden çıktı (handler boundary,
+    // konvansiyonen unit-test edilmez). Negatif maliyet iş kuralı Calculate_NegatifMaliyet'te kalır.
 
     [Fact]
     public void Calculate_EfektifKomisyonTutariAsar_Reddedilir_SC005()
@@ -109,7 +103,7 @@ public class EffectiveCommissionTests
         // paidPrice 10 ; iyzico 9.50 + 1.00 = 10.50 > 10 -> reddedilir (negatif hakedis yok)
         var policy = Policy(0.02m, 1m);
 
-        var result = policy.CalculateEffectiveCommission(10.00m, "9.50", "1.00", 1);
+        var result = policy.CalculateEffectiveCommission(10.00m, 9.50m, 1.00m, 1);
 
         Assert.False(result.IsSuccess);
     }
@@ -119,7 +113,7 @@ public class EffectiveCommissionTests
     {
         var policy = Policy();
 
-        var result = policy.CalculateEffectiveCommission(1000m, "-5", "1", 1);
+        var result = policy.CalculateEffectiveCommission(1000m, -5m, 1m, 1);
 
         Assert.False(result.IsSuccess);
     }
@@ -129,7 +123,15 @@ public class EffectiveCommissionTests
     {
         var policy = Policy();
 
-        var result = policy.CalculateEffectiveCommission(0m, "1", "1", 1);
+        var result = policy.CalculateEffectiveCommission(0m, 1m, 1m, 1);
+
+        Assert.False(result.IsSuccess);
+    }
+
+    [Fact]
+    public void Calculate_GecersizInstallment_Reddedilir()
+    {
+        var result = Policy().CalculateEffectiveCommission(1000m, 10m, 1m, 0);
 
         Assert.False(result.IsSuccess);
     }
