@@ -1,3 +1,7 @@
+using System.Globalization;
+using Iyz = Payment.Api.Utils;
+using Payment.Api.Options;
+
 namespace Payment.Api.Domains.Payments.Features.Queries;
 
 /// <summary>
@@ -21,21 +25,51 @@ public static class InstallmentOptions
         public List<InstallmentOptionItem> InstallmentDetails { get; set; } = new();
     }
 
+    /// <summary>iyzico "taksit sorgu" istek gövdesi (wire) — bu slice'a ait. camelCase JSON, base tip yok.</summary>
+    public class RetrieveInstallmentInfoRequest
+    {
+        public string Locale { get; set; } = string.Empty;
+        public string ConversationId { get; set; } = string.Empty;
+        public string BinNumber { get; set; } = string.Empty;
+        public string Price { get; set; } = string.Empty;
+    }
+
+    /// <summary>iyzico taksit yanıtı (wire) — Status/Error alanları Iyz.ProviderResourceV2'den.</summary>
+    public class InstallmentInfoResult : Iyz.ProviderResourceV2
+    {
+        public List<InstallmentDetail> InstallmentDetails { get; set; } = new();
+    }
+
+    public class InstallmentDetail
+    {
+        public List<InstallmentPrice> InstallmentPrices { get; set; } = new();
+    }
+
+    public class InstallmentPrice
+    {
+        public int? InstallmentNumber { get; set; }
+        public string TotalPrice { get; set; } = string.Empty;
+    }
+
     public class InstallmentOptionsQueryHandler
     {
         public async Task<FeatureObjectResultModel<InstallmentOptionsResponse>> Handle(
-            InstallmentOptionsQuery query, ProviderOptions providerOptions, CancellationToken ct)
+            InstallmentOptionsQuery query, Iyz.ProviderOptions providerOptions,
+            IyzicoRequestOptions requestOptions, CancellationToken ct)
         {
-            InstallmentInfo info;
+            InstallmentInfoResult info;
             try
             {
-                info = await InstallmentInfo.Retrieve(new RetrieveInstallmentInfoRequest
+                var request = new RetrieveInstallmentInfoRequest
                 {
-                    Locale = "tr",
-                    ConversationId = "inst-" + query.MerchantId.ToString("N")[..8],
+                    Locale = requestOptions.Locale,
+                    ConversationId = requestOptions.ConversationId,
                     BinNumber = query.Bin,
                     Price = query.Price.ToString(CultureInfo.InvariantCulture)
-                }, providerOptions);
+                };
+                var uri = providerOptions.BaseUrl + requestOptions.InstallmentPath;
+                var headers = Iyz.ProviderResourceV2.GetHttpHeadersWithRequestBody(request, uri, providerOptions, request.ConversationId);
+                info = await Iyz.RestHttpClientV2.Create().PostAsync<InstallmentInfoResult>(uri, headers, request);
             }
             catch
             {
@@ -43,7 +77,7 @@ public static class InstallmentOptions
                 { Property = nameof(query.Bin), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
             }
 
-            if (info is null || info.Status != "success")
+            if (info is null || info.Status != requestOptions.SuccessStatus)
                 return FeatureObjectResultModel<InstallmentOptionsResponse>.Error(new MessageItem
                 { Property = nameof(query.Bin), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
 

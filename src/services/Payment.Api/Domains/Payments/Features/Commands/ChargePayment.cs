@@ -1,6 +1,7 @@
 using System.Globalization;
-// Domain VO'ları (035) — wire tipleriyle (Iyzico.Provider.Payments.{Buyer,Address,BasketItem}) aynı adlı;
-// çakışmayı önlemek için alias. Handler VO'dan wire'a map'ler (anti-corruption sınır).
+using Iyz = Payment.Api.Utils;
+using Payment.Api.Options;
+// Domain VO'ları (035) — handler VO'dan wire'a map'ler (anti-corruption sınır).
 using DomainBuyer = Payment.Api.Domains.Payments.ValueObjects.Buyer;
 using DomainAddress = Payment.Api.Domains.Payments.ValueObjects.Address;
 using DomainBasketItem = Payment.Api.Domains.Payments.ValueObjects.BasketItem;
@@ -9,7 +10,7 @@ namespace Payment.Api.Domains.Payments.Features.Commands;
 
 /// <summary>
 /// 033 US1: kayıtlı kartla NonSecure çekim. Vault token → StoredCard (kiracı + Active kontrolü) →
-/// iyzico Payment.Create (cardToken/cardUserKey; CVC/PAN YOK). Başarıda Payment kaydı + PaymentChargedEvent
+/// iyzico ödeme (cardToken/cardUserKey; CVC/PAN YOK). Başarıda Payment kaydı + PaymentChargedEvent
 /// (iyzico maliyeti); başarısızda Failed kaydı (olay yok). Efektif komisyon HESAPLANMAZ (Commission BC).
 /// </summary>
 public static class ChargePayment
@@ -37,12 +38,77 @@ public static class ChargePayment
         public int Installment { get; set; }
     }
 
+    // --- iyzico wire tipleri (bu slice'a ait; camelCase JSON, base tip yok) ---
+
+    public class CreatePaymentRequest
+    {
+        public string Locale { get; set; } = string.Empty;
+        public string ConversationId { get; set; } = string.Empty;
+        public string Price { get; set; } = string.Empty;
+        public string PaidPrice { get; set; } = string.Empty;
+        public int Installment { get; set; }
+        public string PaymentChannel { get; set; } = string.Empty;
+        public string PaymentGroup { get; set; } = string.Empty;
+        public string Currency { get; set; } = string.Empty;
+        public string BasketId { get; set; } = string.Empty;
+        public PaymentCard PaymentCard { get; set; } = new();
+        public Buyer Buyer { get; set; } = new();
+        public Address ShippingAddress { get; set; } = new();
+        public Address BillingAddress { get; set; } = new();
+        public List<BasketItem> BasketItems { get; set; } = new();
+    }
+
+    public class PaymentCard
+    {
+        public string CardToken { get; set; } = string.Empty;
+        public string CardUserKey { get; set; } = string.Empty;
+    }
+
+    public class Buyer
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Surname { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string GsmNumber { get; set; } = string.Empty;
+        public string IdentityNumber { get; set; } = string.Empty;
+        public string RegistrationAddress { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty;
+        public string Ip { get; set; } = string.Empty;
+    }
+
+    public class Address
+    {
+        public string ContactName { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
+    public class BasketItem
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Category1 { get; set; } = string.Empty;
+        public string ItemType { get; set; } = string.Empty;
+        public string Price { get; set; } = string.Empty;
+    }
+
+    /// <summary>iyzico ödeme yanıtı (wire) — Status/Error alanları Iyz.ProviderResourceV2'den.</summary>
+    public class PaymentResult : Iyz.ProviderResourceV2
+    {
+        public string PaymentId { get; set; } = string.Empty;
+        public string IyziCommissionRateAmount { get; set; } = string.Empty;
+        public string IyziCommissionFee { get; set; } = string.Empty;
+    }
+
     [Transactional]
     public class ChargePaymentCommandHandler
     {
         public async Task<FeatureObjectResultModel<ChargePaymentResponse>> Handle(
-            ChargePaymentCommand cmd, IDocumentSession session, ProviderOptions providerOptions,
-            IMessageBus bus, CancellationToken ct)
+            ChargePaymentCommand cmd, IDocumentSession session, Iyz.ProviderOptions providerOptions,
+            IyzicoRequestOptions requestOptions, IMessageBus bus, CancellationToken ct)
         {
             // Vault token → StoredCard: kiracı sınırı + Active (Revoked/yabancı reddi — FR-002).
             var card = await session.LoadAsync<StoredCard>(cmd.VaultToken, ct);
@@ -74,12 +140,14 @@ public static class ChargePayment
             if (!addressResult.IsSuccess)
                 return FeatureObjectResultModel<ChargePaymentResponse>.Error(addressResult.Messages);
 
-            var request = BuildRequest(cmd, card, buyerResult.Data!, addressResult.Data!, basketItems);
+            var request = BuildRequest(cmd, card, buyerResult.Data!, addressResult.Data!, basketItems, requestOptions);
 
-            Iyzico.Provider.Payments.Payment iyzicoPayment;
+            PaymentResult iyzicoPayment;
             try
             {
-                iyzicoPayment = await Iyzico.Provider.Payments.Payment.Create(request, providerOptions);
+                var uri = providerOptions.BaseUrl + requestOptions.PaymentAuthPath;
+                var headers = Iyz.ProviderResourceV2.GetHttpHeadersWithRequestBody(request, uri, providerOptions, request.ConversationId);
+                iyzicoPayment = await Iyz.RestHttpClientV2.Create().PostAsync<PaymentResult>(uri, headers, request);
             }
             catch
             {
@@ -88,7 +156,7 @@ public static class ChargePayment
                 { Property = nameof(cmd.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
             }
 
-            if (iyzicoPayment is null || iyzicoPayment.Status != "success" ||
+            if (iyzicoPayment is null || iyzicoPayment.Status != requestOptions.SuccessStatus ||
                 string.IsNullOrWhiteSpace(iyzicoPayment.PaymentId))
             {
                 await StoreFailed(cmd, session);
@@ -132,23 +200,24 @@ public static class ChargePayment
             }
         }
 
-        // Domain VO → SDK wire DTO (anti-corruption sınır, 035). Üretilen istek 035 öncesiyle bit-aynı.
+        // Domain VO → wire DTO (anti-corruption sınır, 035). Sabitler config'ten (requestOptions).
         private static CreatePaymentRequest BuildRequest(
             ChargePaymentCommand cmd, StoredCard card, DomainBuyer buyer, DomainAddress address,
-            List<DomainBasketItem> basketItems)
+            List<DomainBasketItem> basketItems, IyzicoRequestOptions opt)
         {
             var inv = CultureInfo.InvariantCulture;
+            var merchantShort = cmd.MerchantId.ToString("N")[..8];
             return new CreatePaymentRequest
             {
-                Locale = "tr",
-                ConversationId = "pay-" + cmd.MerchantId.ToString("N")[..8],
+                Locale = opt.Locale,
+                ConversationId = opt.ConversationId,
                 Price = cmd.Price.ToString(inv),
                 PaidPrice = cmd.PaidPrice.ToString(inv),
                 Installment = cmd.Installment,
-                PaymentChannel = "WEB",
-                PaymentGroup = "PRODUCT",
-                Currency = "TRY",
-                BasketId = "B-" + cmd.MerchantId.ToString("N")[..8],
+                PaymentChannel = opt.PaymentChannel,
+                PaymentGroup = opt.PaymentGroup,
+                Currency = opt.Currency,
+                BasketId = opt.BasketIdPrefix + merchantShort,
                 PaymentCard = new PaymentCard
                 {
                     CardToken = card.CardToken,
@@ -156,7 +225,7 @@ public static class ChargePayment
                 },
                 Buyer = new Buyer
                 {
-                    Id = "BY-" + cmd.MerchantId.ToString("N")[..8],
+                    Id = opt.BuyerIdPrefix + merchantShort,
                     Name = buyer.Name,
                     Surname = buyer.Surname,
                     Email = buyer.Email,
@@ -174,7 +243,7 @@ public static class ChargePayment
                     Id = i.Id,
                     Name = i.Name,
                     Category1 = i.Category1,
-                    ItemType = "PHYSICAL",
+                    ItemType = opt.ItemType,
                     Price = i.Price.ToString(inv)
                 }).ToList()
             };

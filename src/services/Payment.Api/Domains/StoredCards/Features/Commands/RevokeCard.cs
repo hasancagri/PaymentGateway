@@ -57,7 +57,7 @@ public static class RevokeCard
                     CardUserKey = card.CardUserKey,
                     CardToken = card.CardToken
                 };
-                var uri = providerOptions.BaseUrl + "/cardstorage/card";
+                var uri = providerOptions.BaseUrl + requestOptions.CardStoragePath;
                 var headers = Iyz.ProviderResourceV2.GetHttpHeadersWithRequestBody(request, uri, providerOptions, request.ConversationId);
                 await Iyz.RestHttpClientV2.Create().DeleteAsync<Iyz.ProviderResourceV2>(uri, headers, request);
             }
