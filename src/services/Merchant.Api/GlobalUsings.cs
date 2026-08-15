@@ -24,6 +24,7 @@ global using Merchant.Api.Domains.Merchants;
 global using Merchant.Api.Domains.Merchants.Features.Commands;
 global using Merchant.Api.Domains.Merchants.Features.Queries;
 global using Merchant.Api.Domains.RegisterRequests;
+global using Iyzico.Provider;
 global using Newtonsoft.Json;
 global using Newtonsoft.Json.Serialization;
 global using System.Net.Http.Headers;

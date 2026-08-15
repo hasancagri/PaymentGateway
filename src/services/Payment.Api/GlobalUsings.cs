@@ -29,6 +29,6 @@ global using Shared.Utils.Constants;
 global using Shared;
 global using System.ComponentModel;
 global using Wolverine.RabbitMQ;
-global using Payment.Api.Provider;
+global using Iyzico.Provider;
 global using Payment.Api.Provider.Payments;
 global using Payment.Api.Provider.Installments;
