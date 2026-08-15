@@ -97,8 +97,8 @@ public class CommissionPolicy : AggregateRoot
     /// <remarks>Handler: CalculateEffectiveCommissionQueryHandler</remarks>
     public ResultDomain<EffectiveCommission> CalculateEffectiveCommission(
         decimal paidPrice,
-        string iyzicoCommission,
-        string iyzicoFee,
+        string providerCommission,
+        string providerFee,
         int installment)
     {
         if (Status != CommissionPolicyStatus.Active)
@@ -115,33 +115,33 @@ public class CommissionPolicy : AggregateRoot
                 Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_VALUE
             });
 
-        if (!decimal.TryParse(iyzicoCommission, NumberStyles.Number, CultureInfo.InvariantCulture, out var commissionCost))
+        if (!decimal.TryParse(providerCommission, NumberStyles.Number, CultureInfo.InvariantCulture, out var commissionCost))
             return ResultDomain<EffectiveCommission>.Error(new MessageItem
             {
-                Property = nameof(iyzicoCommission),
+                Property = nameof(providerCommission),
                 Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_VALUE
             });
 
-        if (!decimal.TryParse(iyzicoFee, NumberStyles.Number, CultureInfo.InvariantCulture, out var feeCost))
+        if (!decimal.TryParse(providerFee, NumberStyles.Number, CultureInfo.InvariantCulture, out var feeCost))
             return ResultDomain<EffectiveCommission>.Error(new MessageItem
             {
-                Property = nameof(iyzicoFee),
+                Property = nameof(providerFee),
                 Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_VALUE
             });
 
         if (commissionCost < 0 || feeCost < 0)
             return ResultDomain<EffectiveCommission>.Error(new MessageItem
             {
-                Property = nameof(iyzicoCommission),
+                Property = nameof(providerCommission),
                 Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_VALUE
             });
 
-        var iyzicoCost = commissionCost + feeCost;
+        var providerCost = commissionCost + feeCost;
         // 030 FR-003: tutarın düştüğü TEK kademe tüm tutara uygulanır (bracket; seçim ham tutarla).
         var tier = Margin.ResolveTier(paidPrice);
         var gatewayMargin = Math.Round(
             paidPrice * tier.RatePercent + tier.FixedFee, 2, MidpointRounding.AwayFromZero);
-        var effective = iyzicoCost + gatewayMargin;
+        var effective = providerCost + gatewayMargin;
 
         if (effective > paidPrice)
             return ResultDomain<EffectiveCommission>.Error(new MessageItem
@@ -153,6 +153,17 @@ public class CommissionPolicy : AggregateRoot
         var netPayout = paidPrice - effective;
 
         return ResultDomain<EffectiveCommission>.Ok(EffectiveCommission.Create(
-            paidPrice, installment, iyzicoCost, gatewayMargin, effective, netPayout));
+            paidPrice, installment, providerCost, gatewayMargin, effective, netPayout));
     }
 }
+
+/// <summary>
+/// Marj politikası statüsü (024). Active → hesaplamada kullanılır; Passive → hesaplama yok sayar
+/// (FR-003). Create'te Active doğar.
+/// </summary>
+public enum CommissionPolicyStatus
+{
+    Active,
+    Passive
+}
+

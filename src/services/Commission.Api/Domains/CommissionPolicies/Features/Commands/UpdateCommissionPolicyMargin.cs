@@ -6,6 +6,9 @@ namespace Commission.Api.Domains.CommissionPolicies.Features.Commands;
 // yoksa RECORD_NOT_FOUND. İleriye dönük (geçmiş hesaplar etkilenmez). AdminPlaneOnly.
 public static class UpdateCommissionPolicyMargin
 {
+    /// <summary>Kademe taşıyıcısı (slice-yerel HTTP sözleşmesi); doğrulama MarginTariff.Create'te.</summary>
+    public record TierDto(decimal FromAmount, decimal RatePercent, decimal FixedFee);
+
     public record UpdateCommissionPolicyMarginCommand(Guid MerchantId, List<TierDto> Tiers);
 
     public class UpdateCommissionPolicyMarginResponse
@@ -55,7 +58,7 @@ public static class UpdateCommissionPolicyMargin
 
 public static class UpdateCommissionPolicyMarginEndpoint
 {
-    public record UpdateCommissionPolicyMarginBody(List<TierDto> Tiers);
+    public record UpdateCommissionPolicyMarginBody(List<UpdateCommissionPolicyMargin.TierDto> Tiers);
 
     public static RouteGroupBuilder UpdateCommissionPolicyMarginGroupItemEndpoint(this RouteGroupBuilder group)
     {

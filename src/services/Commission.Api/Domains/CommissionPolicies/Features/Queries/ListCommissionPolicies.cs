@@ -1,11 +1,12 @@
-using Commission.Api.Domains.CommissionPolicies;
-
 namespace Commission.Api.Domains.CommissionPolicies.Features.Queries;
 
 // 024: admin genel bakış — politika listesi (opsiyonel merchantId/status filtre). AdminPlaneOnly:
 // merchant token'ı tüm listeyi göremez. Boş liste geçerli sonuçtur.
 public static class ListCommissionPolicies
 {
+    /// <summary>Kademe taşıyıcısı (slice-yerel HTTP sözleşmesi); doğrulama MarginTariff.Create'te.</summary>
+    public record TierDto(decimal FromAmount, decimal RatePercent, decimal FixedFee);
+
     public record ListCommissionPoliciesQuery(Guid? MerchantId, string? Status);
 
     public class ListCommissionPoliciesResponse

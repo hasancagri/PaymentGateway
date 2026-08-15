@@ -1,5 +1,3 @@
-using Commission.Api.Domains.CommissionPolicies;
-
 namespace Commission.Api.Domains.CommissionPolicies.Features.Queries;
 
 // 024: efektif komisyon + net hakediş hesabı (US2/FR-006..009). Durum değiştirmez (Query). iyzico
@@ -11,8 +9,8 @@ public static class CalculateEffectiveCommission
     public record CalculateEffectiveCommissionQuery(
         Guid MerchantId,
         decimal PaidPrice,
-        string IyzicoCommission,
-        string IyzicoFee,
+        string ProviderCommission,
+        string ProviderFee,
         int Installment);
 
     public class CalculateEffectiveCommissionResponse
@@ -20,7 +18,7 @@ public static class CalculateEffectiveCommission
         public Guid MerchantId { get; set; }
         public decimal PaidPrice { get; set; }
         public int Installment { get; set; }
-        public decimal IyzicoCost { get; set; }
+        public decimal ProviderCost { get; set; }
         public decimal GatewayMargin { get; set; }
         public decimal TotalEffectiveCommission { get; set; }
         public decimal NetPayout { get; set; }
@@ -46,7 +44,7 @@ public static class CalculateEffectiveCommission
                 });
 
             var result = policy.CalculateEffectiveCommission(
-                query.PaidPrice, query.IyzicoCommission, query.IyzicoFee, query.Installment);
+                query.PaidPrice, query.ProviderCommission, query.ProviderFee, query.Installment);
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<CalculateEffectiveCommissionResponse>.Error(result.Messages);
 
@@ -56,7 +54,7 @@ public static class CalculateEffectiveCommission
                 MerchantId = policy.MerchantId,
                 PaidPrice = ec.PaidPrice,
                 Installment = ec.Installment,
-                IyzicoCost = ec.IyzicoCost,
+                ProviderCost = ec.ProviderCost,
                 GatewayMargin = ec.GatewayMargin,
                 TotalEffectiveCommission = ec.TotalEffectiveCommission,
                 NetPayout = ec.NetPayout

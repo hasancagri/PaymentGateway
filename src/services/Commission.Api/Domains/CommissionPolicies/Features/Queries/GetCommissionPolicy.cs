@@ -1,11 +1,12 @@
-using Commission.Api.Domains.CommissionPolicies;
-
 namespace Commission.Api.Domains.CommissionPolicies.Features.Queries;
 
 // 024: merchant kendi marj politikasını/efektif oranını görür (US3/FR-010). MerchantScoped: yalnız
 // kendi {merchantId} (route-claim eşleşmesi, fail-closed). Yoksa NotFound.
 public static class GetCommissionPolicy
 {
+    /// <summary>Kademe taşıyıcısı (slice-yerel HTTP sözleşmesi); doğrulama MarginTariff.Create'te.</summary>
+    public record TierDto(decimal FromAmount, decimal RatePercent, decimal FixedFee);
+
     public record GetCommissionPolicyQuery(Guid MerchantId);
 
     public class GetCommissionPolicyResponse

@@ -26,6 +26,6 @@ global using Shared;
 global using System.ComponentModel;
 global using Wolverine.RabbitMQ;
 global using Iyzico.Provider;
-global using Commission.Api.Provider.Payout;
-global using Commission.Api.Provider.Reporting;
+global using Iyzico.Provider.Payout;
+global using Iyzico.Provider.Reporting;
 global using Commission.Api.Domains.CommissionPolicies;

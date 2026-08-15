@@ -7,6 +7,9 @@ namespace Commission.Api.Domains.CommissionPolicies.Features.Commands;
 // başka aggregate'i göremez. AdminPlaneOnly: claim'li merchant token'ı giremez.
 public static class CreateCommissionPolicy
 {
+    /// <summary>Kademe taşıyıcısı (slice-yerel HTTP sözleşmesi); doğrulama MarginTariff.Create'te.</summary>
+    public record TierDto(decimal FromAmount, decimal RatePercent, decimal FixedFee);
+
     public record CreateCommissionPolicyCommand(Guid MerchantId, List<TierDto> Tiers);
 
     public class CreateCommissionPolicyResponse

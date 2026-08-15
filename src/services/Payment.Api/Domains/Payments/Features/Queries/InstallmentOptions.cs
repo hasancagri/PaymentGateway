@@ -1,7 +1,3 @@
-using System.Globalization;
-using Iyzico.Provider;
-using Iyzico.Provider.Installments;
-
 namespace Payment.Api.Domains.Payments.Features.Queries;
 
 /// <summary>

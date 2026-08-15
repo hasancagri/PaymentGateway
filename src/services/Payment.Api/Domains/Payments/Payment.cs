@@ -31,10 +31,10 @@ public class Payment : AggregateRoot
     public int Installment { get; private set; }
 
     /// <summary>iyzico oransal maliyet (yanıttan, ham string).</summary>
-    public string IyzicoCommission { get; private set; } = string.Empty;
+    public string ProviderCommission { get; private set; } = string.Empty;
 
     /// <summary>iyzico sabit maliyet (yanıttan, ham string).</summary>
-    public string IyzicoFee { get; private set; } = string.Empty;
+    public string ProviderFee { get; private set; } = string.Empty;
 
     public PaymentStatus Status { get; private set; }
 
@@ -50,8 +50,8 @@ public class Payment : AggregateRoot
         decimal paidPrice,
         int installment,
         string providerPaymentId,
-        string iyzicoCommission,
-        string iyzicoFee)
+        string providerCommission,
+        string providerFee)
     {
         if (merchantId == Guid.Empty ||
             string.IsNullOrWhiteSpace(vaultToken) ||
@@ -72,8 +72,8 @@ public class Payment : AggregateRoot
             PaidPrice = paidPrice,
             Installment = installment,
             ProviderPaymentId = providerPaymentId.Trim(),
-            IyzicoCommission = (iyzicoCommission ?? string.Empty).Trim(),
-            IyzicoFee = (iyzicoFee ?? string.Empty).Trim(),
+            ProviderCommission = (providerCommission ?? string.Empty).Trim(),
+            ProviderFee = (providerFee ?? string.Empty).Trim(),
             Status = PaymentStatus.Success
         });
     }
@@ -104,4 +104,13 @@ public class Payment : AggregateRoot
             Status = PaymentStatus.Failed
         });
     }
+}
+
+/// <summary>
+/// Çekim sonucu (033). Cancel/Refund statüleri ayrı işte gelir (bu kayıt onların temeli).
+/// </summary>
+public enum PaymentStatus
+{
+    Success = 1,
+    Failed = 2
 }
