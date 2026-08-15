@@ -79,6 +79,18 @@ builder.Services.AddSingleton<Iyzico.Provider.ProviderOptions>(sp =>
     var s = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.IyzicoProviderSettings>>().Value;
     return new Iyzico.Provider.ProviderOptions { ApiKey = s.ApiKey, SecretKey = s.SecretKey, BaseUrl = s.BaseUrl };
 });
+// Dağıtım geçişi: Payment.Api'ye taşınan engine'in kendi ProviderOptions'ı (aynı secret'tan map).
+builder.Services.AddSingleton<Payment.Api.Utils.ProviderOptions>(sp =>
+{
+    var s = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.IyzicoProviderSettings>>().Value;
+    return new Payment.Api.Utils.ProviderOptions { ApiKey = s.ApiKey, SecretKey = s.SecretKey, BaseUrl = s.BaseUrl };
+});
+// iyzico istek sabitleri (locale/conversationId) — Options pattern, düz POCO inject.
+builder.Services.AddOptions<Payment.Api.Options.IyzicoRequestOptions>()
+    .BindConfiguration(nameof(Payment.Api.Options.IyzicoRequestOptions))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<Payment.Api.Options.IyzicoRequestOptions>(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.IyzicoRequestOptions>>().Value);
 
 var app = builder.Build();
 app.UseAuthentication();
