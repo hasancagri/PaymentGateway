@@ -25,6 +25,7 @@
     <ItemGroup>
       <ProjectReference Include="..\..\aspire\ServiceDefaults\ServiceDefaults.csproj" />
       <ProjectReference Include="..\..\others\Common\Common.csproj" />
+      <ProjectReference Include="..\..\others\Iyzico.Provider\Iyzico.Provider.csproj" />
       <ProjectReference Include="..\..\others\Shared\Shared.csproj" />
     </ItemGroup>
 

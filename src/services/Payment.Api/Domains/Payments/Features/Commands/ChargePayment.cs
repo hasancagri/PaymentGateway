@@ -1,7 +1,12 @@
 using System.Globalization;
 using Payment.Api.Domains.StoredCards;
-using Payment.Api.Provider;
-using Payment.Api.Provider.Payments;
+using Iyzico.Provider;
+using Iyzico.Provider.Payments;
+// Domain VO'ları (035) — wire tipleriyle (Iyzico.Provider.Payments.{Buyer,Address,BasketItem}) aynı adlı;
+// çakışmayı önlemek için alias. Handler VO'dan wire'a map'ler (anti-corruption sınır).
+using DomainBuyer = Payment.Api.Domains.Payments.ValueObjects.Buyer;
+using DomainAddress = Payment.Api.Domains.Payments.ValueObjects.Address;
+using DomainBasketItem = Payment.Api.Domains.Payments.ValueObjects.BasketItem;
 
 namespace Payment.Api.Domains.Payments.Features.Commands;
 
@@ -51,12 +56,33 @@ public static class ChargePayment
                 return FeatureObjectResultModel<ChargePaymentResponse>.Error(new MessageItem
                 { Property = nameof(cmd.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
 
-            var request = BuildRequest(cmd, card);
+            // HTTP Input DTO → domain VO (doğrulama). Geçersizse charge domain-sonucuyla reddedilir (035).
+            var buyerResult = DomainBuyer.Create(
+                cmd.Buyer.Name, cmd.Buyer.Surname, cmd.Buyer.Email, cmd.Buyer.GsmNumber,
+                cmd.Buyer.IdentityNumber, cmd.Buyer.RegistrationAddress, cmd.Buyer.City,
+                cmd.Buyer.Country, cmd.Buyer.Ip);
+            if (!buyerResult.IsSuccess)
+                return FeatureObjectResultModel<ChargePaymentResponse>.Error(buyerResult.Messages);
 
-            Provider.Payments.Payment iyzicoPayment;
+            var basketItems = new List<DomainBasketItem>();
+            foreach (var i in cmd.BasketItems)
+            {
+                var itemResult = DomainBasketItem.Create(i.Id, i.Name, i.Category1, i.Price);
+                if (!itemResult.IsSuccess)
+                    return FeatureObjectResultModel<ChargePaymentResponse>.Error(itemResult.Messages);
+                basketItems.Add(itemResult.Data!);
+            }
+
+            var addressResult = DomainAddress.FromBuyer(buyerResult.Data!);
+            if (!addressResult.IsSuccess)
+                return FeatureObjectResultModel<ChargePaymentResponse>.Error(addressResult.Messages);
+
+            var request = BuildRequest(cmd, card, buyerResult.Data!, addressResult.Data!, basketItems);
+
+            Iyzico.Provider.Payments.Payment iyzicoPayment;
             try
             {
-                iyzicoPayment = await Provider.Payments.Payment.Create(request, providerOptions);
+                iyzicoPayment = await Iyzico.Provider.Payments.Payment.Create(request, providerOptions);
             }
             catch
             {
@@ -109,10 +135,12 @@ public static class ChargePayment
             }
         }
 
-        private static CreatePaymentRequest BuildRequest(ChargePaymentCommand cmd, StoredCard card)
+        // Domain VO → SDK wire DTO (anti-corruption sınır, 035). Üretilen istek 035 öncesiyle bit-aynı.
+        private static CreatePaymentRequest BuildRequest(
+            ChargePaymentCommand cmd, StoredCard card, DomainBuyer buyer, DomainAddress address,
+            List<DomainBasketItem> basketItems)
         {
             var inv = CultureInfo.InvariantCulture;
-            var b = cmd.Buyer;
             return new CreatePaymentRequest
             {
                 Locale = "tr",
@@ -132,19 +160,19 @@ public static class ChargePayment
                 Buyer = new Buyer
                 {
                     Id = "BY-" + cmd.MerchantId.ToString("N")[..8],
-                    Name = b.Name,
-                    Surname = b.Surname,
-                    Email = b.Email,
-                    GsmNumber = b.GsmNumber,
-                    IdentityNumber = b.IdentityNumber,
-                    RegistrationAddress = b.RegistrationAddress,
-                    City = b.City,
-                    Country = b.Country,
-                    Ip = b.Ip
+                    Name = buyer.Name,
+                    Surname = buyer.Surname,
+                    Email = buyer.Email,
+                    GsmNumber = buyer.GsmNumber,
+                    IdentityNumber = buyer.IdentityNumber,
+                    RegistrationAddress = buyer.RegistrationAddress,
+                    City = buyer.City,
+                    Country = buyer.Country,
+                    Ip = buyer.Ip
                 },
-                ShippingAddress = BuildAddress(b),
-                BillingAddress = BuildAddress(b),
-                BasketItems = cmd.BasketItems.Select(i => new BasketItem
+                ShippingAddress = ToWireAddress(address),
+                BillingAddress = ToWireAddress(address),
+                BasketItems = basketItems.Select(i => new BasketItem
                 {
                     Id = i.Id,
                     Name = i.Name,
@@ -155,12 +183,12 @@ public static class ChargePayment
             };
         }
 
-        private static Address BuildAddress(BuyerInput b) => new()
+        private static Address ToWireAddress(DomainAddress a) => new()
         {
-            ContactName = $"{b.Name} {b.Surname}",
-            City = b.City,
-            Country = b.Country,
-            Description = b.RegistrationAddress
+            ContactName = a.ContactName,
+            City = a.City,
+            Country = a.Country,
+            Description = a.Description
         };
     }
 }
