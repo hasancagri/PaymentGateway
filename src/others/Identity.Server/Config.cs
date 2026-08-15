@@ -15,6 +15,8 @@ public static class Config
             ["payment.write"] = "payment.api",
             // 017: kart vault capability scope — Payment.Api audience'ı (Active merchant demetine verilir).
             ["cards.write"] = "payment.api",
+            // 033: ödeme çekim capability scope — Payment.Api audience'ı (yalnız Active merchant).
+            ["payment.charge"] = "payment.api",
             ["merchant.read"] = "merchant.api",
             ["merchant.write"] = "merchant.api",
             ["commission.read"] = "commission.api",

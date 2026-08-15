@@ -106,10 +106,13 @@ public static class MerchantClientEventHandler
         descriptor.Permissions.Add(Permissions.Prefixes.Scope + "merchant.read");
         descriptor.Permissions.Add(Permissions.Prefixes.Scope + "merchant.write");
 
-        // 017: cards.write yalnız Active demetine (vault ödeme düzlemi). Provisioning ALMAZ →
-        // charge fail-closed korunur (FR-017). payment.write hiçbir statüde merchant'a verilmez.
+        // 017/033: cards.write + payment.charge yalnız Active demetine (vault + çekim düzlemi).
+        // Provisioning ALMAZ → charge fail-closed. payment.write hiçbir statüde merchant'a verilmez.
         if (string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase))
+        {
             descriptor.Permissions.Add(Permissions.Prefixes.Scope + "cards.write");
+            descriptor.Permissions.Add(Permissions.Prefixes.Scope + "payment.charge");
+        }
     }
 
     private static bool GrantsToken(string status) =>

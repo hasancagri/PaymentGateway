@@ -10,6 +10,9 @@ public static class AuthorizationScopes
     // 017: kart vault capability scope — Active merchant token'ına yalnız vault için verilir
     // (payment.write DEĞİL → /mcp + /pos-accounts merchant'a kapalı). Charge fail-closed.
     public const string CardsWrite = "cards.write";
+    // 033: ödeme çekim (charge) capability scope — YALNIZ Active merchant (anayasa V "Active tam demet
+    // charge dahil"). Provisioning/alt-statü ALMAZ (fail-closed). Saved-card NonSecure çekim uçları.
+    public const string PaymentCharge = "payment.charge";
 
     // merchant.api
     public const string MerchantRead = "merchant.read";
