@@ -1,5 +1,4 @@
 using System.Globalization;
-using Payment.Api.Domains.StoredCards;
 // Domain VO'ları (035) — wire tipleriyle (Iyzico.Provider.Payments.{Buyer,Address,BasketItem}) aynı adlı;
 // çakışmayı önlemek için alias. Handler VO'dan wire'a map'ler (anti-corruption sınır).
 using DomainBuyer = Payment.Api.Domains.Payments.ValueObjects.Buyer;

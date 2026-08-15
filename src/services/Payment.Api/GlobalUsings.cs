@@ -32,3 +32,4 @@ global using Wolverine.RabbitMQ;
 global using Iyzico.Provider;
 global using Iyzico.Provider.Payments;
 global using Iyzico.Provider.Installments;
+global using System.Globalization;

@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Payment.Api.Domains.Payments.Features.Queries;
 
 /// <summary>

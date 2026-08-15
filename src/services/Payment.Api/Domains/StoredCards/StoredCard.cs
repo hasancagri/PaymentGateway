@@ -96,3 +96,27 @@ public class StoredCard : AggregateRoot
         return ResultDomain.Ok();
     }
 }
+
+/// <summary>
+/// Kayıtlı kart yaşam-döngüsü. Silme soft: <see cref="Revoked"/> fiziksel kaydı durdurur
+/// (resolve RET). Reactivate yok — yeni kart = yeni tokenize.
+/// </summary>
+public enum StoredCardStatus
+{
+    Active = 0,
+    Revoked = 1
+}
+
+/// <summary>
+/// Kart markası (031) — PAN prefix'inden türetilir (<see cref="BrandDetector"/>).
+/// BC-içi enum: eski paylaşılan kart taksonomisi (SharedKernel) 021'de silindi; yalnız gösterim/
+/// denetim alanı olduğundan cross-BC taksonomi gerekmez.
+/// </summary>
+public enum CardBrand
+{
+    Unknown = 0,
+    Visa = 1,
+    MasterCard = 2,
+    Amex = 3,
+    Troy = 4
+}

@@ -1,5 +1,3 @@
-using Commission.Api.Domains.CommissionPolicies;
-
 namespace Commission.Api.Domains.CommissionPolicies.Features.Queries;
 
 // 024: efektif komisyon + net hakediş hesabı (US2/FR-006..009). Durum değiştirmez (Query). iyzico
