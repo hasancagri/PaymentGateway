@@ -12,9 +12,14 @@ Aspire + Marten + Wolverine.
 **BÜYÜK PİVOT (021-022, 2026-08-13)**: sistem iyzico ödeme kanalına dönüyor. CP.VPOS,
 BankRouter/PosAccount/BinCard, Reference.Api, SharedKernel, CardVault, Excel.Mcp ve TÜM eski
 BC feature'ları SÖKÜLDÜ. Üç BC (**Payment**, **Merchant**, **Commission**) şu an "yapısal ara
-durum"da: Domains'lerinde iyzico istemci malzemesi (davranışsız model/istek tipleri) +
-iyzico wire tipleri (034-036'da) TÜMÜYLE ortak `src/others/Iyzico.Provider` SDK'ya çıkarıldı —
-üç BC'de de `Provider/` klasörü YOK (034 çekirdek, 035 Payment wire+VO, 036 Merchant/Commission wire).
+durum"da: Domains'lerinde iyzico istemci malzemesi (davranışsız model/istek tipleri).
+**037 (2026-08-15): `Iyzico.Provider` paylaşılan SDK'sı SÖKÜLDÜ ve SİLİNDİ.** Ölü V1 PKI zinciri
+(BaseRequestV2/ToStringRequestBuilder/RequestFormatter/StringHelper/RequestStringConvertible/custom
+HttpClient) atıldı — V2 akışı JSON+HMAC kullanır, `ToPKIRequestString` hiç çağrılmıyordu. Kalan
+5 dosyalık transport engine `src/services/Payment.Api/Utils`'e (ns `Payment.Api.Utils`) tek kopya
+alındı. iyzico wire request/response tipleri artık **kullanan slice'ın içine nested** (base tip yok,
+düz camelCase JSON POCO; yanıtlar `Utils.ProviderResourceV2`'den türer). Merchant/Commission wire
+kullanmıyordu → bağları kesildi (bkz. 037 memory). Kod tekrarı bilinçli kabul (kullanıcı kararı).
 23-036 arası gerçek domain kuruldu (aggregate/slice/endpoint). 023 (SubMerchant merchant
 modeli) ve 024 (komisyon: iyzico maliyeti + marj) gerçek domain'i bu malzemeden kuracak.
 Yaşayan altyapı: **Admin** (Razor Pages BFF — çoğu ekranı ölü), **Identity.Server**
@@ -46,10 +51,11 @@ dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile ba
   tekil GET `MerchantScoped`). Oluşturmada `MerchantCreated`, gerçek statü değişiminde
   `MerchantStatusChanged` outbox'la yayınlanır (aynı statü idempotent no-op, yayın yok);
   Identity.Server tüketir (012 zinciri yaşıyor). **Merchant = gateway müşterisi SİTE**
-  (ör. ECommerce) — pazaryeri/split DEĞİL. **036: `Provider/` klasörü SÖKÜLDÜ** — uyuyan iyzico
-  Onboarding wire'ı (SubMerchant vb.) `Iyzico.Provider.Onboarding` SDK'ya taşındı (dormant; 0 handler
-  kullanımı → VO yok, saf relocation). `Domains/SubMerchants/` iyzico istemci hammaddesi uyur
-  (SubMerchantKey hep null; iyzico'ya çağrı yok — ayrı iş).
+  (ör. ECommerce) — pazaryeri/split DEĞİL. **037: iyzico bağı YOK** — Merchant hiçbir iyzico wire
+  tipi kullanmıyordu (uyuyan Onboarding wire dormant'tı), `Iyzico.Provider` ProjectReference +
+  global using kaldırıldı; proje iyzico'suz 0 hata derler. iyzico Onboarding/SubMerchant entegrasyonu
+  gerçekten gelince wire slice'a nested yeniden yazılır (Payment.Api deseni). `SubMerchantKey`
+  Merchant'ın kendi property'si (hep null; ayrı iş).
 - `src/agents/Merchant.Agent` — A2A host (BC değil, stateless). **022 NOT**: Merchant/Commission
   MCP yüzeyleri söküldü — tüm skill'leri (register, komisyon pazarlığı) 023/024'e kadar ÖLÜ;
   proje derlenir.
@@ -65,13 +71,11 @@ dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile ba
   `bus.PublishAsync(new SendEmailRequested(to,subject,body,isHtml,attachment?))` — publish yalnız DB
   commit'te gider. 019: `EmailAttachmentTable(FileName,Headers,Rows)` opsiyonel eki ClosedXML ile .xlsx'e
   çevirip mail'e ekler (generic tablo — domain bilmez). `IMailSender`/`MailMcpClient` KALDIRILDI.
-- `src/services/Commission.Api` — CommissionPolicy aggregate + slice'lar (024). **036: `Provider/`
-  klasörü SÖKÜLDÜ** — uyuyan iyzico Payout/Reporting wire'ı + V2 zarf tipleri (`ResponseData`,
-  `ResponsePagingData`) `Iyzico.Provider.{Payout,Reporting}` + `Iyzico.Provider` SDK'ya taşındı
-  (dormant; 0 handler kullanımı → VO yok, saf relocation). `Domains/{Payouts,TransactionReports}/`
-  iyzico payout/rapor tipleri uyur (ileride iyzico payout entegrasyonu). **034**: ortak transport
-  çekirdeği `src/others/Iyzico.Provider`'a çıkarılmıştı. `merchant.commission` + `mail.delivery` yayın kayıtları
-  Program.cs'te durur.
+- `src/services/Commission.Api` — CommissionPolicy aggregate + slice'lar (024). **037: iyzico bağı YOK** —
+  Commission hiçbir iyzico Payout/Reporting wire tipi kullanmıyordu (dormant'tı); `Iyzico.Provider`
+  ProjectReference + global using'ler (`.Payout`/`.Reporting`) kaldırıldı; proje iyzico'suz 0 hata derler.
+  iyzico payout/rapor entegrasyonu gelince wire slice'a nested yeniden yazılır. `merchant.commission` +
+  `mail.delivery` yayın kayıtları Program.cs'te durur.
 - `src/agents/Payment.Agent` — A2A host + LLM router + MCP client (007). Payment BC **DEĞİL** —
   kalıcılık yok, stateless delivery adaptörü. **022 NOT**: Payment.Api MCP yüzeyi söküldü —
   taksit/oturum skill'leri ödeme akışı yeniden kurulana kadar ÖLÜ; proje derlenir. `AddA2AServer(agent)` + `MapA2AJsonRpc` +
@@ -80,19 +84,19 @@ dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile ba
   Chat anahtarı agent config'inden (`OpenAI:ApiKey`/user-secrets). Tüm A2A/Agent Framework paketleri
   preview — `Directory.Packages.props`'ta pin.
 - `src/services/Payment.Api` — Payment BC (StoredCard/Payment aggregate + kart-saklama/çekim/taksit
-  slice'ları canlı). **035: teknik-katman klasörleri (`Provider/`, `CardVault/`) SÖKÜLDÜ — her iyzico
-  iş süreci `Domains/<Aggregate>/`'den okunur.** iyzico wire tipleri domain-uygunluğa göre dağıtıldı:
-  saf-wire (istek/yanıt DTO, çağrı-yürütücü, wire enum/sabit) `src/others/Iyzico.Provider` SDK'ya
-  (`Iyzico.Provider.{Payments,Installments,StoredCards}`); domain-uygun 4 tip `Domains/<Aggregate>/
-  ValueObjects/`'a VO oldu (`Buyer/Address/BasketItem` → Payments, `CardInformation` → StoredCards;
-  private ctor + `Create` + ince doğrulama, iyzico serileştirme BİLMEZ). `CardVault/PanTools`
-  (CardAssociationMapper + Bin/Last4/Brand türetici) `Domains/StoredCards/`'a taşındı. **034**: ortak
-  transport çekirdeği `Iyzico.Provider`'a çıkarılmıştı (034 temeli). Handler = anti-corruption sınır:
-  HTTP Input DTO → domain VO → SDK wire DTO; SDK yanıtı → domain aggregate. Sağlayıcı (wire) tipleri
-  BC DIŞINA/domaine SIZMAZ (CP.VPOS sınır kuralı — artık tam uygulanıyor); VO'lar kalıcı değil (charge/
-  tokenize-anı transient). **036**: Merchant/Commission `Provider/` klasörleri de söküldü (uyuyan wire
-  → SDK, VO yok — dormant). Artık ÜÇ BC'de de `Provider/` klasörü YOK; tüm iyzico wire `Iyzico.Provider`
-  SDK'da (`Payments/Installments/StoredCards/Onboarding/Payout/Reporting`).
+  slice'ları canlı). **037: `Iyzico.Provider` SDK SÖKÜLDÜ — her iyzico wire tipi kullanan slice'ın
+  İÇİNE nested taşındı** (base tip yok, düz camelCase JSON POCO; yanıtlar `Utils.ProviderResourceV2`'den
+  türer). Slice'ı açan iyzico çağrısını da orada görür (ChargePayment/TokenizeCard/RevokeCard/
+  InstallmentOptions). Transport engine (5 dosya: RestHttpClientV2/ProviderResourceV2/HashGeneratorV2/
+  ProviderConstants/ProviderOptions) `Utils/` altında tek kopya (ns `Payment.Api.Utils`) — süreç
+  taşımaz, 4 slice ortak; feature'a gömülemez. **Sabit kural (037): handler metodu içinde Command/Query'den
+  (kullanıcı) gelmeyen HİÇBİR değer literal yazılmaz** — locale/conversationId/kanal/grup/currency/itemType/
+  endpoint yolları/success durumu/alias/email prefix+domain/id prefix'leri hepsi `Options/IyzicoRequestOptions`
+  config POCO'sundan okunur (appsettings, non-secret; transport secret'ı ayrı `IyzicoProviderSettings`).
+  Domain-uygun 4 tip hâlâ VO (`Buyer/Address/BasketItem` → Payments, `CardInformation` → StoredCards;
+  `Domains/<Aggregate>/ValueObjects/`); handler VO'dan slice-nested wire'a map'ler (anti-corruption sınır).
+  `CardAssociationMapper` `Domains/StoredCards/`'da. Wire tipleri BC DIŞINA SIZMAZ. Kod tekrarı bilinçli
+  kabul (kullanıcı kararı — paylaşılan SDK istemedi, süreç netliği için wire slice'ta).
 - `src/ui/Admin` — Razor Pages BFF (yetki yok). Merchant/Bank/komisyon/settlement ekranları; typed
   `HttpClient`'lar Aspire service discovery ile API'leri çağırır (`http://merchant-api` vb.). Backend'e
   kural sızdırmaz — yalnız API sonucunu (`ApiResult`/`MessageText` Türkçe) gösterir.
@@ -102,15 +106,16 @@ dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile ba
   istemci senkronu; status string taşır, BC enum'u sızmaz).
 - Ortak yapı taşları `src/others/Common`'da: domain base tipleri, Result pattern, DI marker'ları,
   auth, caching, exception handler.
-- `src/others/Iyzico.Provider` — paylaşılan iyzico transport çekirdeği (034; class lib, tek bağımlılık
-  Newtonsoft.Json). BC-bağımsız 14 dosya: `RestHttpClientV2` (public), `HashGeneratorV2`, `JsonBuilder`,
-  `RequestFormatter`, `ToStringRequestBuilder`, `ProviderResourceV2`, `BaseRequestV2`, `ProviderOptions`
-  (transport-config POCO — BC'nin secret'lı `IyzicoProviderSettings`'i buna map'lenir), `StringHelper`
-  (internal). Üç BC (Payment/Merchant/Commission) ProjectReference + `global using Iyzico.Provider` ile
-  bağlanır. **BC değil, altyapı** (Common gibi): domain bilmez, saf transport. BC-özel iyzico istek/yanıt
-  tipleri buraya KONMAZ — ilgili BC'nin `Provider/<Alan>` alt klasöründe kalır (sınır kuralı: transport
-  domain sınırını geçmez). İkinci gerçek generic-util tüketicisi çıkarsa `StringHelper`/base64 Common'a
-  terfi edebilir; şimdilik burada (talep yok, Common bağımlılığı çekirdeği ağırlaştırır).
+- `src/services/Payment.Api/Utils` — iyzico V2 transport engine (037; `Iyzico.Provider` SDK'nın kalıntısı,
+  ARTIK PAYLAŞILMAZ — yalnız Payment.Api'ye ait, ns `Payment.Api.Utils`). 5 dosya: `RestHttpClientV2`
+  (POST/DELETE, camelCase JSON gövde), `ProviderResourceV2` (yanıt tabanı + HMAC imza header'ı),
+  `HashGeneratorV2`, `ProviderConstants`, `ProviderOptions` (transport-config POCO — `IyzicoProviderSettings`
+  secret'ından map'lenir). Ölü V1 PKI zinciri (`BaseRequestV2`/`ToStringRequestBuilder`/`RequestFormatter`/
+  `StringHelper`/`RequestStringConvertible`/custom `HttpClient`) 037'de atıldı. Süreç taşımaz (saf transport),
+  4 slice ortak kullanır. iyzico wire request/response tipleri buraya KONMAZ — kullanan slice'ın içinde
+  nested durur (037 kuralı: wire = süreç, slice'ta; engine = plumbing, Utils'te). İkinci canlı iyzico
+  tüketicisi (ör. Merchant onboarding, Commission payout) çıkarsa engine'i ortak lib'e terfi düşünülür
+  (şimdilik YAGNI — tek tüketici).
 - `src/others/Identity.Server` — OpenIddict tabanlı minimal M2M IdP (011). Sabit issuer
   `https://localhost:5101` (ECommerce Identity 5001'de; A2A'da iki sistem aynı anda koşar);
   tek uç `connect/token`, yalnız client_credentials. Scope claim'i JSON dizisi
