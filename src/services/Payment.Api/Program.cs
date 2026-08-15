@@ -74,12 +74,7 @@ builder.Services.AddAllDependencies();
 builder.Services.AddOptions<Payment.Api.Options.IyzicoProviderSettings>()
     .BindConfiguration(nameof(Payment.Api.Options.IyzicoProviderSettings))
     .ValidateDataAnnotations().ValidateOnStart();
-builder.Services.AddSingleton<Iyzico.Provider.ProviderOptions>(sp =>
-{
-    var s = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.IyzicoProviderSettings>>().Value;
-    return new Iyzico.Provider.ProviderOptions { ApiKey = s.ApiKey, SecretKey = s.SecretKey, BaseUrl = s.BaseUrl };
-});
-// Dağıtım geçişi: Payment.Api'ye taşınan engine'in kendi ProviderOptions'ı (aynı secret'tan map).
+// iyzico transport ayarları (secret) → engine ProviderOptions singleton (IyzicoProviderSettings'ten map).
 builder.Services.AddSingleton<Payment.Api.Utils.ProviderOptions>(sp =>
 {
     var s = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.IyzicoProviderSettings>>().Value;
