@@ -76,13 +76,19 @@ dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile ba
   (`get_installment_options` → `select_installment`); tutar/banka/kart üretmez (domain'den).
   Chat anahtarı agent config'inden (`OpenAI:ApiKey`/user-secrets). Tüm A2A/Agent Framework paketleri
   preview — `Directory.Packages.props`'ta pin.
-- `src/services/Payment.Api` — 022 ARA DURUM: endpoint/MCP/aggregate YOK. `Provider/` yalnız
-  BC-özel `Domains/{Payments,Installments,StoredCards}/` benzeri iyzico istek/yanıt alt klasörlerini
-  (Payments/Installments/StoredCards) taşır — iyzico model/istek tipleri, davranışsız malzeme.
-  **034: transport çekirdeği (`ProviderOptions`, `RestHttpClientV2`, `HashGeneratorV2`, `JsonBuilder`…
-  14 dosya) `src/others/Iyzico.Provider`'a çıkarıldı** (üç BC'de md5-özdeşti); BC ProjectReference +
-  `global using Iyzico.Provider` ile bağlanır. Sağlayıcı tipleri BC DIŞINA SIZMAZ (eski CP.VPOS sınır
-  kuralının devamı); paylaşılan çekirdek yalnız BC-bağımsız transport (Common gibi altyapı, BC değil).
+- `src/services/Payment.Api` — Payment BC (StoredCard/Payment aggregate + kart-saklama/çekim/taksit
+  slice'ları canlı). **035: teknik-katman klasörleri (`Provider/`, `CardVault/`) SÖKÜLDÜ — her iyzico
+  iş süreci `Domains/<Aggregate>/`'den okunur.** iyzico wire tipleri domain-uygunluğa göre dağıtıldı:
+  saf-wire (istek/yanıt DTO, çağrı-yürütücü, wire enum/sabit) `src/others/Iyzico.Provider` SDK'ya
+  (`Iyzico.Provider.{Payments,Installments,StoredCards}`); domain-uygun 4 tip `Domains/<Aggregate>/
+  ValueObjects/`'a VO oldu (`Buyer/Address/BasketItem` → Payments, `CardInformation` → StoredCards;
+  private ctor + `Create` + ince doğrulama, iyzico serileştirme BİLMEZ). `CardVault/PanTools`
+  (CardAssociationMapper + Bin/Last4/Brand türetici) `Domains/StoredCards/`'a taşındı. **034**: ortak
+  transport çekirdeği `Iyzico.Provider`'a çıkarılmıştı (034 temeli). Handler = anti-corruption sınır:
+  HTTP Input DTO → domain VO → SDK wire DTO; SDK yanıtı → domain aggregate. Sağlayıcı (wire) tipleri
+  BC DIŞINA/domaine SIZMAZ (CP.VPOS sınır kuralı — artık tam uygulanıyor); VO'lar kalıcı değil (charge/
+  tokenize-anı transient). **NOT**: Merchant/Commission hâlâ 022 ara-durum `Provider/` taşır (kendi
+  spec'lerinde dağıtılacak).
 - `src/ui/Admin` — Razor Pages BFF (yetki yok). Merchant/Bank/komisyon/settlement ekranları; typed
   `HttpClient`'lar Aspire service discovery ile API'leri çağırır (`http://merchant-api` vb.). Backend'e
   kural sızdırmaz — yalnız API sonucunu (`ApiResult`/`MessageText` Türkçe) gösterir.

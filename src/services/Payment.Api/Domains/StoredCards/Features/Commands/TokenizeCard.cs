@@ -1,6 +1,7 @@
-using Payment.Api.CardVault;
-using Payment.Api.Provider;
-using Payment.Api.Provider.StoredCards;
+using Iyzico.Provider;
+using Iyzico.Provider.StoredCards;
+// Domain VO (035) — wire Iyzico.Provider.StoredCards.CardInformation ile aynı adlı; alias.
+using DomainCardInformation = Payment.Api.Domains.StoredCards.ValueObjects.CardInformation;
 
 namespace Payment.Api.Domains.StoredCards.Features.Commands;
 
@@ -29,15 +30,11 @@ public static class TokenizeCard
         public async Task<FeatureObjectResultModel<TokenizeCardResponse>> Handle(
             TokenizeCardCommand cmd, IDocumentSession session, ProviderOptions providerOptions, CancellationToken ct)
         {
-            // Expiry "MM/yy" → ay + 4-hane yıl (iyzico beklentisi).
-            var parts = (cmd.Expiry ?? string.Empty).Split('/');
-            if (parts.Length != 2 || parts[0].Trim().Length is < 1 or > 2 || parts[1].Trim().Length != 2)
-                return FeatureObjectResultModel<TokenizeCardResponse>.Error(new MessageItem
-                { Property = nameof(cmd.Expiry), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_FORMAT });
-            var expireMonth = parts[0].Trim().PadLeft(2, '0');
-            var expireYear = "20" + parts[1].Trim();
-
-            var digits = new string((cmd.Pan ?? string.Empty).Where(char.IsDigit).ToArray());
+            // Ham kart → domain VO (expiry parse + rakam süzme + doğrulama kapsüllü, 035). Model A: Luhn yok.
+            var cardInfoResult = DomainCardInformation.Create(cmd.Pan, cmd.Expiry, cmd.HolderName);
+            if (!cardInfoResult.IsSuccess)
+                return FeatureObjectResultModel<TokenizeCardResponse>.Error(cardInfoResult.Messages);
+            var ci = cardInfoResult.Data!;
 
             var request = new CreateCardRequest
             {
@@ -47,13 +44,14 @@ public static class TokenizeCard
                 // '+' ve '.local' TLD reddedilir → kısa local-part + .com (sandbox'ta doğrulandı).
                 Email = $"vault{cmd.MerchantId.ToString("N")[..8]}@dropshop.com",
                 ExternalId = Guid.NewGuid().ToString("N"),
+                // VO → SDK wire CardInformation (anti-corruption sınır).
                 Card = new CardInformation
                 {
                     CardAlias = "dropshop-card",
-                    CardNumber = digits,
-                    ExpireMonth = expireMonth,
-                    ExpireYear = expireYear,
-                    CardHolderName = (cmd.HolderName ?? string.Empty).Trim()
+                    CardNumber = ci.CardNumber,
+                    ExpireMonth = ci.ExpireMonth,
+                    ExpireYear = ci.ExpireYear,
+                    CardHolderName = ci.CardHolderName
                 }
             };
 
