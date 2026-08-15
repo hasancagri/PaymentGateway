@@ -1,5 +1,3 @@
-using Iyzico.Provider;
-using Iyzico.Provider.StoredCards;
 
 namespace Payment.Api.Domains.StoredCards.Features.Commands;
 

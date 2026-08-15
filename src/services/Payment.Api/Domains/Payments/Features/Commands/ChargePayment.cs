@@ -1,7 +1,5 @@
 using System.Globalization;
 using Payment.Api.Domains.StoredCards;
-using Iyzico.Provider;
-using Iyzico.Provider.Payments;
 // Domain VO'ları (035) — wire tipleriyle (Iyzico.Provider.Payments.{Buyer,Address,BasketItem}) aynı adlı;
 // çakışmayı önlemek için alias. Handler VO'dan wire'a map'ler (anti-corruption sınır).
 using DomainBuyer = Payment.Api.Domains.Payments.ValueObjects.Buyer;
@@ -112,7 +110,7 @@ public static class ChargePayment
             // [Transactional] outbox: yayın yalnız DB commit'te gider (FR-005).
             await bus.PublishAsync(new Shared.IntegrationEvents.PaymentChargedEvent(
                 payment.Id, payment.MerchantId, payment.Price, payment.PaidPrice, payment.Installment,
-                payment.IyzicoCommission, payment.IyzicoFee, payment.ProviderPaymentId));
+                payment.ProviderCommission, payment.ProviderFee, payment.ProviderPaymentId));
 
             return FeatureObjectResultModel<ChargePaymentResponse>.Ok(new ChargePaymentResponse
             {

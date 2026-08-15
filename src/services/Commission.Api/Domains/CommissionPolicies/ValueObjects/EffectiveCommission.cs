@@ -11,14 +11,14 @@ public class EffectiveCommission
     private EffectiveCommission(
         decimal paidPrice,
         int installment,
-        decimal iyzicoCost,
+        decimal providerCost,
         decimal gatewayMargin,
         decimal totalEffectiveCommission,
         decimal netPayout)
     {
         PaidPrice = paidPrice;
         Installment = installment;
-        IyzicoCost = iyzicoCost;
+        ProviderCost = providerCost;
         GatewayMargin = gatewayMargin;
         TotalEffectiveCommission = totalEffectiveCommission;
         NetPayout = netPayout;
@@ -30,13 +30,13 @@ public class EffectiveCommission
     /// <summary>Taksit sayısı (girdi, bilgi amaçlı).</summary>
     public int Installment { get; }
 
-    /// <summary>iyzico maliyeti = IyzicoCommission + IyzicoFee (ayrıştırılmış toplam).</summary>
-    public decimal IyzicoCost { get; }
+    /// <summary>iyzico maliyeti = ProviderCommission + ProviderFee (ayrıştırılmış toplam).</summary>
+    public decimal ProviderCost { get; }
 
     /// <summary>Gateway marjı = PaidPrice·RatePercent + FixedFee (2 ondalık yuvarlı).</summary>
     public decimal GatewayMargin { get; }
 
-    /// <summary>Toplam efektif komisyon = IyzicoCost + GatewayMargin.</summary>
+    /// <summary>Toplam efektif komisyon = ProviderCost + GatewayMargin.</summary>
     public decimal TotalEffectiveCommission { get; }
 
     /// <summary>Merchant net hakediş = PaidPrice − TotalEffectiveCommission.</summary>
@@ -46,9 +46,9 @@ public class EffectiveCommission
     public static EffectiveCommission Create(
         decimal paidPrice,
         int installment,
-        decimal iyzicoCost,
+        decimal providerCost,
         decimal gatewayMargin,
         decimal totalEffectiveCommission,
         decimal netPayout) =>
-        new(paidPrice, installment, iyzicoCost, gatewayMargin, totalEffectiveCommission, netPayout);
+        new(paidPrice, installment, providerCost, gatewayMargin, totalEffectiveCommission, netPayout);
 }

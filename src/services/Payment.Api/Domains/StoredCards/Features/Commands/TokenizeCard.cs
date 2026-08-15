@@ -1,5 +1,3 @@
-using Iyzico.Provider;
-using Iyzico.Provider.StoredCards;
 // Domain VO (035) — wire Iyzico.Provider.StoredCards.CardInformation ile aynı adlı; alias.
 using DomainCardInformation = Payment.Api.Domains.StoredCards.ValueObjects.CardInformation;
 

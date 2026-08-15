@@ -23,7 +23,7 @@ public class EffectiveCommissionTests
 
         Assert.True(result.IsSuccess);
         var ec = result.Data!;
-        Assert.Equal(18.75m, ec.IyzicoCost);              // 18.50 + 0.25
+        Assert.Equal(18.75m, ec.ProviderCost);              // 18.50 + 0.25
         Assert.Equal(15.50m, ec.GatewayMargin);           // 1000*0.015 + 0.50
         Assert.Equal(34.25m, ec.TotalEffectiveCommission); // 18.75 + 15.50
         Assert.Equal(965.75m, ec.NetPayout);              // 1000 - 34.25

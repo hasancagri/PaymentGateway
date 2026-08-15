@@ -19,8 +19,8 @@ public class PaymentTests
         Assert.Equal("iyz-pay-1", p.ProviderPaymentId);
         Assert.Equal(106m, p.PaidPrice);
         Assert.Equal(3, p.Installment);
-        Assert.Equal("2.75", p.IyzicoCommission);
-        Assert.Equal("0.25", p.IyzicoFee);
+        Assert.Equal("2.75", p.ProviderCommission);
+        Assert.Equal("0.25", p.ProviderFee);
     }
 
     [Fact]
