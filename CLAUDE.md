@@ -100,6 +100,10 @@ dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile ba
 - `src/ui/Admin` — Razor Pages BFF (yetki yok). Merchant/Bank/komisyon/settlement ekranları; typed
   `HttpClient`'lar Aspire service discovery ile API'leri çağırır (`http://merchant-api` vb.). Backend'e
   kural sızdırmaz — yalnız API sonucunu (`ApiResult`/`MessageText` Türkçe) gösterir.
+- `src/services/gateway/Gateway` — YARP reverse proxy (BC değil, altyapı). Cluster adreslerini Aspire
+  service discovery'den çözer (`AddServiceDiscoveryDestinationResolver`; `services__<ad>__http__0`).
+  Route/cluster config-driven (`ReverseProxy` bölümü). Auth şimdilik kabuk: `ClientCredential`/`Password`
+  policy'leri yalnız geçerli (authenticated) token şart koşar — grant-tipi ayrımı ertelenmiş auth işine ait.
 - Integration event'ler `src/others/Shared` (`PaymentCompletedEvent/PaymentFailedEvent`, fanout exchange).
   Henüz tüketici yok; Order BC gelince bağlanır. 012: `MerchantCreated/MerchantStatusChanged`
   (`merchant.lifecycle` fanout) — Merchant.Api yayınlar, Identity.Server tüketir (OpenIddict
