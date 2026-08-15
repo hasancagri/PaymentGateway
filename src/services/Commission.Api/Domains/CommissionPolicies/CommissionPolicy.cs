@@ -1,6 +1,3 @@
-using System.Globalization;
-using Commission.Api.Domains.CommissionPolicies.ValueObjects;
-
 namespace Commission.Api.Domains.CommissionPolicies;
 
 /// <summary>
@@ -97,8 +94,8 @@ public class CommissionPolicy : AggregateRoot
     /// <remarks>Handler: CalculateEffectiveCommissionQueryHandler</remarks>
     public ResultDomain<EffectiveCommission> CalculateEffectiveCommission(
         decimal paidPrice,
-        string providerCommission,
-        string providerFee,
+        decimal providerCommission,
+        decimal providerFee,
         int installment)
     {
         if (Status != CommissionPolicyStatus.Active)
@@ -115,28 +112,23 @@ public class CommissionPolicy : AggregateRoot
                 Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_VALUE
             });
 
-        if (!decimal.TryParse(providerCommission, NumberStyles.Number, CultureInfo.InvariantCulture, out var commissionCost))
+        if (installment <= 0)
+            return ResultDomain<EffectiveCommission>.Error(new MessageItem
+            {
+                Property = nameof(installment),
+                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_VALUE
+            });
+
+        // Sağlayıcı maliyeti decimal olarak GELİR (string→decimal çevrimi + format doğrulaması
+        // handler'da — anti-corruption sınır; domain sağlayıcı wire formatını bilmez). İş kuralı: negatif olamaz.
+        if (providerCommission < 0 || providerFee < 0)
             return ResultDomain<EffectiveCommission>.Error(new MessageItem
             {
                 Property = nameof(providerCommission),
                 Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_VALUE
             });
 
-        if (!decimal.TryParse(providerFee, NumberStyles.Number, CultureInfo.InvariantCulture, out var feeCost))
-            return ResultDomain<EffectiveCommission>.Error(new MessageItem
-            {
-                Property = nameof(providerFee),
-                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_VALUE
-            });
-
-        if (commissionCost < 0 || feeCost < 0)
-            return ResultDomain<EffectiveCommission>.Error(new MessageItem
-            {
-                Property = nameof(providerCommission),
-                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_VALUE
-            });
-
-        var providerCost = commissionCost + feeCost;
+        var providerCost = providerCommission + providerFee;
         // 030 FR-003: tutarın düştüğü TEK kademe tüm tutara uygulanır (bracket; seçim ham tutarla).
         var tier = Margin.ResolveTier(paidPrice);
         var gatewayMargin = Math.Round(

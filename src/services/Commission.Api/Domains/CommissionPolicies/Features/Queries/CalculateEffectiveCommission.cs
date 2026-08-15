@@ -43,8 +43,17 @@ public static class CalculateEffectiveCommission
                     Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND
                 });
 
+            // Anti-corruption sınır: sağlayıcı ham string maliyetini burada decimal'e çevir (format
+            // doğrulaması boundary'de; domain decimal alır, wire formatını bilmez).
+            if (!decimal.TryParse(query.ProviderCommission, NumberStyles.Number, CultureInfo.InvariantCulture, out var providerCommission))
+                return FeatureObjectResultModel<CalculateEffectiveCommissionResponse>.Error(new MessageItem
+                { Property = nameof(query.ProviderCommission), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_VALUE });
+            if (!decimal.TryParse(query.ProviderFee, NumberStyles.Number, CultureInfo.InvariantCulture, out var providerFee))
+                return FeatureObjectResultModel<CalculateEffectiveCommissionResponse>.Error(new MessageItem
+                { Property = nameof(query.ProviderFee), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_VALUE });
+
             var result = policy.CalculateEffectiveCommission(
-                query.PaidPrice, query.ProviderCommission, query.ProviderFee, query.Installment);
+                query.PaidPrice, providerCommission, providerFee, query.Installment);
             if (!result.IsSuccess)
                 return FeatureObjectResultModel<CalculateEffectiveCommissionResponse>.Error(result.Messages);
 
