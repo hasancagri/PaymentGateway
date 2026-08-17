@@ -83,6 +83,8 @@ public static class ChargePayment
         public string ContactName { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
         public string Country { get; set; } = string.Empty;
+        // iyzico wire alanı "address"tir; "description" gönderilirse 5040 "Shipping address zorunludur" döner.
+        [Newtonsoft.Json.JsonProperty("address")]
         public string Description { get; set; } = string.Empty;
     }
 
