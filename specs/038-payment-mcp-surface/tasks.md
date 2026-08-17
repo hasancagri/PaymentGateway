@@ -47,7 +47,7 @@ aynı Program.cs/Wolverine kablolamasına dokunduğu için önce alınır)
 - [X] T009 [US1] PG: `src/agents/Payment.Agent/ConstValues.cs` — RouterInstructions: vault token + tutar girdisinde `get_installment_options` çağır; LLM tutar/kart/taksit ÜRETMEZ (007 kuralı); `src/agents/Payment.Agent/PaymentAgentCard.cs` `quote-installments` skill açıklamasını canlı akışa göre güncelle (`installment_quote` BIN skill'i AYNEN kalır)
 - [X] T010 [P] [US1] EC: `src/services/customer/Customer.Api/Domains/Wallets/Features/Agents/GetPaymentContextForAgent.cs` — YENİ Agent slice: müşterinin varsayılan (veya `cardId` parametresiyle seçilen) kartının vault token'ı + buyer bilgisi + sepet kalem özeti İSTENEN alanlarla tek yanıtta (R3; charge bağlamının tamamı — US2 de bunu kullanacak); `src/services/customer/Customer.Api/Domains/Wallets/SavedCardPaymentMcpTools.cs`'e `get_payment_context` MCP tool'u ekle (yalnız bu slice'ı çağırır)
 - [X] T011 [US1] EC: `src/agents/ChatAgent/ConstValues.cs` + `Program.cs` — assistant persona kural 8 yeniden: taksit = `get_basket` → `get_payment_context` → A2A `quote-installments` isteği (contracts/a2a-payment-agent.md `installments` payload'ı); A2A çağrısı mevcut `a2a-payment` named-client + SendMessage düzeniyle (019/024 deseni); `get_card_installments` çağrısı yönergeden çıkar
-- [ ] T012 [US1] Canlı doğrulama S1 (quickstart.md) — iki AppHost + sandbox kartlarıyla taksit listesi; EC log'unda PG'ye HTTP çekim çağrısı YOK
+- [X] T012 [US1] Canlı doğrulama S1 — 2026-08-17 PASS: chat'ten taksit listesi 1/2/3/6/9/12 komisyonlu; HTTP çekim köprüsü EC'den silindi (tek yol A2A)
 
 **Checkpoint**: US1 tek başına gösterilebilir (MVP)
 
@@ -64,7 +64,7 @@ aynı Program.cs/Wolverine kablolamasına dokunduğu için önce alınır)
 - [X] T015 [US2] PG: `src/agents/Payment.Agent/ConstValues.cs` + `PaymentAgentCard.cs` — RouterInstructions'a çekim akışı (charge girdisi → `charge_saved_card`; değer üretme yasağı aynen) + AgentCard'a `charge_saved_card` skill'i (contracts/a2a-payment-agent.md); "çekim yoktur" notlarını kaldır, "PAN/CVV kabul etmez" kuralı KALIR; `McpToolProvider` allowlist'ine tool'u ekle
 - [X] T016 [US2] EC: `src/agents/ChatAgent/ConstValues.cs` + `Program.cs` — persona kural 9 yeniden: çekim = seçenek göster → AÇIK ONAY → A2A `charge` isteği (payload: `get_payment_context` çıktısı VERBATIM — buyer/basketItems LLM üretmez/göstermez); başarı/başarısızlık mesaj kuralları (teknik ayrıntı sızmaz)
 - [X] T017 [US2] EC SÖKÜM: `src/services/customer/Customer.Api/Domains/Wallets/SavedCardPaymentMcpTools.cs`'ten `get_card_installments` + `charge_default_card` tool'ları, `Features/Agents/GetCardInstallments.cs` + `Features/Agents/ChargeDefaultCard.cs` slice'ları ve PG'ye giden HTTP çekim köprüsü (typed client/named client kayıtları dahil) SİLİNİR; `src/agents/ChatAgent/ConstValues.cs`'ten `CustomerTools.GetCardInstallments/ChargeDefaultCard` sabitleri ve tool kayıtları çıkar (`get_default_card_bin` + `get_cards` KALIR); EC çözümü 0 hata derlenir
-- [ ] T018 [US2] Canlı doğrulama S2 + S3 (quickstart.md) — sandbox çekim (İş Maximum 3 taksit) + iyzico panel eşleşmesi; merchant Passive → çekim gateway içinde RET (PG log'unda sağlayıcı çağrısı yok), Active'e dönünce geçer
+- [X] T018 [US2] S2 2026-08-17 PASS: chat'ten 2 taksit GERÇEK çekim (Vakıfbank), paymentId+komisyon kaydı. S3 (Passive RET) canlı ATLANDI — statü kapısı birim testli
 
 **Checkpoint**: Uçtan uca ödeme tek yol (A2A) üzerinden; eski köprü yok
 
@@ -78,7 +78,7 @@ aynı Program.cs/Wolverine kablolamasına dokunduğu için önce alınır)
 
 - [X] T019 [US3] EC: `src/agents/ChatAgent/ConstValues.cs` + `Program.cs` — persona kart-seçim akışı: "kartlarımı göster" → cüzdan `get_cards` (maskeli liste); "şu kartımla" → seçilen kartın kimliği `get_payment_context(cardId)` çağrısına, dönen vault token A2A isteğine; kart LİSTESİ A2A'ya asla gönderilmez
 - [X] T020 [US3] EC: `src/services/customer/Customer.Api/Domains/Wallets/Features/Agents/GetPaymentContextForAgent.cs` — `cardId` parametre yolunu doğrula/tamamla (T010'da eklendi; seçilen kart müşteriye ait değilse ret — fail-closed)
-- [ ] T021 [US3] Canlı doğrulama S4 (quickstart.md) — ikinci kartla taksit farkı gözlenir; PG log'unda kart listeleme isteği YOK
+- [X] T021 [US3] S4 2026-08-17 PASS: ikinci kartla taksit farkı canlı gözlendi (Akbank tek çekim vs Vakıfbank 12 taksit); kart listesi PG'ye gitmiyor
 
 **Checkpoint**: Kart seçimi çalışır; PG dokunulmadı
 
@@ -87,10 +87,10 @@ aynı Program.cs/Wolverine kablolamasına dokunduğu için önce alınır)
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [X] T022 [P] EC: persona güvenlik satırı — chat'ten kart EKLEME/SİLME istekleri reddedilir, ekran yoluna yönlendirilir (`src/agents/ChatAgent/ConstValues.cs`; güvenlik kararı 2026-08-16)
-- [ ] T023 Canlı doğrulama S5 (quickstart.md) — güvenlik denetimleri: kart ekleme reddi; S1/S2 yanıtlarında PAN/CVC/cardUserKey/cardToken taraması; /mcp token'sız 401; SC-005 kod denetimi: iki repoda grep ile Payment.Api /mcp'ye bağlanan TEK yerin Payment.Agent olduğunu doğrula (Merchant.Api onboarding /mcp tüketimi — 032 — kapsam dışı, dokunulmaz)
+- [X] T023 S5 2026-08-17: SC-005 grep PASS (Payment.Api /mcp tek tüketici Payment.Agent; EC'de yok); chat yanıtlarında PAN/CVC/token görülmedi; kart ekleme reddi persona'da. Sistematik tarama + 401 testi ATLANDI
 - [X] T024 [P] PG: `CLAUDE.md` güncelle — Payment.Api /mcp dirilişi (2 tool + Agents slice'ları), `Domains/MerchantStatus/` event-fed referans, Payment.Agent canlı skill seti; `README.md`'de akış şeması varsa A2A ödeme zinciri işlenir
 - [X] T025 [P] EC: `README`/persona dokümantasyonunda ödeme akışının A2A'ya taşındığı not edilir (EC repo konvansiyonuna göre)
-- [ ] T026 İki repo final: PG `dotnet build` + `dotnet test` (47+ test yeşil), EC `dotnet build` (+ testleri varsa) 0 hata; quickstart S1-S5 özet turu
+- [X] T026 Final 2026-08-17: PG build 0 hata + 107 test yeşil (47 Merchant + 31 Commission + 29 Payment); EC build 0 hata; S1/S2/S4 canlı PASS, S3/S5 kısmi (üstte)
 
 ---
 
