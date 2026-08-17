@@ -1,4 +1,6 @@
-// Domain VO (035) — wire Iyzico.Provider.StoredCards.CardInformation ile aynı adlı; alias.
+using Iyz = Payment.Api.Utils;
+using Payment.Api.Options;
+// Domain VO (035) — wire card ile aynı kavram; handler VO'dan wire'a map'ler (anti-corruption sınır).
 using DomainCardInformation = Payment.Api.Domains.StoredCards.ValueObjects.CardInformation;
 
 namespace Payment.Api.Domains.StoredCards.Features.Commands;
@@ -22,11 +24,42 @@ public static class TokenizeCard
         public string Token { get; set; } = string.Empty;
     }
 
+    /// <summary>iyzico "Saklı Kart oluştur" istek gövdesi (wire) — bu slice'a ait. camelCase JSON, base tip yok.</summary>
+    public class CreateCardRequest
+    {
+        public string Locale { get; set; } = string.Empty;
+        public string ConversationId { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string ExternalId { get; set; } = string.Empty;
+        public CardInfo Card { get; set; } = new();
+    }
+
+    /// <summary>iyzico wire kart bilgisi (istek). Domain VO değil — serileşme tipi.</summary>
+    public class CardInfo
+    {
+        public string CardAlias { get; set; } = string.Empty;
+        public string CardNumber { get; set; } = string.Empty;
+        public string ExpireYear { get; set; } = string.Empty;
+        public string ExpireMonth { get; set; } = string.Empty;
+        public string CardHolderName { get; set; } = string.Empty;
+    }
+
+    /// <summary>iyzico Saklı Kart yanıtı (wire) — Status/Error alanları Iyz.ProviderResourceV2'den.</summary>
+    public class CardResult : Iyz.ProviderResourceV2
+    {
+        public string CardUserKey { get; set; } = string.Empty;
+        public string CardToken { get; set; } = string.Empty;
+        public string BinNumber { get; set; } = string.Empty;
+        public string LastFourDigits { get; set; } = string.Empty;
+        public string CardAssociation { get; set; } = string.Empty;
+    }
+
     [Transactional]
     public class TokenizeCardCommandHandler
     {
         public async Task<FeatureObjectResultModel<TokenizeCardResponse>> Handle(
-            TokenizeCardCommand cmd, IDocumentSession session, ProviderOptions providerOptions, CancellationToken ct)
+            TokenizeCardCommand cmd, IDocumentSession session, Iyz.ProviderOptions providerOptions,
+            IyzicoRequestOptions requestOptions, CancellationToken ct)
         {
             // Ham kart → domain VO (expiry parse + rakam süzme + doğrulama kapsüllü, 035). Model A: Luhn yok.
             var cardInfoResult = DomainCardInformation.Create(cmd.Pan, cmd.Expiry, cmd.HolderName);
@@ -36,16 +69,16 @@ public static class TokenizeCard
 
             var request = new CreateCardRequest
             {
-                Locale = "tr",
-                ConversationId = "vault-" + cmd.MerchantId.ToString("N")[..8],
+                Locale = requestOptions.Locale,
+                ConversationId = requestOptions.ConversationId,
                 // per-kart cardUserKey (R2 — gruplama yok). iyzico geçerli e-posta ister:
-                // '+' ve '.local' TLD reddedilir → kısa local-part + .com (sandbox'ta doğrulandı).
-                Email = $"vault{cmd.MerchantId.ToString("N")[..8]}@dropshop.com",
+                // '+' ve '.local' TLD reddedilir → kısa local-part + config domaini (sandbox'ta doğrulandı).
+                Email = $"{requestOptions.EmailLocalPrefix}{cmd.MerchantId.ToString("N")[..8]}@{requestOptions.EmailDomain}",
                 ExternalId = Guid.NewGuid().ToString("N"),
-                // VO → SDK wire CardInformation (anti-corruption sınır).
-                Card = new CardInformation
+                // VO → wire CardInfo (anti-corruption sınır).
+                Card = new CardInfo
                 {
-                    CardAlias = "dropshop-card",
+                    CardAlias = requestOptions.CardAlias,
                     CardNumber = ci.CardNumber,
                     ExpireMonth = ci.ExpireMonth,
                     ExpireYear = ci.ExpireYear,
@@ -53,10 +86,12 @@ public static class TokenizeCard
                 }
             };
 
-            Card iyzicoCard;
+            CardResult iyzicoCard;
             try
             {
-                iyzicoCard = await Card.Create(request, providerOptions);
+                var uri = providerOptions.BaseUrl + requestOptions.CardStoragePath;
+                var headers = Iyz.ProviderResourceV2.GetHttpHeadersWithRequestBody(request, uri, providerOptions, request.ConversationId);
+                iyzicoCard = await Iyz.RestHttpClientV2.Create().PostAsync<CardResult>(uri, headers, request);
             }
             catch
             {
@@ -64,7 +99,7 @@ public static class TokenizeCard
                 { Property = nameof(cmd.Pan), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
             }
 
-            if (iyzicoCard is null || iyzicoCard.Status != "success" ||
+            if (iyzicoCard is null || iyzicoCard.Status != requestOptions.SuccessStatus ||
                 string.IsNullOrWhiteSpace(iyzicoCard.CardUserKey) || string.IsNullOrWhiteSpace(iyzicoCard.CardToken))
             {
                 return FeatureObjectResultModel<TokenizeCardResponse>.Error(new MessageItem

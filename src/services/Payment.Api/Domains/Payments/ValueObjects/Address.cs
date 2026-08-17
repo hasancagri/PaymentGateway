@@ -3,7 +3,7 @@ namespace Payment.Api.Domains.Payments.ValueObjects;
 /// <summary>
 /// Çekim adresi — değer nesnesi (035). Bağımsız girdi DEĞİL: alıcıdan türetilir (sevk = fatura;
 /// bugünkü <c>BuildAddress(buyer)</c> davranışı korunur). iyzico'yu bilmez; handler SDK
-/// <c>Iyzico.Provider.Payments.Address</c> wire'ına map'ler. Kalıcı değil (charge-anı).
+/// <c>ChargePayment</c> slice'ının nested wire Address'ine map'ler. Kalıcı değil (charge-anı).
 /// </summary>
 public sealed class Address
 {

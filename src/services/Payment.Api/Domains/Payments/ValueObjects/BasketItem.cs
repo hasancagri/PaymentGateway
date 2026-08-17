@@ -3,7 +3,7 @@ namespace Payment.Api.Domains.Payments.ValueObjects;
 /// <summary>
 /// Sepet kalemi — değer nesnesi (035). iyzico wire tipinden yapısal uyarlama; iyzico serileştirmeyi
 /// bilmez (o SDK wire tipinde). Kalıcı değil (charge-anı). Handler SDK
-/// <c>Iyzico.Provider.Payments.BasketItem</c> wire'ına map'ler (ItemType wire tarafında sabit "PHYSICAL").
+/// <c>ChargePayment</c> slice'ının nested wire BasketItem'ına map'ler (ItemType config'ten, ör. "PHYSICAL").
 /// </summary>
 public sealed class BasketItem
 {

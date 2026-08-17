@@ -1,34 +1,36 @@
 using System.Globalization;
 using Iyz = Payment.Api.Utils;
 using Payment.Api.Options;
+using Payment.Api.Domains.MerchantStatus;
 // Domain VO'ları (035) — handler VO'dan wire'a map'ler (anti-corruption sınır).
 using DomainBuyer = Payment.Api.Domains.Payments.ValueObjects.Buyer;
 using DomainAddress = Payment.Api.Domains.Payments.ValueObjects.Address;
 using DomainBasketItem = Payment.Api.Domains.Payments.ValueObjects.BasketItem;
 
-namespace Payment.Api.Domains.Payments.Features.Commands;
+namespace Payment.Api.Domains.Payments.Features.Agents;
 
 /// <summary>
-/// 033 US1: kayıtlı kartla NonSecure çekim. Vault token → StoredCard (kiracı + Active kontrolü) →
-/// iyzico ödeme (cardToken/cardUserKey; CVC/PAN YOK). Başarıda Payment kaydı + PaymentChargedEvent
-/// (iyzico maliyeti); başarısızda Failed kaydı (olay yok). Efektif komisyon HESAPLANMAZ (Commission BC).
+/// 038 US2: Agent yüzeyi — kayıtlı karttan GERÇEK çekim. MCP tool'u (charge_saved_card) YALNIZ bu
+/// slice'ı çağırır (015/016). /mcp makine token'ı statü taşımadığından merchant statü kapısı BURADA:
+/// MerchantStatusReference yok veya Active değil → fail-closed RET (sağlayıcıya gidilmez, anayasa
+/// İlke V "charge yalnız Active"). Buyer GERÇEK müşteri bilgisidir (ECommerce toplar, A2A verbatim
+/// taşır); sepet İSTEKLE GELMEZ — iyzico'nun zorunlu basketItems alanı tek sentetik kalemle
+/// (config, price = Amount) sentezlenir (kullanıcı kararı 2026-08-16). Wire tipleri slice'a nested
+/// (037); Commands/ChargePayment'tan bilinçli kopya (kod tekrarı OK).
 /// </summary>
-public static class ChargePayment
+public static class ChargeSavedCardForAgent
 {
+    // Statü kapısı domain sözleşme değeri (merchant.lifecycle event status string'i — iyzico sabiti değil).
+    private const string ActiveStatus = "Active";
+
     public record BuyerInput(string Name, string Surname, string Email, string GsmNumber,
         string IdentityNumber, string RegistrationAddress, string City, string Country, string Ip);
 
-    public record BasketItemInput(string Id, string Name, string Category1, decimal Price);
+    public record ChargeSavedCardForAgentCommand(
+        Guid MerchantId, string VaultToken, decimal Amount, decimal PaidPrice, int Installment,
+        BuyerInput Buyer);
 
-    public record ChargePaymentCommand(
-        Guid MerchantId, string VaultToken, decimal Price, decimal PaidPrice, int Installment,
-        BuyerInput Buyer, List<BasketItemInput> BasketItems);
-
-    public record ChargePaymentBody(
-        string VaultToken, decimal Price, decimal PaidPrice, int Installment,
-        BuyerInput Buyer, List<BasketItemInput> BasketItems);
-
-    public class ChargePaymentResponse
+    public class ChargeResultView
     {
         public Guid PaymentId { get; set; }
         public string ProviderPaymentId { get; set; } = string.Empty;
@@ -106,43 +108,48 @@ public static class ChargePayment
     }
 
     [Transactional]
-    public class ChargePaymentCommandHandler
+    public class ChargeSavedCardForAgentCommandHandler
     {
-        public async Task<FeatureObjectResultModel<ChargePaymentResponse>> Handle(
-            ChargePaymentCommand cmd, IDocumentSession session, Iyz.ProviderOptions providerOptions,
+        public async Task<FeatureObjectResultModel<ChargeResultView>> Handle(
+            ChargeSavedCardForAgentCommand cmd, IDocumentSession session, Iyz.ProviderOptions providerOptions,
             IyzicoRequestOptions requestOptions, IMessageBus bus, CancellationToken ct)
         {
-            // Vault token → StoredCard: kiracı sınırı + Active (Revoked/yabancı reddi — FR-002).
+            // 038 statü kapısı: referans yok veya Active değil → fail-closed RET (sağlayıcıya gidilmez).
+            var merchantStatus = await session.LoadAsync<MerchantStatusReference>(cmd.MerchantId, ct);
+            if (merchantStatus is null ||
+                !string.Equals(merchantStatus.Status, ActiveStatus, StringComparison.OrdinalIgnoreCase))
+                return FeatureObjectResultModel<ChargeResultView>.Error(new MessageItem
+                { Property = nameof(cmd.MerchantId), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
+
+            // Vault token → StoredCard: kiracı sınırı + Active (Revoked/yabancı reddi).
             var card = await session.LoadAsync<StoredCard>(cmd.VaultToken, ct);
             if (card is null || card.MerchantId != cmd.MerchantId)
-                return FeatureObjectResultModel<ChargePaymentResponse>.Error(new MessageItem
+                return FeatureObjectResultModel<ChargeResultView>.Error(new MessageItem
                 { Property = nameof(cmd.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND });
             if (card.Status != StoredCardStatus.Active)
-                return FeatureObjectResultModel<ChargePaymentResponse>.Error(new MessageItem
+                return FeatureObjectResultModel<ChargeResultView>.Error(new MessageItem
                 { Property = nameof(cmd.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
 
-            // HTTP Input DTO → domain VO (doğrulama). Geçersizse charge domain-sonucuyla reddedilir (035).
+            // Agent Input DTO → domain VO (doğrulama) — buyer GERÇEK müşteri verisi (ECommerce'den).
             var buyerResult = DomainBuyer.Create(
                 cmd.Buyer.Name, cmd.Buyer.Surname, cmd.Buyer.Email, cmd.Buyer.GsmNumber,
                 cmd.Buyer.IdentityNumber, cmd.Buyer.RegistrationAddress, cmd.Buyer.City,
                 cmd.Buyer.Country, cmd.Buyer.Ip);
             if (!buyerResult.IsSuccess)
-                return FeatureObjectResultModel<ChargePaymentResponse>.Error(buyerResult.Messages);
+                return FeatureObjectResultModel<ChargeResultView>.Error(buyerResult.Messages);
 
-            var basketItems = new List<DomainBasketItem>();
-            foreach (var i in cmd.BasketItems)
-            {
-                var itemResult = DomainBasketItem.Create(i.Id, i.Name, i.Category1, i.Price);
-                if (!itemResult.IsSuccess)
-                    return FeatureObjectResultModel<ChargePaymentResponse>.Error(itemResult.Messages);
-                basketItems.Add(itemResult.Data!);
-            }
+            // Sentetik tek sepet kalemi (config) — sepet ECommerce'de yaşar, gateway'e taşınmaz.
+            var itemResult = DomainBasketItem.Create(
+                requestOptions.BasketItemId, requestOptions.BasketItemName,
+                requestOptions.BasketItemCategory, cmd.Amount);
+            if (!itemResult.IsSuccess)
+                return FeatureObjectResultModel<ChargeResultView>.Error(itemResult.Messages);
 
             var addressResult = DomainAddress.FromBuyer(buyerResult.Data!);
             if (!addressResult.IsSuccess)
-                return FeatureObjectResultModel<ChargePaymentResponse>.Error(addressResult.Messages);
+                return FeatureObjectResultModel<ChargeResultView>.Error(addressResult.Messages);
 
-            var request = BuildRequest(cmd, card, buyerResult.Data!, addressResult.Data!, basketItems, requestOptions);
+            var request = BuildRequest(cmd, card, buyerResult.Data!, addressResult.Data!, itemResult.Data!, requestOptions);
 
             PaymentResult iyzicoPayment;
             try
@@ -151,10 +158,10 @@ public static class ChargePayment
                 var headers = Iyz.ProviderResourceV2.GetHttpHeadersWithRequestBody(request, uri, providerOptions, request.ConversationId);
                 iyzicoPayment = await Iyz.RestHttpClientV2.Create().PostAsync<PaymentResult>(uri, headers, request);
             }
-            catch
+            catch (Exception)
             {
                 await StoreFailed(cmd, session);
-                return FeatureObjectResultModel<ChargePaymentResponse>.Error(new MessageItem
+                return FeatureObjectResultModel<ChargeResultView>.Error(new MessageItem
                 { Property = nameof(cmd.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
             }
 
@@ -162,26 +169,26 @@ public static class ChargePayment
                 string.IsNullOrWhiteSpace(iyzicoPayment.PaymentId))
             {
                 await StoreFailed(cmd, session);
-                return FeatureObjectResultModel<ChargePaymentResponse>.Error(new MessageItem
+                return FeatureObjectResultModel<ChargeResultView>.Error(new MessageItem
                 { Property = nameof(cmd.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
             }
 
             var result = Payment.Succeeded(
-                cmd.MerchantId, cmd.VaultToken, cmd.Price, cmd.PaidPrice, cmd.Installment,
+                cmd.MerchantId, cmd.VaultToken, cmd.Amount, cmd.PaidPrice, cmd.Installment,
                 iyzicoPayment.PaymentId, iyzicoPayment.IyziCommissionRateAmount ?? string.Empty,
                 iyzicoPayment.IyziCommissionFee ?? string.Empty);
             if (!result.IsSuccess)
-                return FeatureObjectResultModel<ChargePaymentResponse>.Error(result.Messages);
+                return FeatureObjectResultModel<ChargeResultView>.Error(result.Messages);
 
             var payment = result.Data!;
             session.Store(payment);
 
-            // [Transactional] outbox: yayın yalnız DB commit'te gider (FR-005).
+            // [Transactional] outbox: yayın yalnız DB commit'te gider.
             await bus.PublishAsync(new Shared.IntegrationEvents.PaymentChargedEvent(
                 payment.Id, payment.MerchantId, payment.Price, payment.PaidPrice, payment.Installment,
                 payment.ProviderCommission, payment.ProviderFee, payment.ProviderPaymentId));
 
-            return FeatureObjectResultModel<ChargePaymentResponse>.Ok(new ChargePaymentResponse
+            return FeatureObjectResultModel<ChargeResultView>.Ok(new ChargeResultView
             {
                 PaymentId = payment.Id,
                 ProviderPaymentId = payment.ProviderPaymentId,
@@ -192,9 +199,9 @@ public static class ChargePayment
             });
         }
 
-        private static async Task StoreFailed(ChargePaymentCommand cmd, IDocumentSession session)
+        private static async Task StoreFailed(ChargeSavedCardForAgentCommand cmd, IDocumentSession session)
         {
-            var failed = Payment.Failed(cmd.MerchantId, cmd.VaultToken, cmd.Price, cmd.Installment);
+            var failed = Payment.Failed(cmd.MerchantId, cmd.VaultToken, cmd.Amount, cmd.Installment);
             if (failed.IsSuccess)
             {
                 session.Store(failed.Data!);
@@ -204,8 +211,8 @@ public static class ChargePayment
 
         // Domain VO → wire DTO (anti-corruption sınır, 035). Sabitler config'ten (requestOptions).
         private static CreatePaymentRequest BuildRequest(
-            ChargePaymentCommand cmd, StoredCard card, DomainBuyer buyer, DomainAddress address,
-            List<DomainBasketItem> basketItems, IyzicoRequestOptions opt)
+            ChargeSavedCardForAgentCommand cmd, StoredCard card, DomainBuyer buyer, DomainAddress address,
+            DomainBasketItem basketItem, IyzicoRequestOptions opt)
         {
             var inv = CultureInfo.InvariantCulture;
             var merchantShort = cmd.MerchantId.ToString("N")[..8];
@@ -213,7 +220,7 @@ public static class ChargePayment
             {
                 Locale = opt.Locale,
                 ConversationId = opt.ConversationId,
-                Price = cmd.Price.ToString(inv),
+                Price = cmd.Amount.ToString(inv),
                 PaidPrice = cmd.PaidPrice.ToString(inv),
                 Installment = cmd.Installment,
                 PaymentChannel = opt.PaymentChannel,
@@ -240,14 +247,17 @@ public static class ChargePayment
                 },
                 ShippingAddress = ToWireAddress(address),
                 BillingAddress = ToWireAddress(address),
-                BasketItems = basketItems.Select(i => new BasketItem
-                {
-                    Id = i.Id,
-                    Name = i.Name,
-                    Category1 = i.Category1,
-                    ItemType = opt.ItemType,
-                    Price = i.Price.ToString(inv)
-                }).ToList()
+                BasketItems =
+                [
+                    new BasketItem
+                    {
+                        Id = basketItem.Id,
+                        Name = basketItem.Name,
+                        Category1 = basketItem.Category1,
+                        ItemType = opt.ItemType,
+                        Price = basketItem.Price.ToString(inv)
+                    }
+                ]
             };
         }
 
@@ -258,28 +268,5 @@ public static class ChargePayment
             Country = a.Country,
             Description = a.Description
         };
-    }
-}
-
-public static class ChargePaymentEndpoint
-{
-    public static RouteGroupBuilder ChargePaymentGroupItemEndpoint(this RouteGroupBuilder group)
-    {
-        group.MapPost("/",
-                async (Guid merchantId, [FromBody] ChargePayment.ChargePaymentBody body, IMessageBus bus) =>
-                {
-                    var result = await bus.InvokeAsync<FeatureObjectResultModel<ChargePayment.ChargePaymentResponse>>(
-                        new ChargePayment.ChargePaymentCommand(
-                            merchantId, body.VaultToken, body.Price, body.PaidPrice, body.Installment,
-                            body.Buyer, body.BasketItems));
-                    return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
-                })
-            .WithName("ChargePayment")
-            .MapToApiVersion(1, 0)
-            .RequireAuthorization(AuthorizationScopes.PaymentCharge, AuthorizationPolicies.MerchantScoped)
-            .Produces<ChargePayment.ChargePaymentResponse>()
-            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
-
-        return group;
     }
 }

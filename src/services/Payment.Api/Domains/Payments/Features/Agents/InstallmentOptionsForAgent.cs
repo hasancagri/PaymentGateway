@@ -2,17 +2,16 @@ using System.Globalization;
 using Iyz = Payment.Api.Utils;
 using Payment.Api.Options;
 
-namespace Payment.Api.Domains.Payments.Features.Queries;
+namespace Payment.Api.Domains.Payments.Features.Agents;
 
 /// <summary>
-/// 033 US2: kart (BIN) + tutar için iyzico taksit seçeneklerini döner (installmentNumber + toplam
-/// tutar, banka vade farkı dahil). Ödeme öncesi — çekimin PaidPrice'ı buradan seçilir.
+/// 038 US1: Agent yüzeyi — kayıtlı kart (vault token) + tutar için iyzico taksit seçenekleri.
+/// MCP tool'u (get_installment_options) YALNIZ bu slice'ı çağırır; Commands/Queries'e gitmez (015/016).
+/// Wire tipleri slice'a nested (037); Queries/InstallmentOptions'tan bilinçli kopya (kod tekrarı OK).
 /// </summary>
-public static class InstallmentOptions
+public static class InstallmentOptionsForAgent
 {
-    public record InstallmentOptionsQuery(Guid MerchantId, string Bin, decimal Price);
-
-    public record InstallmentOptionsBody(string Bin, decimal Price);
+    public record InstallmentOptionsForAgentQuery(Guid MerchantId, string VaultToken, decimal Amount);
 
     public class InstallmentOptionItem
     {
@@ -20,8 +19,10 @@ public static class InstallmentOptions
         public decimal TotalPrice { get; set; }
     }
 
-    public class InstallmentOptionsResponse
+    public class InstallmentOptionsView
     {
+        public string Bin { get; set; } = string.Empty;
+        public string CardAssociation { get; set; } = string.Empty;
         public List<InstallmentOptionItem> InstallmentDetails { get; set; } = new();
     }
 
@@ -51,12 +52,21 @@ public static class InstallmentOptions
         public string TotalPrice { get; set; } = string.Empty;
     }
 
-    public class InstallmentOptionsQueryHandler
+    public class InstallmentOptionsForAgentQueryHandler
     {
-        public async Task<FeatureObjectResultModel<InstallmentOptionsResponse>> Handle(
-            InstallmentOptionsQuery query, Iyz.ProviderOptions providerOptions,
-            IyzicoRequestOptions requestOptions, CancellationToken ct)
+        public async Task<FeatureObjectResultModel<InstallmentOptionsView>> Handle(
+            InstallmentOptionsForAgentQuery query, IDocumentSession session,
+            Iyz.ProviderOptions providerOptions, IyzicoRequestOptions requestOptions, CancellationToken ct)
         {
+            // Vault token → StoredCard: kiracı sınırı + Active (Revoked/yabancı reddi).
+            var card = await session.LoadAsync<StoredCard>(query.VaultToken, ct);
+            if (card is null || card.MerchantId != query.MerchantId)
+                return FeatureObjectResultModel<InstallmentOptionsView>.Error(new MessageItem
+                { Property = nameof(query.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND });
+            if (card.Status != StoredCardStatus.Active)
+                return FeatureObjectResultModel<InstallmentOptionsView>.Error(new MessageItem
+                { Property = nameof(query.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
+
             InstallmentInfoResult info;
             try
             {
@@ -64,8 +74,8 @@ public static class InstallmentOptions
                 {
                     Locale = requestOptions.Locale,
                     ConversationId = requestOptions.ConversationId,
-                    BinNumber = query.Bin,
-                    Price = query.Price.ToString(CultureInfo.InvariantCulture)
+                    BinNumber = card.Bin,
+                    Price = query.Amount.ToString(CultureInfo.InvariantCulture)
                 };
                 var uri = providerOptions.BaseUrl + requestOptions.InstallmentPath;
                 var headers = Iyz.ProviderResourceV2.GetHttpHeadersWithRequestBody(request, uri, providerOptions, request.ConversationId);
@@ -73,13 +83,13 @@ public static class InstallmentOptions
             }
             catch
             {
-                return FeatureObjectResultModel<InstallmentOptionsResponse>.Error(new MessageItem
-                { Property = nameof(query.Bin), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
+                return FeatureObjectResultModel<InstallmentOptionsView>.Error(new MessageItem
+                { Property = nameof(query.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
             }
 
             if (info is null || info.Status != requestOptions.SuccessStatus)
-                return FeatureObjectResultModel<InstallmentOptionsResponse>.Error(new MessageItem
-                { Property = nameof(query.Bin), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
+                return FeatureObjectResultModel<InstallmentOptionsView>.Error(new MessageItem
+                { Property = nameof(query.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
 
             var items = new List<InstallmentOptionItem>();
             foreach (var detail in info.InstallmentDetails ?? new())
@@ -90,31 +100,12 @@ public static class InstallmentOptions
                     items.Add(new InstallmentOptionItem { InstallmentNumber = n, TotalPrice = total });
             }
 
-            return FeatureObjectResultModel<InstallmentOptionsResponse>.Ok(new InstallmentOptionsResponse
+            return FeatureObjectResultModel<InstallmentOptionsView>.Ok(new InstallmentOptionsView
             {
+                Bin = card.Bin,
+                CardAssociation = card.Brand.ToString(),
                 InstallmentDetails = items.OrderBy(i => i.InstallmentNumber).ToList()
             });
         }
-    }
-}
-
-public static class InstallmentOptionsEndpoint
-{
-    public static RouteGroupBuilder InstallmentOptionsGroupItemEndpoint(this RouteGroupBuilder group)
-    {
-        group.MapPost("/installment-options",
-                async (Guid merchantId, [FromBody] InstallmentOptions.InstallmentOptionsBody body, IMessageBus bus) =>
-                {
-                    var result = await bus.InvokeAsync<FeatureObjectResultModel<InstallmentOptions.InstallmentOptionsResponse>>(
-                        new InstallmentOptions.InstallmentOptionsQuery(merchantId, body.Bin, body.Price));
-                    return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
-                })
-            .WithName("InstallmentOptions")
-            .MapToApiVersion(1, 0)
-            .RequireAuthorization(AuthorizationScopes.PaymentCharge, AuthorizationPolicies.MerchantScoped)
-            .Produces<InstallmentOptions.InstallmentOptionsResponse>()
-            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
-
-        return group;
     }
 }

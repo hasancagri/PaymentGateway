@@ -1,3 +1,5 @@
+using Iyz = Payment.Api.Utils;
+using Payment.Api.Options;
 
 namespace Payment.Api.Domains.StoredCards.Features.Commands;
 
@@ -16,11 +18,24 @@ public static class RevokeCard
         public string Token { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// iyzico "Saklı Kart sil" istek gövdesi (wire) — bu slice'a ait, sürecin parçası. camelCase JSON'a
+    /// serileşir; base tip yok (V2 akışı JSON kullanır, eski PKI string zinciri sökülü).
+    /// </summary>
+    public class DeleteCardRequest
+    {
+        public string Locale { get; set; } = string.Empty;
+        public string ConversationId { get; set; } = string.Empty;
+        public string CardUserKey { get; set; } = string.Empty;
+        public string CardToken { get; set; } = string.Empty;
+    }
+
     [Transactional]
     public class RevokeCardCommandHandler
     {
         public async Task<FeatureObjectResultModel<RevokeCardResponse>> Handle(
-            RevokeCardCommand cmd, IDocumentSession session, ProviderOptions providerOptions, CancellationToken ct)
+            RevokeCardCommand cmd, IDocumentSession session, Iyz.ProviderOptions providerOptions,
+            IyzicoRequestOptions requestOptions, CancellationToken ct)
         {
             var card = await session.LoadAsync<StoredCard>(cmd.Token, ct);
             if (card is null || card.MerchantId != cmd.MerchantId)
@@ -35,13 +50,16 @@ public static class RevokeCard
             // iyzico'dan sil (best-effort) — hata yerel iptali bloklamaz (FR-006 fail-open).
             try
             {
-                await Card.Delete(new DeleteCardRequest
+                var request = new DeleteCardRequest
                 {
-                    Locale = "tr",
-                    ConversationId = "vault-del",
+                    Locale = requestOptions.Locale,
+                    ConversationId = requestOptions.ConversationId,
                     CardUserKey = card.CardUserKey,
                     CardToken = card.CardToken
-                }, providerOptions);
+                };
+                var uri = providerOptions.BaseUrl + requestOptions.CardStoragePath;
+                var headers = Iyz.ProviderResourceV2.GetHttpHeadersWithRequestBody(request, uri, providerOptions, request.ConversationId);
+                await Iyz.RestHttpClientV2.Create().DeleteAsync<Iyz.ProviderResourceV2>(uri, headers, request);
             }
             catch
             {

@@ -4,7 +4,7 @@ namespace Payment.Api.Domains.StoredCards.ValueObjects;
 /// Tokenize-anı ham kart bilgisi — değer nesnesi (035). Model A (032): PAN iyzico'ya BİR KEZ gider,
 /// gateway saklamaz → bu VO transient (kalıcı StoredCard alanı DEĞİL). Luhn/AES gateway'de YOK (iyzico
 /// doğrular) — yapısal doğrulama yalnız expiry (MM/yy) + boş-değil. Handler expiry parse'ı + rakam
-/// süzmeyi VO'ya kapsüller; SDK <c>Iyzico.Provider.StoredCards.CardInformation</c> wire'ına map'ler.
+/// süzmeyi VO'ya kapsüller; handler <c>TokenizeCard</c> slice'ının nested wire CardInfo'suna map'ler.
 /// </summary>
 public sealed class CardInformation
 {

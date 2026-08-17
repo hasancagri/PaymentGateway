@@ -5,7 +5,7 @@ namespace Payment.Api.Domains.Payments.ValueObjects;
 /// <summary>
 /// Çekim alıcısı — değer nesnesi (035). iyzico wire tipinden yapısal uyarlama: ham alıcı verisini
 /// doğrulayıp taşır; iyzico serileştirmesini (ToPKIRequestString) BİLMEZ (o SDK wire tipinde kalır).
-/// Kalıcı DEĞİL (charge-anı transient). Handler SDK <c>Iyzico.Provider.Payments.Buyer</c> wire'ına map'ler.
+/// Kalıcı DEĞİL (charge-anı transient). Handler <c>ChargePayment</c> slice'ının nested wire Buyer'ına map'ler.
 /// Yapısal doğrulama şimdi (boş + e-posta formatı); zengin kural sonra.
 /// </summary>
 public sealed class Buyer

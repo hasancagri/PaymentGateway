@@ -1,1 +1,3 @@
-{"feature_directory":"specs/035-payment-provider-domain-distribution"}
+{
+  "feature_directory": "specs/038-payment-mcp-surface"
+}
