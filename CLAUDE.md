@@ -77,17 +77,30 @@ dotnet run --project src/aspire/AppHost/AppHost.csproj   # sistemi Aspire ile ba
   iyzico payout/rapor entegrasyonu gelince wire slice'a nested yeniden yazılır. `merchant.commission` +
   `mail.delivery` yayın kayıtları Program.cs'te durur.
 - `src/agents/Payment.Agent` — A2A host + LLM router + MCP client (007). Payment BC **DEĞİL** —
-  kalıcılık yok, stateless delivery adaptörü. **022 NOT**: Payment.Api MCP yüzeyi söküldü —
-  taksit/oturum skill'leri ödeme akışı yeniden kurulana kadar ÖLÜ; proje derlenir. `AddA2AServer(agent)` + `MapA2AJsonRpc` +
-  `MapWellKnownAgentCard` (`/.well-known/agent-card.json`). LLM yalnız tool sırasını kurar
-  (`get_installment_options` → `select_installment`); tutar/banka/kart üretmez (domain'den).
+  kalıcılık yok, stateless delivery adaptörü. **038: CANLANDI** (022 sökümündeki ölülük bitti):
+  ECommerce ChatAgent ödeme isteklerini A2A ile buraya gönderir (skill'ler: `quote-installments`
+  vault-token taksit, `charge_saved_card` çekim; `installment_quote` BIN skill'i kartta durur ama
+  arka tool'u yok — "yapılamıyor" döner). Payment.Agent Payment.Api `/mcp` tool'larını makine
+  token'ıyla (`AgentTokenHandler`, payment.write) çağırır. `AddA2AServer(agent)` + `MapA2AJsonRpc` +
+  `MapWellKnownAgentCard` (`/.well-known/agent-card.json`). LLM yalnız tool sırasını kurar;
+  tutar/kart/taksit/buyer ÜRETMEZ (A2A isteğinden ve domain'den gelir — 007 kuralı).
   Chat anahtarı agent config'inden (`OpenAI:ApiKey`/user-secrets). Tüm A2A/Agent Framework paketleri
   preview — `Directory.Packages.props`'ta pin.
 - `src/services/Payment.Api` — Payment BC (StoredCard/Payment aggregate + kart-saklama/çekim/taksit
-  slice'ları canlı). **037: `Iyzico.Provider` SDK SÖKÜLDÜ — her iyzico wire tipi kullanan slice'ın
-  İÇİNE nested taşındı** (base tip yok, düz camelCase JSON POCO; yanıtlar `Utils.ProviderResourceV2`'den
-  türer). Slice'ı açan iyzico çağrısını da orada görür (ChargePayment/TokenizeCard/RevokeCard/
-  InstallmentOptions). Transport engine (5 dosya: RestHttpClientV2/ProviderResourceV2/HashGeneratorV2/
+  slice'ları canlı). **038: `/mcp` yüzeyi GERİ KURULDU** (022 sökümü tersine): 2 tool —
+  `get_installment_options` (vault token + tutar) ve `charge_saved_card` (statü-kapılı çekim;
+  buyer GERÇEK müşteri A2A'dan gelir, sepet TEK SENTETİK kalem `IyzicoRequestOptions`'tan
+  sentezlenir). Tool'lar `PaymentMcpTools`'ta (aggregate kökü), YALNIZ `Features/Agents/`
+  `<X>ForAgent` slice'larını çağırır; `/mcp` policy `payment.write`, TEK tüketici Payment.Agent.
+  KART tool'u YOK (kart listeleme/seçim ECommerce cüzdanında; kart ekleme yalnız ekran→HTTP —
+  güvenlik kararı). `Domains/MerchantStatus/` — event-fed statü referansı (aggregate DEĞİL, 010
+  deseni): `MerchantLifecycleEventHandler` `merchant.lifecycle`'ı dinler (`payment.merchant-status`
+  kuyruğu, ProcessInline), `ChargeSavedCardForAgent` çekimden önce Active kontrolü yapar
+  (fail-closed — makine token'ı statü taşımaz, kapı gateway içinde). **037: `Iyzico.Provider` SDK
+  SÖKÜLDÜ — her iyzico wire tipi kullanan slice'ın İÇİNE nested taşındı** (base tip yok, düz
+  camelCase JSON POCO; yanıtlar `Utils.ProviderResourceV2`'den türer). Slice'ı açan iyzico
+  çağrısını da orada görür (ChargePayment/TokenizeCard/RevokeCard/InstallmentOptions + 038 Agent
+  slice'ları). Transport engine (5 dosya: RestHttpClientV2/ProviderResourceV2/HashGeneratorV2/
   ProviderConstants/ProviderOptions) `Utils/` altında tek kopya (ns `Payment.Api.Utils`) — süreç
   taşımaz, 4 slice ortak; feature'a gömülemez. **Sabit kural (037): handler metodu içinde Command/Query'den
   (kullanıcı) gelmeyen HİÇBİR değer literal yazılmaz** — locale/conversationId/kanal/grup/currency/itemType/

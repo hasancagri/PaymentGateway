@@ -16,6 +16,8 @@ public static class RabbitMqConstants
     {
         public const string Exchange = "merchant.lifecycle";
         public const string IdentityQueue = "identity.merchant-sync";
+        // 038: Payment BC statü referansı tüketimi (çekim statü kapısı — fail-closed).
+        public const string PaymentQueue = "payment.merchant-status";
     }
 
     // 013: komisyon grid-hazır fanout. Commission.Api yayınlar; Merchant.Api durable queue ile tüketir

@@ -1,4 +1,3 @@
-
 namespace Commission.Api.Dependencies;
 
 public static class DependencyExtensions

@@ -68,4 +68,20 @@ public class IyzicoRequestOptions
     /// <summary>Alıcı kimlik no öneki (ör. "BY-").</summary>
     [Required]
     public required string BuyerIdPrefix { get; set; }
+
+    // --- 038: sentetik tek sepet kalemi (kullanıcı kararı — A2A/MCP çekim isteği sepet TAŞIMAZ;
+    // iyzico'nun zorunlu basketItems alanı tek kalemle sentezlenir, price = istek tutarı.
+    // Buyer SENTEZLENMEZ — gerçek müşteri bilgisi istekle gelir.)
+
+    /// <summary>Sentetik sepet kaleminin id'si (ör. "BI-1").</summary>
+    [Required]
+    public required string BasketItemId { get; set; }
+
+    /// <summary>Sentetik sepet kaleminin adı (ör. "Sepet").</summary>
+    [Required]
+    public required string BasketItemName { get; set; }
+
+    /// <summary>Sentetik sepet kaleminin kategorisi (ör. "Genel").</summary>
+    [Required]
+    public required string BasketItemCategory { get; set; }
 }

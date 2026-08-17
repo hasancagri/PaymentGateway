@@ -21,8 +21,4 @@
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
-    <ItemGroup>
-      <Folder Include="Utils\Extensions\" />
-      <Folder Include="Utils\Helpers\" />
-    </ItemGroup>
 </Project>

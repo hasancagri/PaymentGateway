@@ -45,6 +45,16 @@ builder.Host.UseWolverine(opts =>
     opts.PublishMessage<Shared.IntegrationEvents.PaymentChargedEvent>()
         .ToRabbitExchange(RabbitMqConstants.PaymentCompleted.Exchange);
 
+    // 038: merchant.lifecycle tüketimi — statü referansı (çekim statü kapısı). Message store yok →
+    // ProcessInline + RabbitMQ redelivery (Identity.Server deseni). Handle(...) tekil ...Handler
+    // assembly taramasıyla keşfedilir (MerchantLifecycleEventHandler).
+    rabbit.DeclareExchange(RabbitMqConstants.MerchantLifecycle.Exchange,
+        e => { e.ExchangeType = ExchangeType.Fanout; });
+    rabbit.DeclareQueue(RabbitMqConstants.MerchantLifecycle.PaymentQueue);
+    rabbit.BindExchange(RabbitMqConstants.MerchantLifecycle.Exchange)
+        .ToQueue(RabbitMqConstants.MerchantLifecycle.PaymentQueue);
+    opts.ListenToRabbitQueue(RabbitMqConstants.MerchantLifecycle.PaymentQueue).ProcessInline();
+
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
 });
@@ -87,6 +97,13 @@ builder.Services.AddOptions<Payment.Api.Options.IyzicoRequestOptions>()
 builder.Services.AddSingleton<Payment.Api.Options.IyzicoRequestOptions>(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.IyzicoRequestOptions>>().Value);
 
+// 038: MCP server dirilişi (022'de sökülmüştü) — Payment.Agent'a ödeme tool'larını sunar
+// ([McpServerToolType]). Stateless HTTP (Merchant.Api 029 deseni).
+builder.Services
+    .AddMcpServer()
+    .WithHttpTransport(o => o.Stateless = true)
+    .WithToolsFromAssembly();
+
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -103,5 +120,9 @@ app.AddStoredCardGroupEndpointExtension(apiVersionSet);
 
 // 033: kayıtlı kartla ödeme uçları (merchants/{merchantId}/payments — payment.charge + MerchantScoped).
 app.AddPaymentGroupEndpointExtension(apiVersionSet);
+
+// 038: MCP endpoint (Streamable HTTP) — TEK tüketici Payment.Agent (makine token'ı, payment.write).
+// ChatAgent veya BC kodu buraya BAĞLANMAZ (016); çekim statü kapısı slice içinde (fail-closed).
+app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.PaymentWrite);
 
 await app.RunAsync();
