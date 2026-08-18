@@ -9,34 +9,39 @@ using DomainBasketItem = Payment.Api.Domains.Payments.ValueObjects.BasketItem;
 namespace Payment.Api.Domains.Payments.Features.Commands;
 
 /// <summary>
-/// 033 US1: kayıtlı kartla NonSecure çekim. Vault token → StoredCard (kiracı + Active kontrolü) →
-/// iyzico ödeme (cardToken/cardUserKey; CVC/PAN YOK). Başarıda Payment kaydı + PaymentChargedEvent
-/// (iyzico maliyeti); başarısızda Failed kaydı (olay yok). Efektif komisyon HESAPLANMAZ (Commission BC).
+/// 039: yapısal İDEMPOTENT çekim (ECom Order.Api server-to-server REST, X-Api-Key). 033'ün REST charge
+/// slice'ı buraya evrildi (başka çağıranı yoktu). İstek `correlationKey` taşır; sepet İSTEKLE GELMEZ
+/// (para-manipülasyon yüzeyi kapalı) — tek sentetik kalem sentezlenir. İdempotency: aynı key → var
+/// olan ödeme döner, iyzico'ya GİDİLMEZ (çift çekim yok). Kayıp-yanıt koruması: iyzico çağrısından
+/// ÖNCE Charging marker persist edilir (FR-012); retry marker'ı bulur. Statü kapısı: Active değilse
+/// fail-closed. Yanıt statüsü ECom sözleşmesi gereği LOWERCASE (success/failed/pending).
 /// </summary>
 public static class ChargePayment
 {
     public record BuyerInput(string Name, string Surname, string Email, string GsmNumber,
         string IdentityNumber, string RegistrationAddress, string City, string Country, string Ip);
 
-    public record BasketItemInput(string Id, string Name, string Category1, decimal Price);
+    // 039: istek gövdesi — correlationKey EKLENDİ, basketItems KALDIRILDI (sepet gateway'de sentezlenir).
+    public record ChargePaymentBody(
+        string CorrelationKey, string VaultToken, decimal Price, decimal PaidPrice, int Installment,
+        BuyerInput Buyer);
 
     public record ChargePaymentCommand(
-        Guid MerchantId, string VaultToken, decimal Price, decimal PaidPrice, int Installment,
-        BuyerInput Buyer, List<BasketItemInput> BasketItems);
+        Guid MerchantId, string CorrelationKey, string VaultToken, decimal Price, decimal PaidPrice,
+        int Installment, BuyerInput Buyer);
 
-    public record ChargePaymentBody(
-        string VaultToken, decimal Price, decimal PaidPrice, int Installment,
-        BuyerInput Buyer, List<BasketItemInput> BasketItems);
-
+    // 039: ECom PaymentReply eşleniği — Status LOWERCASE wire değeri (enum adı DEĞİL). CorrelationKey echo.
     public class ChargePaymentResponse
     {
         public Guid PaymentId { get; set; }
-        public string ProviderPaymentId { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty; // success / failed / pending
         public decimal Price { get; set; }
         public decimal PaidPrice { get; set; }
-        public int Installment { get; set; }
+        public string CorrelationKey { get; set; } = string.Empty;
     }
+
+    // Statü kapısı domain sözleşme değeri (merchant.lifecycle string'i — iyzico sabiti değil).
+    private const string ActiveStatus = "Active";
 
     // --- iyzico wire tipleri (bu slice'a ait; camelCase JSON, base tip yok) ---
 
@@ -112,7 +117,21 @@ public static class ChargePayment
             ChargePaymentCommand cmd, IDocumentSession session, Iyz.ProviderOptions providerOptions,
             IyzicoRequestOptions requestOptions, IMessageBus bus, CancellationToken ct)
         {
-            // Vault token → StoredCard: kiracı sınırı + Active (Revoked/yabancı reddi — FR-002).
+            // Statü kapısı (FR-009): referans yok veya Active değil → fail-closed (sağlayıcıya gidilmez).
+            var merchantStatus = await session.LoadAsync<MerchantStatusReference>(cmd.MerchantId, ct);
+            if (merchantStatus is null ||
+                !string.Equals(merchantStatus.Status, ActiveStatus, StringComparison.OrdinalIgnoreCase))
+                return FeatureObjectResultModel<ChargePaymentResponse>.Error(new MessageItem
+                { Property = nameof(cmd.MerchantId), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
+
+            // İdempotency (FR-002): aynı correlationKey'e bağlı ödeme varsa iyzico'ya GİTME, var olanı dön.
+            var existing = await session.Query<Payment>()
+                .Where(x => x.MerchantId == cmd.MerchantId && x.CorrelationKey == cmd.CorrelationKey)
+                .FirstOrDefaultAsync(ct);
+            if (existing is not null)
+                return FeatureObjectResultModel<ChargePaymentResponse>.Ok(MapResponse(existing));
+
+            // Vault token → StoredCard: kiracı sınırı + Active (Revoked/yabancı reddi).
             var card = await session.LoadAsync<StoredCard>(cmd.VaultToken, ct);
             if (card is null || card.MerchantId != cmd.MerchantId)
                 return FeatureObjectResultModel<ChargePaymentResponse>.Error(new MessageItem
@@ -121,7 +140,7 @@ public static class ChargePayment
                 return FeatureObjectResultModel<ChargePaymentResponse>.Error(new MessageItem
                 { Property = nameof(cmd.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
 
-            // HTTP Input DTO → domain VO (doğrulama). Geçersizse charge domain-sonucuyla reddedilir (035).
+            // HTTP Input DTO → domain VO (doğrulama) — buyer GERÇEK müşteri verisi (ECom'den verbatim).
             var buyerResult = DomainBuyer.Create(
                 cmd.Buyer.Name, cmd.Buyer.Surname, cmd.Buyer.Email, cmd.Buyer.GsmNumber,
                 cmd.Buyer.IdentityNumber, cmd.Buyer.RegistrationAddress, cmd.Buyer.City,
@@ -129,20 +148,42 @@ public static class ChargePayment
             if (!buyerResult.IsSuccess)
                 return FeatureObjectResultModel<ChargePaymentResponse>.Error(buyerResult.Messages);
 
-            var basketItems = new List<DomainBasketItem>();
-            foreach (var i in cmd.BasketItems)
-            {
-                var itemResult = DomainBasketItem.Create(i.Id, i.Name, i.Category1, i.Price);
-                if (!itemResult.IsSuccess)
-                    return FeatureObjectResultModel<ChargePaymentResponse>.Error(itemResult.Messages);
-                basketItems.Add(itemResult.Data!);
-            }
+            // Sentetik tek sepet kalemi (config) — sepet ECom'da yaşar, gateway'e taşınmaz (FR-008).
+            var itemResult = DomainBasketItem.Create(
+                requestOptions.BasketItemId, requestOptions.BasketItemName,
+                requestOptions.BasketItemCategory, cmd.Price);
+            if (!itemResult.IsSuccess)
+                return FeatureObjectResultModel<ChargePaymentResponse>.Error(itemResult.Messages);
 
             var addressResult = DomainAddress.FromBuyer(buyerResult.Data!);
             if (!addressResult.IsSuccess)
                 return FeatureObjectResultModel<ChargePaymentResponse>.Error(addressResult.Messages);
 
-            var request = BuildRequest(cmd, card, buyerResult.Data!, addressResult.Data!, basketItems, requestOptions);
+            // FR-012: iyzico ÖNCESİ Charging marker persist (kayıp-yanıtta retry bunu bulur, tekrar çekmez).
+            var beginResult = Payment.Begin(
+                cmd.MerchantId, cmd.VaultToken, cmd.CorrelationKey, cmd.Price, cmd.PaidPrice, cmd.Installment);
+            if (!beginResult.IsSuccess)
+                return FeatureObjectResultModel<ChargePaymentResponse>.Error(beginResult.Messages);
+
+            var payment = beginResult.Data!;
+            session.Store(payment);
+            try
+            {
+                await session.SaveChangesAsync(ct); // marker'ı sağlayıcı çağrısından ÖNCE commit et
+            }
+            catch
+            {
+                // Yarış (FR-003): eşzamanlı istek aynı key'i yazdı (unique index) → var olanı dön, çekme.
+                session.Eject(payment); // [Transactional] auto-save çakışan insert'i tekrar denemesin
+                var raced = await session.Query<Payment>()
+                    .Where(x => x.MerchantId == cmd.MerchantId && x.CorrelationKey == cmd.CorrelationKey)
+                    .FirstOrDefaultAsync(ct);
+                if (raced is not null)
+                    return FeatureObjectResultModel<ChargePaymentResponse>.Ok(MapResponse(raced));
+                throw;
+            }
+
+            var request = BuildRequest(cmd, card, buyerResult.Data!, addressResult.Data!, itemResult.Data!, requestOptions);
 
             PaymentResult iyzicoPayment;
             try
@@ -153,59 +194,53 @@ public static class ChargePayment
             }
             catch
             {
-                await StoreFailed(cmd, session);
-                return FeatureObjectResultModel<ChargePaymentResponse>.Error(new MessageItem
-                { Property = nameof(cmd.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
+                payment.Fail();
+                session.Store(payment);
+                return FeatureObjectResultModel<ChargePaymentResponse>.Ok(MapResponse(payment));
             }
 
             if (iyzicoPayment is null || iyzicoPayment.Status != requestOptions.SuccessStatus ||
                 string.IsNullOrWhiteSpace(iyzicoPayment.PaymentId))
             {
-                await StoreFailed(cmd, session);
-                return FeatureObjectResultModel<ChargePaymentResponse>.Error(new MessageItem
-                { Property = nameof(cmd.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
+                payment.Fail();
+                session.Store(payment);
+                return FeatureObjectResultModel<ChargePaymentResponse>.Ok(MapResponse(payment));
             }
 
-            var result = Payment.Succeeded(
-                cmd.MerchantId, cmd.VaultToken, cmd.Price, cmd.PaidPrice, cmd.Installment,
+            var succeedResult = payment.Succeed(
                 iyzicoPayment.PaymentId, iyzicoPayment.IyziCommissionRateAmount ?? string.Empty,
                 iyzicoPayment.IyziCommissionFee ?? string.Empty);
-            if (!result.IsSuccess)
-                return FeatureObjectResultModel<ChargePaymentResponse>.Error(result.Messages);
-
-            var payment = result.Data!;
+            if (!succeedResult.IsSuccess)
+                return FeatureObjectResultModel<ChargePaymentResponse>.Error(succeedResult.Messages);
             session.Store(payment);
 
-            // [Transactional] outbox: yayın yalnız DB commit'te gider (FR-005).
+            // [Transactional] outbox: yayın yalnız DB commit'te gider.
             await bus.PublishAsync(new Shared.IntegrationEvents.PaymentChargedEvent(
                 payment.Id, payment.MerchantId, payment.Price, payment.PaidPrice, payment.Installment,
                 payment.ProviderCommission, payment.ProviderFee, payment.ProviderPaymentId));
 
-            return FeatureObjectResultModel<ChargePaymentResponse>.Ok(new ChargePaymentResponse
-            {
-                PaymentId = payment.Id,
-                ProviderPaymentId = payment.ProviderPaymentId,
-                Status = payment.Status.ToString(),
-                Price = payment.Price,
-                PaidPrice = payment.PaidPrice,
-                Installment = payment.Installment
-            });
+            return FeatureObjectResultModel<ChargePaymentResponse>.Ok(MapResponse(payment));
         }
 
-        private static async Task StoreFailed(ChargePaymentCommand cmd, IDocumentSession session)
+        // Domain durumu → ECom wire yanıtı. Status LOWERCASE (ECom Map success/failed/pending bekler).
+        private static ChargePaymentResponse MapResponse(Payment p) => new()
         {
-            var failed = Payment.Failed(cmd.MerchantId, cmd.VaultToken, cmd.Price, cmd.Installment);
-            if (failed.IsSuccess)
+            PaymentId = p.Id,
+            Status = p.Status switch
             {
-                session.Store(failed.Data!);
-                await session.SaveChangesAsync();
-            }
-        }
+                PaymentStatus.Success => "success",
+                PaymentStatus.Failed => "failed",
+                _ => "pending" // Charging → belirsiz, ECom reconcile eder
+            },
+            Price = p.Price,
+            PaidPrice = p.PaidPrice,
+            CorrelationKey = p.CorrelationKey ?? string.Empty
+        };
 
         // Domain VO → wire DTO (anti-corruption sınır, 035). Sabitler config'ten (requestOptions).
         private static CreatePaymentRequest BuildRequest(
             ChargePaymentCommand cmd, StoredCard card, DomainBuyer buyer, DomainAddress address,
-            List<DomainBasketItem> basketItems, IyzicoRequestOptions opt)
+            DomainBasketItem basketItem, IyzicoRequestOptions opt)
         {
             var inv = CultureInfo.InvariantCulture;
             var merchantShort = cmd.MerchantId.ToString("N")[..8];
@@ -240,14 +275,17 @@ public static class ChargePayment
                 },
                 ShippingAddress = ToWireAddress(address),
                 BillingAddress = ToWireAddress(address),
-                BasketItems = basketItems.Select(i => new BasketItem
-                {
-                    Id = i.Id,
-                    Name = i.Name,
-                    Category1 = i.Category1,
-                    ItemType = opt.ItemType,
-                    Price = i.Price.ToString(inv)
-                }).ToList()
+                BasketItems =
+                [
+                    new BasketItem
+                    {
+                        Id = basketItem.Id,
+                        Name = basketItem.Name,
+                        Category1 = basketItem.Category1,
+                        ItemType = opt.ItemType,
+                        Price = basketItem.Price.ToString(inv)
+                    }
+                ]
             };
         }
 
@@ -270,13 +308,14 @@ public static class ChargePaymentEndpoint
                 {
                     var result = await bus.InvokeAsync<FeatureObjectResultModel<ChargePayment.ChargePaymentResponse>>(
                         new ChargePayment.ChargePaymentCommand(
-                            merchantId, body.VaultToken, body.Price, body.PaidPrice, body.Installment,
-                            body.Buyer, body.BasketItems));
+                            merchantId, body.CorrelationKey, body.VaultToken, body.Price, body.PaidPrice,
+                            body.Installment, body.Buyer));
                     return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
                 })
             .WithName("ChargePayment")
             .MapToApiVersion(1, 0)
-            .RequireAuthorization(AuthorizationScopes.PaymentCharge, AuthorizationPolicies.MerchantScoped)
+            // 039: X-Api-Key şeması + merchant_id claim == route {merchantId} (JWT scope DEĞİL).
+            .RequireAuthorization(AuthorizationPolicies.MerchantApiKey)
             .Produces<ChargePayment.ChargePaymentResponse>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 

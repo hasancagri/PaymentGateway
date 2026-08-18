@@ -19,6 +19,16 @@ builder.Services.AddMarten(opts =>
         opts.Schema.For<StoredCard>()
             .Identity(x => x.Token)
             .Index(x => x.MerchantId);
+
+        // 039: yapısal çekim idempotency — correlationKey unique (Postgres UNIQUE çoklu NULL'a izin
+        // verir → key'siz agent/eski charge kayıtları çakışmaz). MerchantId index retrieve filtresi için.
+        opts.Schema.For<global::Payment.Api.Domains.Payments.Payment>()
+            .Duplicate(x => x.CorrelationKey!, configure: idx => idx.IsUnique = true)
+            .Index(x => x.MerchantId);
+
+        // 039: X-Api-Key auth lookup — merchant API key hash'i (kiracı-içi tekil).
+        opts.Schema.For<MerchantApiKeyReference>()
+            .Index(x => x.KeyHash, idx => idx.IsUnique = true);
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -76,6 +86,21 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     AuthorizationScopes.CardsWrite,
     // 033: çekim düzlemi — Active merchant charge capability.
     AuthorizationScopes.PaymentCharge);
+
+// 039: yapısal çekim/retrieve X-Api-Key şeması — JWT'nin YANINA eklenir (additive). Header yoksa
+// NoResult → JWT şeması denenir. Merchant key SHA-256 → MerchantApiKeyReference lookup → merchant_id claim.
+builder.Services.AddAuthentication()
+    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
+        ApiKeyAuthenticationHandler.SchemeName, null);
+// Policy: ApiKey şeması + mevcut MerchantScopeRequirement (claim == route {merchantId}).
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AuthorizationPolicies.MerchantApiKey, policy =>
+    {
+        policy.AuthenticationSchemes.Add(ApiKeyAuthenticationHandler.SchemeName);
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new Common.Utils.Authorization.MerchantScopeRequirement());
+    });
+
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 

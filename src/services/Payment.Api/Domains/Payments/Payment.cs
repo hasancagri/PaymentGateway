@@ -21,6 +21,12 @@ public class Payment : AggregateRoot
     /// <summary>Çekimde kullanılan kayıtlı kart token'ı (032 vault).</summary>
     public string VaultToken { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// 039: yapısal çekimin idempotency + retrieve anahtarı (Order.Api üretir, opak HMAC hex). Kiracı-içi
+    /// tekil (unique partial index). Agent/eski charge yolunda null (bu yollar key taşımaz).
+    /// </summary>
+    public string? CorrelationKey { get; private set; }
+
     /// <summary>Sepet tutarı.</summary>
     public decimal Price { get; private set; }
 
@@ -104,6 +110,82 @@ public class Payment : AggregateRoot
             Status = PaymentStatus.Failed
         });
     }
+
+    /// <summary>
+    /// 039 yapısal çekim: sağlayıcı çağrısından ÖNCE yazılan idempotency marker'ı. Charging doğar,
+    /// correlationKey taşır (unique partial index). Retry bu kaydı bulup tekrar tahsil etmez (FR-012).
+    /// Zorunlu: merchantId, vaultToken, correlationKey.
+    /// </summary>
+    /// <remarks>Handler: ChargePaymentCommandHandler</remarks>
+    public static ResultDomain<Payment> Begin(
+        Guid merchantId, string vaultToken, string correlationKey,
+        decimal price, decimal paidPrice, int installment)
+    {
+        if (merchantId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(vaultToken) ||
+            string.IsNullOrWhiteSpace(correlationKey))
+        {
+            return ResultDomain<Payment>.Error(new MessageItem
+            {
+                Property = nameof(correlationKey),
+                Code = CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED
+            });
+        }
+
+        return ResultDomain<Payment>.Ok(new Payment
+        {
+            MerchantId = merchantId,
+            VaultToken = vaultToken.Trim(),
+            CorrelationKey = correlationKey.Trim(),
+            Price = price,
+            PaidPrice = paidPrice,
+            Installment = installment,
+            Status = PaymentStatus.Charging
+        });
+    }
+
+    /// <summary>
+    /// 039: Charging marker'ı Success'e taşır (iyzico başarılı) — sağlayıcı kimliği + maliyet. Yalnız
+    /// Charging'den geçilir (terminal kayıt tekrar mutate edilmez). Zorunlu: providerPaymentId.
+    /// </summary>
+    /// <remarks>Handler: ChargePaymentCommandHandler</remarks>
+    public ResultDomain Succeed(string providerPaymentId, string providerCommission, string providerFee)
+    {
+        if (Status != PaymentStatus.Charging || string.IsNullOrWhiteSpace(providerPaymentId))
+        {
+            return ResultDomain.Error(new MessageItem
+            {
+                Property = nameof(providerPaymentId),
+                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR
+            });
+        }
+
+        ProviderPaymentId = providerPaymentId.Trim();
+        ProviderCommission = (providerCommission ?? string.Empty).Trim();
+        ProviderFee = (providerFee ?? string.Empty).Trim();
+        Status = PaymentStatus.Success;
+        return ResultDomain.Ok();
+    }
+
+    /// <summary>
+    /// 039: Charging marker'ı Failed'e taşır (iyzico başarısız/hata) — denetim izi kalır (kayıt silinmez).
+    /// Yalnız Charging'den geçilir.
+    /// </summary>
+    /// <remarks>Handler: ChargePaymentCommandHandler</remarks>
+    public ResultDomain Fail()
+    {
+        if (Status != PaymentStatus.Charging)
+        {
+            return ResultDomain.Error(new MessageItem
+            {
+                Property = nameof(Status),
+                Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR
+            });
+        }
+
+        Status = PaymentStatus.Failed;
+        return ResultDomain.Ok();
+    }
 }
 
 /// <summary>
@@ -112,5 +194,7 @@ public class Payment : AggregateRoot
 public enum PaymentStatus
 {
     Success = 1,
-    Failed = 2
+    Failed = 2,
+    // 039: yapısal çekim marker'ı — iyzico çağrısından önce persist; başarıda Success, hatada Failed.
+    Charging = 3
 }
