@@ -64,9 +64,11 @@ Altyapı (BC değil): `Identity.Server` (OpenIddict IdP), `Gateway` (YARP), `Mai
 - **`StoredCard`** — iyzico Saklı Kart tokenizasyon. **Model A**: PAN gateway'de saklanmaz; iyzico'ya iletilir,
   dönen `cardUserKey`+`cardToken` (opak) saklanır. CVC sözleşmede yok. Slice'lar: **`TokenizeCard`** (sakla →
   yalnız opak token döner), **`RevokeCard`** (iyzico'dan sil best-effort + yerel soft iptal, fail-open).
-- **`Payment`** — kayıtlı kartla NonSecure çekim. Slice'lar: **`ChargePayment`** (vault token → StoredCard
-  kiracı+Active kontrolü → iyzico çekim → başarıda `Payment` + `PaymentChargedEvent`, başarısızda `Failed`),
-  **`InstallmentOptions`** (BIN + tutar → iyzico taksit seçenekleri; ödeme öncesi, oturum açmaz).
+- **`Payment`** — kayıtlı kartla NonSecure çekim. Slice'lar: **`ChargePayment`** (**039**: yapısal
+  idempotent çekim — vault token → StoredCard kiracı+Active → **Charging marker (iyzico ÖNCESİ persist)**
+  → iyzico → `Succeed`/`Fail`; başarıda `PaymentChargedEvent`), **`RetrievePayment`** (039: by-key + by-id
+  okuma), **`InstallmentOptions`** (BIN + tutar → iyzico taksit seçenekleri; ödeme öncesi, oturum açmaz).
+  Durum makinesi: `Begin`→`Charging`→`Succeed`/`Fail` (eski `Succeeded`/`Failed` factory'ler agent-path'te kalır).
 
 ### API
 
@@ -74,10 +76,13 @@ Altyapı (BC değil): `Identity.Server` (OpenIddict IdP), `Gateway` (YARP), `Mai
 |-------|-----|-------|-------|
 | `POST` | `…/merchants/{merchantId}/vault/cards` | TokenizeCard | `cards.write` + `MerchantScoped` |
 | `DELETE` | `…/vault/cards/{token}` | RevokeCard | `cards.write` + `MerchantScoped` |
-| `POST` | `…/merchants/{merchantId}/payments` | ChargePayment | `payment.charge` + `MerchantScoped` |
+| `POST` | `…/merchants/{merchantId}/payments` | ChargePayment (039) | **`X-Api-Key`** + `MerchantApiKey` |
+| `GET` | `…/merchants/{merchantId}/payments?correlationKey=` | RetrievePayment by-key (039) | `X-Api-Key` + `MerchantApiKey` |
+| `GET` | `…/merchants/{merchantId}/payments/{paymentId}` | RetrievePayment by-id (039) | `X-Api-Key` + `MerchantApiKey` |
 | `POST` | `…/payments/installment-options` | InstallmentOptions | `payment.charge` + `MerchantScoped` |
 
-(Tümü `api/v{version}/` altında; kart-saklama/çekim yalnız **Active** merchant token'ında.)
+(Tümü `api/v{version}/` altında; kart-saklama/çekim yalnız **Active** merchant token'ında. 039 çekim/retrieve
+JWT değil **merchant API key** ile kimliklenir — bkz. aşağı.)
 
 ### iyzico wire yapısı (037 — `Iyzico.Provider` SDK söküldü)
 
@@ -98,6 +103,24 @@ Paylaşılan `Iyzico.Provider` SDK'sı **silindi**. Yeni yapı:
 - Domain-uygun 4 VO (`Buyer`/`Address`/`BasketItem` → Payments, `CardInformation` → StoredCards)
   `Domains/<Aggregate>/ValueObjects/`'ta; handler VO'dan slice-nested wire'a map'ler (anti-corruption sınır).
   `CardAssociationMapper` `Domains/StoredCards/`'da. Merchant/Commission iyzico wire kullanmaz.
+
+### Yapısal idempotent çekim + retrieve (039)
+
+ECom Order.Api'nin (feature `039-chat-order-completion`) tükettiği **server-to-server** yüzey. Chat'ten
+uçtan uca sipariş: agent değil, Order.Api durable akışı çeker (İlke I — agent-olmayan kod A2A/MCP süremez).
+
+- **İdempotency (Charging marker):** istek bir opak `correlationKey` taşır (ECom'un HMAC hex'i; PG için
+  anlamsız, salt tekillik+arama anahtarı). iyzico çağrısından **ÖNCE** `Charging` kaydı persist edilir
+  (`correlationKey` unique index) → kayıp-yanıt retry marker'ı bulur, **tekrar çekmez**. Aynı key ile
+  ikinci istek var olan ödemeyi döner (Success/Failed) veya `pending` (Charging). Yarış = unique-violation
+  → `Eject` + reload. Neden marker: **iyzico `conversationId` idempotency GARANTİ ETMEZ** → dedupe PG'de.
+- **Sepet istekle gelmez** — para tutarı `price`'ta; iyzico'nun zorunlu tuttuğu sepet tek satır sentezlenir.
+- **Retrieve** — verify (sipariş öncesi) + reconcile (kayıp-yanıt) için `correlationKey` **veya** `paymentId`
+  ile okuma; kiracı-sınırlı; bilinmeyen anahtar → **404**. Yanıt statüsü wire **lowercase** (success/failed/pending).
+- **Auth — X-Api-Key (merchant key):** JWT değil; ECom statik `X-Api-Key` header'ı taşır. `MerchantKey`
+  ikili amaç (OAuth ClientSecret + X-Api-Key). Payment.Api `MerchantApiKeyReference{Id, KeyHash}` tutar
+  (SHA-256, `merchant.lifecycle` event'ten beslenir — yeni ihraç yok). `ApiKeyAuthenticationHandler`
+  `merchant_id` claim'i set eder → mevcut `MerchantScoped` policy (claim==route) **değişmeden** çalışır.
 
 ## Merchant BC — onboarding + merchant CRUD
 
