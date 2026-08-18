@@ -15,6 +15,7 @@ public static class PaymentEndpointExtension
             .WithTags("payments")
             .WithApiVersionSet(apiVersionSet)
             .ChargePaymentGroupItemEndpoint()
+            .RetrievePaymentGroupItemEndpoint()
             .InstallmentOptionsGroupItemEndpoint();
     }
 }
