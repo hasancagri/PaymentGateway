@@ -66,7 +66,7 @@ implementasyondan ÖNCE. Handler/auth/endpoint: test-sonra / canlı doğrulama.
 
 - [X] T018 [P] Tüm domain testleri yeşil (`dotnet test tests/Payment.Api.Tests`); `dotnet build` temiz
 - [ ] T019 Canlı S3/S4 (çift tetik → tek çekim; yanıt kaybı → retrieve kurtarma) ECom ile uçtan uca
-- [ ] T020 README/docs — feature kapanınca (039 yapısal çekim yüzeyi)
+- [X] T020 README/docs — 039 yapısal çekim/retrieve yüzeyi (Payment BC bölümü)
 
 ---
 
