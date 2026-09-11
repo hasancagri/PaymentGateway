@@ -122,8 +122,8 @@ builder.Services.AddOptions<Payment.Api.Options.IyzicoRequestOptions>()
 builder.Services.AddSingleton<Payment.Api.Options.IyzicoRequestOptions>(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.IyzicoRequestOptions>>().Value);
 
-// 038: MCP server dirilişi (022'de sökülmüştü) — Payment.Agent'a ödeme tool'larını sunar
-// ([McpServerToolType]). Stateless HTTP (Merchant.Api 029 deseni).
+// 038: MCP server dirilişi (022'de sökülmüştü) — dış MCP istemcisine (BYO-agent) ödeme tool'larını
+// sunar ([McpServerToolType]). Stateless HTTP (Merchant.Api 029 deseni).
 builder.Services
     .AddMcpServer()
     .WithHttpTransport(o => o.Stateless = true)
@@ -146,8 +146,8 @@ app.AddStoredCardGroupEndpointExtension(apiVersionSet);
 // 033: kayıtlı kartla ödeme uçları (merchants/{merchantId}/payments — payment.charge + MerchantScoped).
 app.AddPaymentGroupEndpointExtension(apiVersionSet);
 
-// 038: MCP endpoint (Streamable HTTP) — TEK tüketici Payment.Agent (makine token'ı, payment.write).
-// ChatAgent veya BC kodu buraya BAĞLANMAZ (016); çekim statü kapısı slice içinde (fail-closed).
+// 038: MCP endpoint (Streamable HTTP) — tüketici dış MCP istemcisi (BYO-agent, payment.write).
+// BC kodu buraya BAĞLANMAZ (016); çekim statü kapısı slice içinde (fail-closed).
 app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.PaymentWrite);
 
 await app.RunAsync();

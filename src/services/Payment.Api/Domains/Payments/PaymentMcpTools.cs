@@ -5,9 +5,9 @@ using Payment.Api.Domains.Payments.Features.Agents;
 namespace Payment.Api.Domains.Payments;
 
 // 038: MCP tool'ları ince sarmalayıcıdır ve YALNIZ Features/Agents slice'larını IMessageBus ile
-// çağırır (015/016). Tool adları DIŞ SÖZLEŞMEDİR — Payment.Agent RouterInstructions bu adları
-// bekler (get_installment_options, charge_saved_card); değiştirme. Yüzey: /mcp, payment.write;
-// TEK tüketici Payment.Agent (makine token'ı).
+// çağırır (015/016). Tool adları DIŞ SÖZLEŞMEDİR — MCP istemcisi bu adları bekler
+// (get_installment_options, charge_saved_card); değiştirme. Yüzey: /mcp, payment.write;
+// tüketici dış MCP istemcisi (BYO-agent, ör. Claude desktop). Payment.Agent söküldü.
 
 /// <summary>US1 — kayıtlı kart (vault token) + tutar için taksit seçenekleri (READ-ONLY).</summary>
 [McpServerToolType]
