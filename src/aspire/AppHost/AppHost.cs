@@ -63,15 +63,6 @@ var commissionApi = builder.AddProject<Projects.Commission_Api>("commission-api"
     .WaitFor(rabbit)
     .WaitFor(identityServer);
 
-// 007 A2A: Payment.Agent — A2A host + LLM router + MCP client. BC değil, stateless delivery
-// adaptörü. payment-api'nin MCP endpoint'ini (http://payment-api/mcp) service discovery ile bulur.
-// Chat model anahtarı agent'ın kendi config'inden (OpenAI:ApiKey / user-secrets) — ECommerce deseni.
-builder.AddProject<Projects.Payment_Agent>("payment-agent")
-    .WithReference(paymentApi)
-    .WithReference(identityServer)
-    .WaitFor(paymentApi)
-    .WaitFor(identityServer);
-
 // 013: Identity aktivasyon sayfası Merchant.Api redeem'i senkron çağırır (sanksiyonlu). Service
 // discovery için referans (WaitFor YOK → merchant-api zaten identity'yi beklediğinden döngü olmaz).
 identityServer.WithReference(merchantApi);
