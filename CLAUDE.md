@@ -11,11 +11,10 @@ kod standartları, servisler-arası desenler orada (ECom'dan devralındı). Bu d
 **iyzico ödeme gateway'i** (eski adı DropShop; 021-022 pivotuyla iyzico ödeme kanalına döndü).
 Üç BC + destekleyen altyapı; her iş kendi spec döngüsüyle (`specs/<NNN>/`).
 
-- **Payment** — kart-saklama (StoredCard) + çekim + taksit; iyzico V2 wire (JSON+HMAC). `/mcp` yüzeyi
-  (2 tool: taksit + kayıtlı-kart çekim); tüketici dış MCP istemcisi (BYO-agent, ör. Claude desktop).
-  **040: store 075 hosted kart-vault** — `/vault/card-sessions` (hosted form, PAN uğramaz) + `/vault/cards`
-  (handle liste/sil), `cards.write`+merchant_id claim; eski PAN-POST `TokenizeCard` SÖKÜLDÜ. S2S charge
-  handle-based NON-3D taksitsiz (`userHandle`+`cardHandle`).
+- **Payment** — **041: kart-saklama + charge + taksit SÖKÜLDÜ** (kart yönünden vazgeçildi; iyzico ödemesiz-
+  hosted-save yok). StoredCard/CardSession/ChargePayment/RetrievePayment/InstallmentOptions/PaymentMcpTools/
+  Payment aggregate kaldırıldı. KALAN: iyzico V2 wire (`Utils/*V2` — hosted-CF ödemede repurpose) +
+  MerchantStatus + ApiKey auth; `/mcp` tool'suz durur. Ödeme yönü hosted-CF (sonraki spec — ödeme linki).
 - **Merchant** — gateway müşterisi SİTE (pazaryeri/split DEĞİL); iyzico SubMerchant sözleşmesiyle hizalı
   alan seti + statü makinesi. OAuth istemci düzlemi (aşağıda).
 - **Commission** — komisyon politikası (iyzico maliyeti + marj).
@@ -49,7 +48,7 @@ Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel
 
 | Servis | DB | Ne yapar | Origin spec |
 |---|---|---|---|
-| `Payment.Api` | paymentDb | StoredCard + Payment; iyzico V2 çekim/tokenize/taksit; `/mcp` (dış MCP istemcisi) | `specs/022-iyzico-payment-channel` |
+| `Payment.Api` | paymentDb | **041: kart-vault + charge + taksit söküldü** (kart yönünden vazgeçildi); kalan iyzico V2 wire (hosted-CF için) + MerchantStatus; ödeme yönü hosted-CF (sonraki spec) | `specs/022-iyzico-payment-channel` |
 | `Merchant.Api` | merchantDb | Merchant aggregate (SubMerchant hizalı); statü makinesi; `MerchantCreated`/`StatusChanged` outbox | `specs/023-merchant-submerchant-model` |
 | `Commission.Api` | commissionDb | CommissionPolicy (iyzico maliyeti + marj) | `specs/024-commission-cost-margin` |
 | `identity-server` | identityDb | M2M OpenIddict (client_credentials); scope + merchant OAuth istemci düzlemi | `specs/011-openiddict-migration` |
