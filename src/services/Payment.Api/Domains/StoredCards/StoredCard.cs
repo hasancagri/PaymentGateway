@@ -47,7 +47,7 @@ public class StoredCard : AggregateRoot
     /// iyzico Saklı Kart çağrısı handler'da yapılır, bu fabrika dönen kimlikleri + gösterim alanlarını
     /// sarar. Zorunlu: merchantId, cardUserKey, cardToken. Opak token üretir, <see cref="StoredCardStatus.Active"/> doğar.
     /// </summary>
-    /// <remarks>Handler: TokenizeCardCommandHandler</remarks>
+    /// <remarks>Handler: CompleteCardSessionCommandHandler (040 — hosted form retrieve sonrası)</remarks>
     public static ResultDomain<StoredCard> Create(
         Guid merchantId,
         string cardUserKey,
@@ -85,7 +85,7 @@ public class StoredCard : AggregateRoot
     }
 
     /// <summary>Kartı soft iptal eder (fiziksel durur). Idempotent: zaten Revoked → Ok.</summary>
-    /// <remarks>Handler: RevokeCardCommandHandler</remarks>
+    /// <remarks>Handler: DeleteCardCommandHandler (040 — handle ile silme)</remarks>
     public ResultDomain Revoke()
     {
         if (Status == StoredCardStatus.Revoked)
