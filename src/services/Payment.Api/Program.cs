@@ -15,24 +15,10 @@ builder.Services.AddMarten(opts =>
                 s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
             });
 
-        // 031: kayıtlı kart (vault) — kimlik opak Token (string; Guid Id değil), merchant-scoped index.
-        opts.Schema.For<StoredCard>()
-            .Identity(x => x.Token)
-            .Index(x => x.MerchantId);
-
-        // 039: yapısal çekim idempotency — correlationKey unique (Postgres UNIQUE çoklu NULL'a izin
-        // verir → key'siz agent/eski charge kayıtları çakışmaz). MerchantId index retrieve filtresi için.
-        opts.Schema.For<global::Payment.Api.Domains.Payments.Payment>()
-            .Duplicate(x => x.CorrelationKey!, configure: idx => idx.IsUnique = true)
-            .Index(x => x.MerchantId);
-
-        // 039: X-Api-Key auth lookup — merchant API key hash'i (kiracı-içi tekil).
+        // 076: StoredCard + Payment + CardSession şemaları SÖKÜLDÜ (kart-vault + charge kaldırıldı).
+        // X-Api-Key auth lookup — merchant API key hash'i (kiracı-içi tekil). KALIR (MerchantStatus).
         opts.Schema.For<MerchantApiKeyReference>()
             .Index(x => x.KeyHash, idx => idx.IsUnique = true);
-
-        // 040: hosted kart-ekleme korelasyon oturumu — Id = conversationId (Guid); merchant index.
-        opts.Schema.For<Payment.Api.Domains.StoredCards.CardSession>()
-            .Index(x => x.MerchantId);
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -144,14 +130,8 @@ var apiVersionSet = app.NewApiVersionSet()
     .ReportApiVersions()
     .Build();
 
-// 031: kart kasası uçları (merchants/{merchantId}/vault/cards — cards.write + MerchantScoped).
-app.AddCardVaultEndpointExtension(apiVersionSet);
-
-// 033: kayıtlı kartla ödeme uçları (merchants/{merchantId}/payments — payment.charge + MerchantScoped).
-app.AddPaymentGroupEndpointExtension(apiVersionSet);
-
-// 038: MCP endpoint (Streamable HTTP) — tüketici dış MCP istemcisi (BYO-agent, payment.write).
-// BC kodu buraya BAĞLANMAZ (016); çekim statü kapısı slice içinde (fail-closed).
+// 076: kart-vault + saved-card ödeme uçları SÖKÜLDÜ (card-storage teardown). Hosted-CF ödeme yüzeyi
+// sonraki spec'te eklenecek (iyzico CF wire Utils'te durur). MCP endpoint kalır (şimdilik tool'suz).
 app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.PaymentWrite);
 
 await app.RunAsync();
