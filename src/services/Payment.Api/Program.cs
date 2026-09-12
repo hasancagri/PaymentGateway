@@ -29,6 +29,10 @@ builder.Services.AddMarten(opts =>
         // 039: X-Api-Key auth lookup — merchant API key hash'i (kiracı-içi tekil).
         opts.Schema.For<MerchantApiKeyReference>()
             .Index(x => x.KeyHash, idx => idx.IsUnique = true);
+
+        // 040: hosted kart-ekleme korelasyon oturumu — Id = conversationId (Guid); merchant index.
+        opts.Schema.For<Payment.Api.Domains.StoredCards.CardSession>()
+            .Index(x => x.MerchantId);
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -141,7 +145,7 @@ var apiVersionSet = app.NewApiVersionSet()
     .Build();
 
 // 031: kart kasası uçları (merchants/{merchantId}/vault/cards — cards.write + MerchantScoped).
-app.AddStoredCardGroupEndpointExtension(apiVersionSet);
+app.AddCardVaultEndpointExtension(apiVersionSet);
 
 // 033: kayıtlı kartla ödeme uçları (merchants/{merchantId}/payments — payment.charge + MerchantScoped).
 app.AddPaymentGroupEndpointExtension(apiVersionSet);

@@ -41,6 +41,18 @@ public class IyzicoRequestOptions
     [Required]
     public required string CardStoragePath { get; set; }
 
+    /// <summary>040: Saklı Kart LİSTE uç yolu — BaseUrl'e eklenir (ör. "/cardstorage/cards").</summary>
+    [Required]
+    public required string CardListPath { get; set; }
+
+    /// <summary>040: Checkout Form BAŞLAT uç yolu (hosted kart-kaydet) — ör. "/payment/iyzipos/checkoutform/initialize/auth/ecom".</summary>
+    [Required]
+    public required string CheckoutFormInitializePath { get; set; }
+
+    /// <summary>040: Checkout Form SONUÇ (retrieve) uç yolu — ör. "/payment/iyzipos/checkoutform/auth/ecom/detail".</summary>
+    [Required]
+    public required string CheckoutFormRetrievePath { get; set; }
+
     /// <summary>Taksit sorgu uç yolu — BaseUrl'e eklenir (ör. "/payment/iyzipos/installment").</summary>
     [Required]
     public required string InstallmentPath { get; set; }

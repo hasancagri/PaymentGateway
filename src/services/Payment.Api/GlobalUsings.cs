@@ -31,3 +31,4 @@ global using Shared;
 global using System.ComponentModel;
 global using Wolverine.RabbitMQ;
 global using System.Globalization;
+global using Payment.Api.Constants;

@@ -13,6 +13,9 @@ kod standartları, servisler-arası desenler orada (ECom'dan devralındı). Bu d
 
 - **Payment** — kart-saklama (StoredCard) + çekim + taksit; iyzico V2 wire (JSON+HMAC). `/mcp` yüzeyi
   (2 tool: taksit + kayıtlı-kart çekim); tüketici dış MCP istemcisi (BYO-agent, ör. Claude desktop).
+  **040: store 075 hosted kart-vault** — `/vault/card-sessions` (hosted form, PAN uğramaz) + `/vault/cards`
+  (handle liste/sil), `cards.write`+merchant_id claim; eski PAN-POST `TokenizeCard` SÖKÜLDÜ. S2S charge
+  handle-based NON-3D taksitsiz (`userHandle`+`cardHandle`).
 - **Merchant** — gateway müşterisi SİTE (pazaryeri/split DEĞİL); iyzico SubMerchant sözleşmesiyle hizalı
   alan seti + statü makinesi. OAuth istemci düzlemi (aşağıda).
 - **Commission** — komisyon politikası (iyzico maliyeti + marj).

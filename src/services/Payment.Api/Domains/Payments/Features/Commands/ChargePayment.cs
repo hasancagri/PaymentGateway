@@ -21,14 +21,15 @@ public static class ChargePayment
     public record BuyerInput(string Name, string Surname, string Email, string GsmNumber,
         string IdentityNumber, string RegistrationAddress, string City, string Country, string Ip);
 
-    // 039: istek gövdesi — correlationKey EKLENDİ, basketItems KALDIRILDI (sepet gateway'de sentezlenir).
+    // 040: girdi VaultToken→userHandle(cardUserKey)+cardHandle(cardToken); taksit KALDIRILDI (tek çekim,
+    // NON-3D). basketItems gateway'de sentezlenir; correlationKey idempotency çapası.
     public record ChargePaymentBody(
-        string CorrelationKey, string VaultToken, decimal Price, decimal PaidPrice, int Installment,
+        string CorrelationKey, string UserHandle, string CardHandle, decimal Price, decimal PaidPrice,
         BuyerInput Buyer);
 
     public record ChargePaymentCommand(
-        Guid MerchantId, string CorrelationKey, string VaultToken, decimal Price, decimal PaidPrice,
-        int Installment, BuyerInput Buyer);
+        Guid MerchantId, string CorrelationKey, string UserHandle, string CardHandle, decimal Price,
+        decimal PaidPrice, BuyerInput Buyer);
 
     // 039: ECom PaymentReply eşleniği — Status LOWERCASE wire değeri (enum adı DEĞİL). CorrelationKey echo.
     public class ChargePaymentResponse
@@ -131,14 +132,16 @@ public static class ChargePayment
             if (existing is not null)
                 return FeatureObjectResultModel<ChargePaymentResponse>.Ok(MapResponse(existing));
 
-            // Vault token → StoredCard: kiracı sınırı + Active (Revoked/yabancı reddi).
-            var card = await session.LoadAsync<StoredCard>(cmd.VaultToken, ct);
-            if (card is null || card.MerchantId != cmd.MerchantId)
+            // 040: handle → StoredCard (kiracı sınırı FR-012: merchant + cardUserKey + cardToken) + Active.
+            var card = await session.Query<StoredCard>()
+                .Where(x => x.MerchantId == cmd.MerchantId && x.CardUserKey == cmd.UserHandle && x.CardToken == cmd.CardHandle)
+                .FirstOrDefaultAsync(ct);
+            if (card is null)
                 return FeatureObjectResultModel<ChargePaymentResponse>.Error(new MessageItem
-                { Property = nameof(cmd.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND });
+                { Property = nameof(cmd.CardHandle), Code = CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND });
             if (card.Status != StoredCardStatus.Active)
                 return FeatureObjectResultModel<ChargePaymentResponse>.Error(new MessageItem
-                { Property = nameof(cmd.VaultToken), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
+                { Property = nameof(cmd.CardHandle), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
 
             // HTTP Input DTO → domain VO (doğrulama) — buyer GERÇEK müşteri verisi (ECom'den verbatim).
             var buyerResult = DomainBuyer.Create(
@@ -160,8 +163,9 @@ public static class ChargePayment
                 return FeatureObjectResultModel<ChargePaymentResponse>.Error(addressResult.Messages);
 
             // FR-012: iyzico ÖNCESİ Charging marker persist (kayıp-yanıtta retry bunu bulur, tekrar çekmez).
+            // 040: tek çekim (installment=1); Payment referansı için opak StoredCard.Token saklanır.
             var beginResult = Payment.Begin(
-                cmd.MerchantId, cmd.VaultToken, cmd.CorrelationKey, cmd.Price, cmd.PaidPrice, cmd.Installment);
+                cmd.MerchantId, card.Token, cmd.CorrelationKey, cmd.Price, cmd.PaidPrice, 1);
             if (!beginResult.IsSuccess)
                 return FeatureObjectResultModel<ChargePaymentResponse>.Error(beginResult.Messages);
 
@@ -250,7 +254,7 @@ public static class ChargePayment
                 ConversationId = opt.ConversationId,
                 Price = cmd.Price.ToString(inv),
                 PaidPrice = cmd.PaidPrice.ToString(inv),
-                Installment = cmd.Installment,
+                Installment = 1, // 040: tek çekim (taksit söküldü)
                 PaymentChannel = opt.PaymentChannel,
                 PaymentGroup = opt.PaymentGroup,
                 Currency = opt.Currency,
@@ -308,8 +312,8 @@ public static class ChargePaymentEndpoint
                 {
                     var result = await bus.InvokeAsync<FeatureObjectResultModel<ChargePayment.ChargePaymentResponse>>(
                         new ChargePayment.ChargePaymentCommand(
-                            merchantId, body.CorrelationKey, body.VaultToken, body.Price, body.PaidPrice,
-                            body.Installment, body.Buyer));
+                            merchantId, body.CorrelationKey, body.UserHandle, body.CardHandle, body.Price,
+                            body.PaidPrice, body.Buyer));
                     return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
                 })
             .WithName("ChargePayment")
