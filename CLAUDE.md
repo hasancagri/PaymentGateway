@@ -11,10 +11,11 @@ kod standartları, servisler-arası desenler orada (ECom'dan devralındı). Bu d
 **iyzico ödeme gateway'i** (eski adı DropShop; 021-022 pivotuyla iyzico ödeme kanalına döndü).
 Üç BC + destekleyen altyapı; her iş kendi spec döngüsüyle (`specs/<NNN>/`).
 
-- **Payment** — **041: kart-saklama + charge + taksit SÖKÜLDÜ** (kart yönünden vazgeçildi; iyzico ödemesiz-
-  hosted-save yok). StoredCard/CardSession/ChargePayment/RetrievePayment/InstallmentOptions/PaymentMcpTools/
-  Payment aggregate kaldırıldı. KALAN: iyzico V2 wire (`Utils/*V2` — hosted-CF ödemede repurpose) +
-  MerchantStatus + ApiKey auth; `/mcp` tool'suz durur. Ödeme yönü hosted-CF (sonraki spec — ödeme linki).
+- **Payment** — kart-saklama söküldü (041 teardown). **Ödeme yönü hosted-CF CANLI (041):** HostedPaymentSession
+  aggregate + `POST /hosted-payment` (X-Api-Key, Active-kapılı) iyzico CF initialize eder; iyzico dönüşü
+  `/internal/payments/callback/{callbackToken}` (secret-token kapılı, CF retrieve teyidi) terminal'e taşır;
+  store'a HMAC-imzalı sonuç (durable outbox retry) + müşteri dönüş sayfası. iyzico V2 wire (`Utils/*V2`) +
+  MerchantStatus + ApiKey auth kalır. `/mcp` tool'suz (store HTTP çağırır, agent değil).
 - **Merchant** — gateway müşterisi SİTE (pazaryeri/split DEĞİL); iyzico SubMerchant sözleşmesiyle hizalı
   alan seti + statü makinesi. OAuth istemci düzlemi (aşağıda).
 - **Commission** — komisyon politikası (iyzico maliyeti + marj).
@@ -48,7 +49,7 @@ Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel
 
 | Servis | DB | Ne yapar | Origin spec |
 |---|---|---|---|
-| `Payment.Api` | paymentDb | **041: kart-vault + charge + taksit söküldü** (kart yönünden vazgeçildi); kalan iyzico V2 wire (hosted-CF için) + MerchantStatus; ödeme yönü hosted-CF (sonraki spec) | `specs/022-iyzico-payment-channel` |
+| `Payment.Api` | paymentDb | kart-vault söküldü (041 teardown); **hosted-CF ödeme CANLI (041):** HostedPaymentSession + `/hosted-payment` (CF init) + secret-token'lı iyzico callback (CF retrieve) + HMAC-imzalı store bildirimi; iyzico V2 wire + MerchantStatus + ApiKey auth | `specs/041-hosted-cf-payment` |
 | `Merchant.Api` | merchantDb | Merchant aggregate (SubMerchant hizalı); statü makinesi; `MerchantCreated`/`StatusChanged` outbox | `specs/023-merchant-submerchant-model` |
 | `Commission.Api` | commissionDb | CommissionPolicy (iyzico maliyeti + marj) | `specs/024-commission-cost-margin` |
 | `identity-server` | identityDb | M2M OpenIddict (client_credentials); scope + merchant OAuth istemci düzlemi | `specs/011-openiddict-migration` |

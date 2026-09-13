@@ -19,6 +19,12 @@ builder.Services.AddMarten(opts =>
         // X-Api-Key auth lookup — merchant API key hash'i (kiracı-içi tekil). KALIR (MerchantStatus).
         opts.Schema.For<MerchantApiKeyReference>()
             .Index(x => x.KeyHash, idx => idx.IsUnique = true);
+
+        // 041: hosted-CF ödeme girişimi. (MerchantId, OrderRef) tekil (FR-004 idempotent başlatma);
+        // CallbackToken tekil (C1 — kimliksiz callback ucunun secret-token lookup'ı + beyan-edilen yetki).
+        opts.Schema.For<Payment.Api.Domains.HostedPayments.HostedPaymentSession>()
+            .Index(x => new { x.MerchantId, x.OrderRef }, idx => idx.IsUnique = true)
+            .Index(x => x.CallbackToken, idx => idx.IsUnique = true);
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -89,6 +95,14 @@ builder.Services.AddAuthorizationBuilder()
         policy.AuthenticationSchemes.Add(ApiKeyAuthenticationHandler.SchemeName);
         policy.RequireAuthenticatedUser();
         policy.AddRequirements(new Common.Utils.Authorization.MerchantScopeRequirement());
+    })
+    // 041 (C1/D1): hosted ödeme başlatma ucu. X-Api-Key şeması + authenticated; route'ta {merchantId}
+    // YOK → tenant merchant_id claim'inden okunur (MerchantScopeRequirement KULLANILMAZ — route'suz
+    // fail-closed RET ederdi). Active statü kapısı slice içinde (charge yalnız Active, İlke V).
+    .AddPolicy(HostedPaymentPolicies.HostedPaymentApiKey, policy =>
+    {
+        policy.AuthenticationSchemes.Add(ApiKeyAuthenticationHandler.SchemeName);
+        policy.RequireAuthenticatedUser();
     });
 
 builder.Services.AddGlobalExceptionHandler();
@@ -112,6 +126,14 @@ builder.Services.AddOptions<Payment.Api.Options.IyzicoRequestOptions>()
 builder.Services.AddSingleton<Payment.Api.Options.IyzicoRequestOptions>(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.IyzicoRequestOptions>>().Value);
 
+// 041: hosted-CF ödeme ayarları (CallbackSecret secret → user-secrets; diğerleri appsettings). Options
+// pattern (BindConfiguration + Validate); handler düz POCO inject eder.
+builder.Services.AddOptions<Payment.Api.Options.HostedPaymentOptions>()
+    .BindConfiguration(nameof(Payment.Api.Options.HostedPaymentOptions))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<Payment.Api.Options.HostedPaymentOptions>(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.HostedPaymentOptions>>().Value);
+
 // 038: MCP server dirilişi (022'de sökülmüştü) — dış MCP istemcisine (BYO-agent) ödeme tool'larını
 // sunar ([McpServerToolType]). Stateless HTTP (Merchant.Api 029 deseni).
 builder.Services
@@ -130,8 +152,12 @@ var apiVersionSet = app.NewApiVersionSet()
     .ReportApiVersions()
     .Build();
 
-// 076: kart-vault + saved-card ödeme uçları SÖKÜLDÜ (card-storage teardown). Hosted-CF ödeme yüzeyi
-// sonraki spec'te eklenecek (iyzico CF wire Utils'te durur). MCP endpoint kalır (şimdilik tool'suz).
+// 041: hosted-CF ödeme yüzeyi (store başlat + iyzico callback + müşteri dönüş sayfası). Sürüm segmentsiz
+// (dış store kontratı sabit yol — D11). Charge statü kapısı slice içinde (Active-only, fail-closed).
+app.AddHostedPaymentEndpointExtension();
+
+// 076: kart-vault + saved-card ödeme uçları SÖKÜLDÜ (card-storage teardown). MCP endpoint kalır (hosted-CF
+// ödeme store HTTP çağırır, agent değil → tool'suz durur; İlke: MCP yalnız agent yüzeyi).
 app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.PaymentWrite);
 
 await app.RunAsync();
