@@ -61,14 +61,66 @@ public static class HostedPaymentEndpointExtension
                 var s = await session.LoadAsync<HostedPaymentSession>(id);
                 if (s is null) return Results.NotFound();
 
-                var text = s.Status == HostedPaymentStatus.Succeeded ? options.ReturnSuccessText : options.ReturnFailureText;
-                var html = $"<!doctype html><html lang=\"tr\"><head><meta charset=\"utf-8\"><title>Ödeme Sonucu</title></head>" +
-                           $"<body><p>{System.Net.WebUtility.HtmlEncode(text)}</p></body></html>";
-                return Results.Content(html, "text/html");
+                var succeeded = s.Status == HostedPaymentStatus.Succeeded;
+                var text = succeeded ? options.ReturnSuccessText : options.ReturnFailureText;
+                return Results.Content(BuildReturnPage(succeeded, text), "text/html");
             })
             .WithName("HostedPaymentReturn")
             .WithTags("hosted-payment")
             .AllowAnonymous();
+    }
+
+    // Müşteri dönüş sayfası (FR-010) — kendine-yeten stilli HTML. Hiçbir yere yönlendirmez (terminal
+    // sayfa); "Kapat" butonu window.close() dener. Kullanıcı metni options'tan (ReturnSuccess/FailureText).
+    private static string BuildReturnPage(bool succeeded, string text)
+    {
+        var accent = succeeded ? "#16a34a" : "#dc2626";
+        var glyph = succeeded ? "&#10003;" : "&#10005;"; // ✓ / ✕
+        var heading = succeeded ? "Ödeme Başarılı" : "Ödeme Başarısız";
+        var body = System.Net.WebUtility.HtmlEncode(text);
+
+        return $$"""
+        <!doctype html>
+        <html lang="tr">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Ödeme Sonucu</title>
+          <style>
+            *{box-sizing:border-box}
+            body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+              background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+              color:#1f2937;padding:24px}
+            .card{background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.08);
+              padding:40px 32px;max-width:420px;width:100%;text-align:center}
+            .icon{width:72px;height:72px;border-radius:50%;margin:0 auto 20px;
+              display:flex;align-items:center;justify-content:center;
+              background:{{accent}};color:#fff;font-size:38px;line-height:1}
+            h1{margin:0 0 10px;font-size:22px;font-weight:600;color:{{accent}}}
+            p{margin:0 0 28px;font-size:15px;line-height:1.5;color:#4b5563}
+            button{appearance:none;border:0;cursor:pointer;font-size:15px;font-weight:600;
+              padding:12px 28px;border-radius:10px;background:#111827;color:#fff;transition:background .15s}
+            button:hover{background:#374151}
+            .hint{margin-top:16px;font-size:12px;color:#9ca3af;display:none}
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">{{glyph}}</div>
+            <h1>{{heading}}</h1>
+            <p>{{body}}</p>
+            <button onclick="closePage()">Kapat</button>
+            <div class="hint" id="hint">Bu sekmeyi kapatabilirsiniz.</div>
+          </div>
+          <script>
+            function closePage(){
+              window.close();
+              document.getElementById('hint').style.display='block';
+            }
+          </script>
+        </body>
+        </html>
+        """;
     }
 
     // merchant_id claim → Guid (İlke V tenant). Claim yoksa/geçersizse fail-closed.
