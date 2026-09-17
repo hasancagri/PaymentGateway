@@ -136,6 +136,12 @@ using (var scope = app.Services.CreateScope())
 
 app.UseRouting();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
+// G3: /connect/authorize — insan etkileşim ucu (cookie login + PKCE code akışı).
+app.MapAuthorizeEndpoint();
+
 // Tek uç: /connect/token (OpenIddict passthrough ile ASP.NET Core'da işlenir).
 app.MapTokenEndpoint();
 
