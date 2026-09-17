@@ -1,14 +1,15 @@
 using static Shared.IntegrationEvents;
 
 // Sınıf adı TEKİL "Handler" ile bitmeli — çoğul "Handlers" Wolverine 6.4'te keşfedilmiyor (bkz. CLAUDE.md).
-namespace Payment.Api.Domains.MerchantStatus;
+namespace Payment.Api;
 
 /// <summary>
-/// 038: merchant.lifecycle tüketicisi — merchant statüsünü Payment BC'nin yerel referansına izdüşürür
-/// (çekim statü kapısının veri temeli). İdempotent upsert: aynı olay N kez işlense sonuç aynı.
-/// Message store yok → ProcessInline + RabbitMQ redelivery (Identity.Server MerchantClientEventHandler şablonu).
+/// Merchant.Api'nin merchant.lifecycle fanout'unun tüketicisi (kaynak = Merchant.Api) — merchant
+/// statüsünü Payment BC'nin yerel referansına izdüşürür (çekim statü kapısının veri temeli).
+/// İdempotent upsert: aynı olay N kez işlense sonuç aynı. Message store yok → ProcessInline +
+/// RabbitMQ redelivery (Identity.Server MerchantClientEventHandler şablonu).
 /// </summary>
-public static class MerchantLifecycleEventHandler
+public static class MerchantApiConsumers
 {
     public static async Task Handle(MerchantCreated e, IDocumentSession session, ILogger logger)
     {

@@ -62,19 +62,52 @@ Her rol için: anayasa İLKE = "ne"; buradaki satır = "nasıl uygulanır" (koda
 Domains/<Aggregate>/
   <Aggregate>.cs                  # zengin aggregate root (private setter, factory + davranış)
   <Aggregate>EndpointExtension.cs # feature endpoint'lerini gruplar + map'ler
-  <Aggregate>McpTools.cs          # bu aggregate için MCP tool sarmalayıcıları (aggregate kökünde)
   Features/
     Commands/<Name>.cs            # yazma slice'ları
     Queries/<Name>.cs             # okuma slice'ları
-    Agents/<Name>ForAgent.cs      # agent'a açık slice (klasör ÇOĞUL; MCP expose eder)
+    Agents/                       # agent'a açık slice'lar (klasör ÇOĞUL; MCP expose eder)
+      Commands/<Name>.cs          # yazma agent slice'ı
+      Queries/<Name>.cs           # okuma agent slice'ı
 ```
 
+- **MCP tool sarmalayıcısı slice'ıyla AYNI dosyada yaşar** (dosya sonunda, `[McpServerToolType]`),
+  ayrı `<Aggregate>McpTools.cs` YOK. Gerekçe: "bir feature = bir dosya" ilkesi transport katmanına da
+  uzanır; ayrıca tool kaydı `WithToolsFromAssembly()` ile assembly-geneli taranır, dosya konumu bağımsız.
+  Aggregate'in TÜM MCP yüzeyini görmek gerekirse `grep -rl McpServerToolType Domains/<Aggregate>/`.
+- **`Agents/Commands` + `Agents/Queries` alt klasörü, cache-invalidation kararını KLASÖRDEN okunur
+  yapar** (`Commands/*` → `[InvalidatesCache]` adayı, `Queries/*` → `[Cached]` adayı) — dosya açmadan,
+  yalnız konuma bakarak. `Agents/Commands|Queries`, üst-seviye `Features/Commands|Queries`'ten AYRI
+  (Bilinçli tekrar: agent slice o klasörlerle kod paylaşmaz, yalnız isim benzerliği).
+- **Sınıf adı ÇIPLAK feature adıdır, suffix YOK** (`ForAgent`/`Command`/`Query` eklenmez) — konum zaten
+  bunu söylüyor (`Agents/Commands/SubmitRegistration.cs` → `SubmitRegistration`). Suffix, klasör ayrımı
+  yokken (eski flat `Agents/<Name>ForAgent.cs`) telafi ediyordu; ayrım varken tekrar gereksiz.
 - **Bir feature = bir static class**: `record` command/query + `Response` + `Handler` (düz sınıf,
   `Handle` metodu) + endpoint-extension. Command mı query mi ayır, doğru klasöre koy.
-- **Ayrı teknik-katman klasörü YOK.** MCP tool dahil tüm feature/süreç `Domains/<Aggregate>/` altında;
-  `McpTools/` gibi teknik klasör açma. Assembly taraması konumdan bağımsızdır.
 - **Yapı hazır, doldurmak ihtiyaç güdümlü (JIT).** İskelet nereye ne konacağını gösterir; ama her
   aggregate metodu için endpoint ÜRETME zorunluluğu YOK. Endpoint = gerçek tüketici çağırınca açılır.
+- **`Domains/` = kullanıcı isteği; süreç güdümlü handler `Domains/` DIŞINDA.** `Features/{Commands,
+  Queries,Agents}` = "biri (müşteri/admin, endpoint/MCP/agent) bunu İSTEDİ" niyet yüzeyi. Kullanıcının
+  tetiklemediği, süreç-güdümlü handler'lar feature slice DEĞİL → `Domains/` dışına, iki klasöre:
+  `Saga/` = başka BC'nin sağa-orchestrator'ının broker komutuyla bu BC'yi süren katılım handler'ları;
+  `Process/` = bu BC'nin KENDİ dayanıklı süreci (watchdog/reconcile, `ScheduleAsync` tick'i). Okuma
+  testi: "kullanıcı mı tetikledi, süreç mi?" → kullanıcı=Domains, dış-saga=Saga, iç-süreç=Process.
+  Aggregate davranışı her iki yoldan da çağrılsa Domains'te kalır; ikisinin paylaştığı saf helper de
+  Domains'te (aggregate değil, ortak altyapı — ör. bir BC'nin fanout'tan beslenen salt-okur referans
+  belgesi). Taşınan yalnız süreç-glue'su (handler + mesajı).
+- **Süreç güdümlü dosya/sınıf adı = kaynağın adı + `Consumers`.** Kaynak = event/komutu yayınlayan BC
+  ya da worker. `Saga/`'da kaynak = sağayı yöneten orchestrator; kökte (Saga/Process dışı, doğrudan
+  servis kökünde) kaynak = yayıncı BC (ör. `MerchantApiConsumers.cs`). **Bir dosya = bir kaynak** —
+  aynı serviste birden fazla BC'den event geliyorsa kaynak başına ayrı dosya; dosya adından "bu nereden
+  geliyor" cevaplanır, içerik açmaya gerek kalmaz. `Process/` bu kuralın dışı (kaynak başka BC/worker
+  değil, BC'nin KENDİ dayanıklı süreci).
+- **Tek çağıranı sanksiyonlu S2S araç (gRPC/A2A vb.) olan Features slice'ı Domains dışına çıkar, o
+  aracın SINIFI İÇİNE gömülür.** "Kullanıcı mı tetikledi" testi burada da geçerli — REST/MCP/agent hiç
+  çağırmıyorsa (yalnız S2S servisi tüketiyorsa) o slice sahte bir "niyet yüzeyi" değildir, indirekt S2S
+  glue'dur. Ayrı `Features/Commands|Queries/<Name>.cs` + `IMessageBus.InvokeAsync` hop'u yerine mantık
+  doğrudan S2S servis class'ına yazılır. **Bilinçli tekrar kabul edilir** — aynı sorgu/komutun agent/MCP
+  muadili varsa paylaşılmaz, S2S tarafı kendi kopyasını taşır. **İstisna:** aynı slice'ı hem sanksiyonlu
+  S2S hem başka somut kullanıcı/agent yolu da çağırıyorsa (paylaşılan yazım yolu) Domains'te KALIR.
+  (Bugün PG'de bu paternin canlı örneği yok — gRPC/A2A internal S2S henüz yok; kural ileriye dönük.)
 - API sürümleme URL-segment (`v1`); doküman Scalar ile kök.
 
 ## Kod standartları
@@ -89,7 +122,8 @@ Domains/<Aggregate>/
   `Error`'a eşlenmez (retry-able Failed teknik hata değildir).
 - **Hata kodu sahipliği.** Her servis kendi kodlarına sahip: `<Service>/Constants/<Service>ResourceConstants.cs`.
 - **Aggregate klasör.** `Domains/<X>/` hemen altı tek `: AggregateRoot`; iç içe aggregate yok. İstisna:
-  domain-service/seeder/MCP-tool/endpoint-extension/enum aynı BC'de aggregate kökünde durabilir.
+  domain-service/seeder/endpoint-extension/enum aynı BC'de aggregate kökünde durabilir (MCP tool YOK —
+  o slice dosyasında yaşar, bkz. VSA dosya yapısı).
 - **VO tek dosya.** Aggregate'e ait standalone VO `<Aggregate>/ValueObjects/` altına konur (aggregate kökünde değil).
 - **Enum aggregate dosyasında** (`OrderStatus` → `Order.cs`); ayrı dosya/`Enumeration` base yok.
 - **Aggregate davranışını private helper'a parçalama** — davranış mantığı inline (bilinçli tekrar).
@@ -124,7 +158,7 @@ Domains/<Aggregate>/
 - **Sanksiyonlu senkron kanal (İLKE I).** Anlık-tutarlılık akışı için gRPC/A2A/HTTP; çağıran karşının
   API'sine erişir (DB'sine değil). Sunucu ince sarmalayıcı (iş mantığı yok, `IMessageBus`'a devreder).
 - **MCP yalnız agent tüketir.** Agent olmayan kod (servis/UI) imperatif `CallToolAsync` süremez →
-  messaging/HTTP. MCP tool YALNIZ `Features/Agents/<X>ForAgent` slice'ını çağırır (ince sarmalayıcı).
+  messaging/HTTP. MCP tool YALNIZ `Features/Agents/Commands|Queries/<X>` slice'ını çağırır (ince sarmalayıcı).
 
 ## Bilinçli tekrar (tek gerekçe)
 

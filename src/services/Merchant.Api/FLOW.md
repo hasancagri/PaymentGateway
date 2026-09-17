@@ -42,7 +42,7 @@ erişimi bu duyuruya bağlıdır.
 2. **Başvuru Pending doğar,** admin onayını bekler; kimlik/sır bu adımda ÜRETİLMEZ, merchant
    henüz YOK.
 3. **Agent durumu e-posta ile sorgulayabilir** (en son başvuru, case-insensitive).
-   `(RegistrationStatusForAgent ← RegistrationStatusMcpTool "registration_status")`
+   `(RegistrationStatus ← RegistrationStatusMcpTool "registration_status")`
 4. **Operatör başvuruyu onaylar.** Başvuru bilgileriyle Yol A'daki fabrika çağrılır (Merchant
    Active doğar + MerchantKey üretilir); başvuru Approved'a geçer, doğan MerchantId bağlanır;
    yalnız Pending'den mümkündür. `(RegisterRequest.Approve → Merchant.Create → MerchantCreated)`

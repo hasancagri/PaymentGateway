@@ -53,7 +53,7 @@ builder.Host.UseWolverine(opts =>
 
     // 038: merchant.lifecycle tüketimi — statü referansı (çekim statü kapısı). Message store yok →
     // ProcessInline + RabbitMQ redelivery (Identity.Server deseni). Handle(...) tekil ...Handler
-    // assembly taramasıyla keşfedilir (MerchantLifecycleEventHandler).
+    // assembly taramasıyla keşfedilir (kaynak+Consumers adlandırması: MerchantApiConsumers).
     rabbit.DeclareExchange(RabbitMqConstants.MerchantLifecycle.Exchange,
         e => { e.ExchangeType = ExchangeType.Fanout; });
     rabbit.DeclareQueue(RabbitMqConstants.MerchantLifecycle.PaymentQueue);

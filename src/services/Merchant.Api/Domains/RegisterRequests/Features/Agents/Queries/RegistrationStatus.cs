@@ -1,10 +1,13 @@
-namespace Merchant.Api.Domains.RegisterRequests.Features.Agents;
+using System.ComponentModel;
+using ModelContextProtocol.Server;
+
+namespace Merchant.Api.Domains.RegisterRequests.Features.Agents.Queries;
 
 // 029 US3: agent yüzeyi — e-posta ile EN SON başvurunun durumu (case-insensitive, R4).
 // Approved yanıtı MerchantId + MerchantKey döndürür (BİLİNÇLİ dev-açık karar — plan Complexity
 // Tracking; redeem-link teslim modeli gelince bu alanlar kaldırılacak). Merchant document'ı
 // aynı BC içinden okunur (cross-BC değil).
-public static class RegistrationStatusForAgent
+public static class RegistrationStatus
 {
     public record RegistrationStatusQuery(string Email);
 
@@ -18,7 +21,7 @@ public static class RegistrationStatusForAgent
         public string? MerchantKey { get; set; }
     }
 
-    public class RegistrationStatusForAgentQueryHandler
+    public class RegistrationStatusQueryHandler
     {
         public async Task<FeatureObjectResultModel<RegistrationStatusResponse>> Handle(
             RegistrationStatusQuery query,
@@ -67,4 +70,24 @@ public static class RegistrationStatusForAgent
             return FeatureObjectResultModel<RegistrationStatusResponse>.Ok(response);
         }
     }
+}
+
+// 029: MCP tool ince sarmalayıcıdır ve YALNIZ yukarıdaki slice'ı IMessageBus ile çağırır. Tool adı
+// DIŞ SÖZLEŞMEDİR — ECommerce ChatAgent allowlist'i bu adı bekler (registration_status); değiştirme.
+// Yüzey: /mcp, merchant.write.
+/// <summary>US3 — e-posta ile başvuru durumu; Approved'da MerchantId + MerchantKey teslimi.</summary>
+[McpServerToolType]
+public static class RegistrationStatusMcpTool
+{
+    [McpServerTool(Name = "registration_status")]
+    [Description("Verilen e-posta için EN SON başvurunun durumunu döner: Pending / Approved / Rejected " +
+                 "(nedenle). Approved yanıtı merchantId + merchantKey içerir — yönetici bu ikiliyi kendi " +
+                 "panelindeki merchant kimlik formuna kaydeder. On-demand sorgu; sürekli poll gerekmez.")]
+    public static Task<FeatureObjectResultModel<RegistrationStatus.RegistrationStatusResponse>>
+        RegistrationStatusAsync(
+            [Description("Başvuruda kullanılan e-posta (büyük/küçük harf duyarsız)")] string email,
+            IMessageBus bus,
+            CancellationToken ct)
+        => bus.InvokeAsync<FeatureObjectResultModel<RegistrationStatus.RegistrationStatusResponse>>(
+            new RegistrationStatus.RegistrationStatusQuery(email), ct);
 }

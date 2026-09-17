@@ -1,10 +1,13 @@
-namespace Merchant.Api.Domains.RegisterRequests.Features.Agents;
+using System.ComponentModel;
+using ModelContextProtocol.Server;
 
-// 029 US1: agent yüzeyi — MCP tool'u yalnız bu slice'ı çağırır (015: Commands/Queries'e gitmez,
+namespace Merchant.Api.Domains.RegisterRequests.Features.Agents.Commands;
+
+// 029 US1: agent yüzeyi — MCP tool'u yalnız bu slice'ı çağırır (Commands/Queries'e gitmez,
 // kendi command + handler'ını taşır). Mükerrer kontrolü burada (cross-document sorgu, aggregate'e
 // girmez): aynı e-postada Pending varsa RECORD_DUPLICATE, Approved varsa INVALID_OPERATION_ERROR
 // (zaten onaylı); Rejected yeniden başvuruyu ENGELLEMEZ (FR-003).
-public static class SubmitRegistrationForAgent
+public static class SubmitRegistration
 {
     public record SubmitRegistrationCommand(
         string Type,
@@ -28,7 +31,7 @@ public static class SubmitRegistrationForAgent
     }
 
     [Transactional]
-    public class SubmitRegistrationForAgentCommandHandler
+    public class SubmitRegistrationCommandHandler
     {
         public async Task<FeatureObjectResultModel<SubmitRegistrationResponse>> Handle(
             SubmitRegistrationCommand cmd,
@@ -81,4 +84,38 @@ public static class SubmitRegistrationForAgent
             });
         }
     }
+}
+
+// 029: MCP tool ince sarmalayıcıdır ve YALNIZ yukarıdaki slice'ı IMessageBus ile çağırır. Tool adı
+// DIŞ SÖZLEŞMEDİR — ECommerce ChatAgent allowlist'i bu adı bekler (submit_registration); değiştirme.
+// Yüzey: /mcp, merchant.write.
+/// <summary>US1 — merchant kayıt başvurusu (023 alan seti; admin onayı bekler).</summary>
+[McpServerToolType]
+public static class SubmitRegistrationMcpTool
+{
+    [McpServerTool(Name = "submit_registration")]
+    [Description("Merchant kayıt başvurusu açar: alanlar doğrulanır (tip-uyum matrisi, TR IBAN, " +
+                 "e-posta) ve başvuru Pending (admin onayı bekler) olarak kaydolur; requestId döner. " +
+                 "Kimlik/sır KABUL ETMEZ, merchant OLUŞTURMAZ. Aynı e-postayla bekleyen başvuru " +
+                 "varken tekrar çağrılamaz.")]
+    public static Task<FeatureObjectResultModel<SubmitRegistration.SubmitRegistrationResponse>>
+        SubmitRegistrationAsync(
+            [Description("İşyeri tipi: Personal | PrivateCompany | LimitedOrJointStockCompany")] string type,
+            [Description("İşyeri/site adı")] string name,
+            [Description("İletişim e-postası — başvuru kimliği; durum sorgusu bu adresle yapılır")] string email,
+            [Description("Telefon (GSM)")] string gsmNumber,
+            [Description("Adres")] string address,
+            [Description("TR IBAN (mod-97 doğrulanır)")] string iban,
+            [Description("Yetkili adı")] string contactName,
+            [Description("Yetkili soyadı")] string contactSurname,
+            IMessageBus bus,
+            CancellationToken ct,
+            [Description("TCKN — Personal ve PrivateCompany için zorunlu")] string? identityNumber = null,
+            [Description("Vergi dairesi — PrivateCompany ve LimitedOrJointStockCompany için zorunlu")] string? taxOffice = null,
+            [Description("Vergi no — LimitedOrJointStockCompany için zorunlu")] string? taxNumber = null,
+            [Description("Ticari unvan — PrivateCompany ve LimitedOrJointStockCompany için zorunlu")] string? legalCompanyTitle = null)
+        => bus.InvokeAsync<FeatureObjectResultModel<SubmitRegistration.SubmitRegistrationResponse>>(
+            new SubmitRegistration.SubmitRegistrationCommand(
+                type, name, email, gsmNumber, address, iban, contactName, contactSurname,
+                identityNumber, taxOffice, taxNumber, legalCompanyTitle), ct);
 }

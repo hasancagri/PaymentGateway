@@ -60,7 +60,7 @@ public class RegisterRequest : AggregateRoot
     /// tip-uyum matrisi (Personal → kimlik no; PrivateCompany → kimlik no + vergi dairesi +
     /// unvan; LimitedOrJointStockCompany → vergi dairesi + vergi no + unvan). Geçerse Pending doğar.
     /// </summary>
-    /// <remarks>Handler: SubmitRegistrationForAgentCommandHandler</remarks>
+    /// <remarks>Handler: SubmitRegistrationCommandHandler</remarks>
     public static ResultDomain<RegisterRequest> Submit(
         MerchantType type,
         string name,

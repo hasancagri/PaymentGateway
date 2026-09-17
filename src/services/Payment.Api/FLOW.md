@@ -11,7 +11,7 @@ doğrular, store'a **imzalı** sonuç bildirimi gönderir ve müşteriyi bir dö
 
 1. **Merchant statüsü izlenir (arka plan, önkoşul).** `merchant.lifecycle` fanout'u (`MerchantCreated` /
    `MerchantProvisioned` / `MerchantStatusChanged`) tüketilir; yerel statü + API-key hash referansı upsert
-   edilir `(MerchantLifecycleEventHandler.Handle → MerchantStatusReference, MerchantApiKeyReference)`.
+   edilir `(MerchantApiConsumers.Handle → MerchantStatusReference, MerchantApiKeyReference)`.
 2. **Store ödeme başlatır.** `POST /hosted-payment` (X-Api-Key; header SHA-256'lanıp
    `MerchantApiKeyReference` ile merchant'a çözülür) `(ApiKeyAuthenticationHandler.HandleAuthenticateAsync)`
    → tutar/para birimi/sipariş referansı/dönüş adresi taşıyan komut yayınlanır
