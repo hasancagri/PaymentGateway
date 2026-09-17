@@ -30,7 +30,11 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 
 builder.Services.AddOpenIddict()
     .AddCore(options =>
-        options.UseEntityFrameworkCore().UseDbContext<ApplicationDbContext>())
+    {
+        options.UseEntityFrameworkCore().UseDbContext<ApplicationDbContext>();
+        // G3: seed admin istemcisine loopback redirect muafiyeti (yalnız o ClientId).
+        options.ReplaceApplicationManager(typeof(AdminAgentApplicationManager<>));
+    })
     .AddServer(options =>
     {
         // Sabit issuer — tüm servislerin IdentityOption:Address değeriyle birebir (D6).

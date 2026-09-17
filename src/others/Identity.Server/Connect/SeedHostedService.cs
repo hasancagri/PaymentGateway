@@ -68,15 +68,34 @@ public sealed class SeedHostedService(IServiceProvider provider, IConfiguration 
         var d = new OpenIddictApplicationDescriptor
         {
             ClientId = client.ClientId,
-            ClientSecret = client.ClientSecret,
+            ClientSecret = client.IsPublic ? null : client.ClientSecret,
             DisplayName = client.DisplayName,
-            ClientType = ClientTypes.Confidential,
+            ClientType = client.IsPublic ? ClientTypes.Public : ClientTypes.Confidential,
+            // Seed istemciler Implicit (consent yok) — DCR henüz yok, hepsi ilk-taraf.
             ConsentType = ConsentTypes.Implicit,
         };
 
-        // 011 tek grant: client_credentials + token ucu.
-        d.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
+        if (client.AllowAuthorizationCode)
+        {
+            d.Permissions.Add(Permissions.Endpoints.Authorization);
+            d.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
+            d.Permissions.Add(Permissions.ResponseTypes.Code);
+            d.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
+        }
+
+        // Mevcut 5 M2M istemci AllowAuthorizationCode=false ile gelir → hepsi client_credentials
+        // permission'ı alır (REGRESYON YOK). external-admin-agent AllowAuthorizationCode=true
+        // olduğundan bu dala GİRMEZ — public istemciye client_credentials permission'ı eklenmez.
+        if (!client.AllowAuthorizationCode)
+            d.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
+
+        if (client.AllowRefreshToken)
+            d.Permissions.Add(Permissions.GrantTypes.RefreshToken);
+
         d.Permissions.Add(Permissions.Endpoints.Token);
+
+        foreach (var uri in client.RedirectUris)
+            d.RedirectUris.Add(new Uri(uri));
 
         // Scope izinleri (scp: prefix'li) — istenen scope ⊆ bu küme, aksi invalid_scope.
         foreach (var s in client.Scopes)
