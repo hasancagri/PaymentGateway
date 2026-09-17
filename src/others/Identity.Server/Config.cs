@@ -5,6 +5,20 @@ namespace Identity.Server;
 // anında ekleyeceği merchant client'larına dokunulmaz).
 public static class Config
 {
+    // G3: seed'li admin istemcisi (Claude Desktop). Loopback muafiyeti Task 3'teki
+    // AdminAgentApplicationManager ile yalnız BU ClientId için.
+    public const string ExternalAdminAgentClientId = "external-admin-agent";
+
+    // Claude sabit callback'leri.
+    public static readonly string[] ClaudeCallbackRedirectUris =
+    [
+        "https://claude.ai/api/mcp/auth_callback",
+        "https://claude.com/api/mcp/auth_callback",
+    ];
+
+    // OIDC identity scope'ları — API scope'larından AYRI, RegisterScopes'a birlikte verilir.
+    public static readonly string[] IdentityScopes = ["openid", "profile"];
+
     // Scope → audience (resource) haritası. Token üretiminde ListResourcesAsync bu eşlemeden
     // 'aud' claim'ini üretir; servisler kendi adını (merchant.api...) ValidateAudience ile arar.
     // G2/G5 genişlemesi (cards.write, charge) buraya eklenir.
@@ -77,6 +91,19 @@ public static class Config
             DisplayName = "ECommerce onboarding client (m2m)",
             Scopes = ["merchant.read", "merchant.write"],
         },
+        // G3: seed'li admin istemcisi — Claude Desktop, public+PKCE, secret'sız. Consent YOK
+        // (seed istemci → Implicit, bkz. SeedHostedService.BuildDescriptor).
+        new ClientSeed
+        {
+            ClientId = ExternalAdminAgentClientId,
+            ClientSecret = null,
+            DisplayName = "External admin agent (Claude Desktop)",
+            IsPublic = true,
+            AllowAuthorizationCode = true,
+            AllowRefreshToken = true,
+            RedirectUris = ClaudeCallbackRedirectUris,
+            Scopes = ["openid", "profile", "merchant.read", "merchant.write", "commission.read", "commission.write"],
+        },
     ];
 
     private static string RequireSecret(IConfiguration configuration, string clientId) =>
@@ -88,7 +115,14 @@ public static class Config
 public sealed class ClientSeed
 {
     public required string ClientId { get; init; }
-    public required string ClientSecret { get; init; }
+    // Public (PKCE) istemcide secret YOK — null bırakılır. Confidential (mevcut M2M) istemciler
+    // ClientSecret'ı zorunlu tutmaya devam eder (RequireSecret helper'ı çağıran taraf sağlar).
+    public string? ClientSecret { get; init; }
     public required string DisplayName { get; init; }
+    // Public istemci = secret'sız + PKCE zorunlu (BuildDescriptor Requirements ekler).
+    public bool IsPublic { get; init; }
+    public bool AllowAuthorizationCode { get; init; }
+    public bool AllowRefreshToken { get; init; }
+    public string[] RedirectUris { get; init; } = [];
     public string[] Scopes { get; init; } = [];
 }
