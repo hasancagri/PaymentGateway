@@ -60,6 +60,12 @@ builder.Services.AddOpenIddict()
                .EnableTokenEndpointPassthrough();
     });
 
+// G3: bootstrap admin — email/parola boşsa seed atlanır (Options/BootstrapAdmin.cs).
+builder.Services.AddOptions<Identity.Server.Options.BootstrapAdmin>()
+    .BindConfiguration(nameof(Identity.Server.Options.BootstrapAdmin));
+builder.Services.AddSingleton<Identity.Server.Options.BootstrapAdmin>(sp =>
+    sp.GetRequiredService<IOptions<Identity.Server.Options.BootstrapAdmin>>().Value);
+
 // Açılışta idempotent client + scope seed.
 builder.Services.AddHostedService<SeedHostedService>();
 

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -36,6 +37,27 @@ public sealed class SeedHostedService(IServiceProvider provider, IConfiguration 
                 await apps.CreateAsync(descriptor, ct);
             else
                 await apps.UpdateAsync(existing, descriptor, ct);
+        }
+
+        // G3: bootstrap admin — yalnız config doluysa VE kullanıcı yoksa oluşturulur (idempotent;
+        // sonradan admin'in değiştirdiği parola ezilmez).
+        var bootstrapAdmin = scope.ServiceProvider.GetRequiredService<Identity.Server.Options.BootstrapAdmin>();
+        if (!string.IsNullOrWhiteSpace(bootstrapAdmin.Email) && !string.IsNullOrWhiteSpace(bootstrapAdmin.Password))
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            if (await userManager.FindByNameAsync(bootstrapAdmin.Email) is null)
+            {
+                var admin = new ApplicationUser
+                {
+                    UserName = bootstrapAdmin.Email,
+                    Email = bootstrapAdmin.Email,
+                    EmailConfirmed = true,
+                };
+                var created = await userManager.CreateAsync(admin, bootstrapAdmin.Password);
+                if (!created.Succeeded)
+                    throw new InvalidOperationException(
+                        $"Bootstrap admin oluşturulamadı: {string.Join("; ", created.Errors.Select(e => e.Description))}");
+            }
         }
     }
 
