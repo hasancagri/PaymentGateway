@@ -28,6 +28,13 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+// G3: login yolu — cookie doğrulaması başarısızsa buraya yönlenir (Task 5'teki AuthorizeEndpoint
+// bu davranışa güvenir: Results.Challenge → varsayılan LoginPath).
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+});
+
 builder.Services.AddOpenIddict()
     .AddCore(options =>
     {
@@ -41,11 +48,14 @@ builder.Services.AddOpenIddict()
         // 5001 ECommerce Identity'de; A2A senaryosunda iki sistem aynı anda koşar.
         options.SetIssuer(new Uri("https://localhost:5101"));
 
-        // Yalnız token ucu + client_credentials (insan akışı yok — D1).
-        options.SetTokenEndpointUris("connect/token");
-        options.AllowClientCredentialsFlow();
+        options.SetAuthorizationEndpointUris("connect/authorize")
+               .SetTokenEndpointUris("connect/token");
 
-        options.RegisterScopes([.. Config.AllApiScopes]);
+        options.AllowClientCredentialsFlow()
+               .AllowAuthorizationCodeFlow()
+               .AllowRefreshTokenFlow();
+
+        options.RegisterScopes([.. Config.AllApiScopes, .. Config.IdentityScopes]);
 
         options.AddDevelopmentEncryptionCertificate()
                .AddDevelopmentSigningCertificate();
@@ -60,7 +70,12 @@ builder.Services.AddOpenIddict()
         // R3: access token scope claim'ini JSON dizisine çevir (029 tuzağı — D3).
         options.AddEventHandler(ScopeClaimArrayHandler.Descriptor);
 
+        // G3: MCP `resource` parametresi yok sayılır (yukarı bkz).
+        options.AddEventHandler(IgnoreResourceParameterHandler.ForAuthorization.Descriptor);
+        options.AddEventHandler(IgnoreResourceParameterHandler.ForToken.Descriptor);
+
         options.UseAspNetCore()
+               .EnableAuthorizationEndpointPassthrough()
                .EnableTokenEndpointPassthrough();
     });
 

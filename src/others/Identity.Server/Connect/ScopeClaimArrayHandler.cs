@@ -43,8 +43,14 @@ public sealed class ScopeClaimArrayHandler : IOpenIddictServerHandler<OpenIddict
     }
 }
 
-// Claim destinasyonları — M2M hali: id_token yok (insan akışı yok), her claim access token'a.
+// access_token + (insan akışında) id_token claim destinasyonları. M2M istemcilerde id_token
+// hiç üretilmediğinden bu ayrım onlara etki etmez.
 public static class OidcClaimDestinations
 {
-    public static IEnumerable<string> GetDestinations(Claim claim) => [Destinations.AccessToken];
+    public static IEnumerable<string> GetDestinations(Claim claim) => claim.Type switch
+    {
+        Claims.Subject or Claims.Name or Claims.Email =>
+            [Destinations.AccessToken, Destinations.IdentityToken],
+        _ => [Destinations.AccessToken],
+    };
 }
