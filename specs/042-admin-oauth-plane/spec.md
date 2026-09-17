@@ -25,8 +25,9 @@ Anayasa `TODO(AUTHZ_MODEL)` G3 (insan/rol düzlemi) bu dilimle kapanır.
 
 PG sahibi (tek admin), Claude Desktop'ı PG'nin Merchant.Api `/mcp-admin` ucuna bağlamak ister.
 Claude Desktop OAuth authorization_code + PKCE akışını başlatır; tarayıcı Identity.Server'ın login
-sayfasına yönlenir; admin e-posta+parola girer; tek seferlik consent ekranını onaylar; Claude
-Desktop'a access token döner.
+sayfasına yönlenir; admin e-posta+parola girer; Claude Desktop'a access token döner (consent ekranı
+YOK — ECommerce'te de seed istemciler `ConsentType=Implicit`, yalnız DCR/dinamik istemciler
+Explicit consent görür; bizim istemcimiz seed'li, ilk-taraf).
 
 **Why this priority**: Bu olmadan hiçbir admin MCP tool'u insan tarafından çağrılamaz — tüm sonraki
 dilimlerin (Merchant/Commission `/mcp-admin`, Admin UI söküm) önkoşulu.
@@ -40,8 +41,9 @@ TAŞIMAMASı doğrulanır (admin token, merchant token değil).
 1. **Given** admin hiç login olmamış, **When** Claude Desktop'tan `/mcp-admin`'e bağlanmayı dener,
    **Then** 401 + RFC 9728 `WWW-Authenticate: Bearer resource_metadata=...` döner, tarayıcı login
    sayfasına yönlenir.
-2. **Given** admin doğru email+parola girer, **When** consent ekranını onaylar, **Then** Claude
-   Desktop authorization code'u token'a çevirir; dönen access token `merchant_id` claim'i TAŞIMAZ.
+2. **Given** admin doğru email+parola girer, **When** login tamamlanır, **Then** consent ekranı
+   ATLANIR (seed istemci, `ConsentType=Implicit`) ve Claude Desktop authorization code'u token'a
+   çevirir; dönen access token `merchant_id` claim'i TAŞIMAZ.
 3. **Given** admin yanlış parola girer, **When** login denenir, **Then** hata gösterilir, token
    verilmez.
 
@@ -109,8 +111,9 @@ kabul edilir; başka bir domain/host reddedilir.
   parolasını yeniden başlatmada EZMEMELİDİR.
 - **FR-003**: Sistem minimal bir login sayfası sunmak ZORUNDADIR (email+parola, ASP.NET Identity
   cookie tabanlı); rol/kayıt/self-servis şifre sıfırlama YOKTUR (v1 kapsam dışı).
-- **FR-004**: Sistem, authorization_code akışı için tek seferlik bir consent ekranı sunmak
-  ZORUNDADIR (`ConsentType=Explicit`).
+- **FR-004**: Sistem consent ekranı SUNMAMALIDIR (`external-admin-agent` seed istemcisi
+  `ConsentType=Implicit` — ECommerce'te de yalnız DCR/dinamik istemciler Explicit consent görür,
+  seed istemciler görmez; birebir aynı davranış).
 - **FR-005**: Sistem seed edilen `external-admin-agent` istemcisini (public, PKCE, secret'sız,
   `AllowAuthorizationCode`+`AllowRefreshToken`) idempotent oluşturmak/güncellemek ZORUNDADIR.
 - **FR-006**: `external-admin-agent` istemcisinin redirect URI doğrulaması, birebir eşleşen Claude
@@ -119,9 +122,9 @@ kabul edilir; başka bir domain/host reddedilir.
   istemciler bu muafiyetten YARARLANAMAZ.
 - **FR-007**: Verilen access token, `merchant_id` claim'i TAŞIMAMALIDIR (mevcut `AdminPlaneOnly`
   politikasının bu token'ları admin-düzlemi olarak kabul etmesi için — downstream değişiklik YOK).
-- **FR-008**: Sistem, RFC 9728 protected-resource metadata'sını (`/.well-known/oauth-protected-resource/...`)
-  üreten paylaşılan bir uzantı (`Common`) sunmak ZORUNDADIR; bu dilim yalnız uzantıyı taşır/hazırlar,
-  hangi BC'nin `/mcp-admin`'inin onu kullanacağı SONRAKİ spec'lerin işidir.
+- **FR-008**: RFC 9728 protected-resource metadata uzantısının (`Common`) taşınması bu dilimin
+  KAPSAMI DIŞINDADIR (YAGNI — henüz tüketicisi yok); gerçek tüketicisi olan Merchant.Api
+  `/mcp-admin` sub-projesinde (#2) o dilimin kendi işi olarak taşınır/yazılır.
 - **FR-009**: `external-admin-agent` istemcisinin scope demeti `openid`, `profile`, `merchant.read`,
   `merchant.write`, `commission.read`, `commission.write` ile SINIRLI olmalıdır (kapalı demet;
   genişleme ayrı karar).
@@ -137,7 +140,7 @@ kabul edilir; başka bir domain/host reddedilir.
 
 ### Measurable Outcomes
 
-- **SC-001**: Admin, Claude Desktop'tan tek login ile (consent dahil 2 tıklama) access token alır.
+- **SC-001**: Admin, Claude Desktop'tan tek login ile (consent ekranı YOK) access token alır.
 - **SC-002**: Alınan token `merchant_id` claim'i taşımaz; mevcut `AdminPlaneOnly` policy'si
   DEĞİŞMEDEN bu token'ı kabul eder (regresyon yok — kod değişikliği gerekmediği canlı doğrulanır).
 - **SC-003**: `BootstrapAdmin` config'i boşken açılış hatasız tamamlanır (mevcut davranış korunur).
