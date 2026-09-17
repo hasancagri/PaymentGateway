@@ -75,7 +75,20 @@ public static class TokenEndpoint
                     [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
             }
 
-            var user = await userManager.FindByIdAsync(principal.GetClaim(Claims.Subject)!);
+            var subjectId = principal.GetClaim(Claims.Subject);
+            if (subjectId is null)
+            {
+                return Results.Forbid(
+                    new AuthenticationProperties(new Dictionary<string, string?>
+                    {
+                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
+                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
+                            "Token içinde kullanıcı kimliği bulunamadı.",
+                    }),
+                    [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
+            }
+
+            var user = await userManager.FindByIdAsync(subjectId);
             if (user is null || !await signInManager.CanSignInAsync(user))
             {
                 return Results.Forbid(
