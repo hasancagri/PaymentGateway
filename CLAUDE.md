@@ -32,6 +32,7 @@ dotnet build                                              # tüm çözüm
 dotnet run --project src/aspire/AppHost/AppHost.csproj    # tüm sistem (Aspire; Postgres + RabbitMQ + Mailpit)
 dotnet test                                               # tüm testler (Payment/Merchant/Commission.Api.Tests)
 scripts/check-claude-spec-links.sh                        # BC haritası spec yolları guard'ı
+scripts/check-flow-links.sh                                # FLOW.md domain-süreç anchor guard'ı (İLKE VII)
 ```
 
 - **Sistemi hep Aspire AppHost'tan başlat**; servisler conn-string'i Aspire'dan alır, tek başına açılmaz.

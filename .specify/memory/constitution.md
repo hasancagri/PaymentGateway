@@ -1,6 +1,26 @@
 <!--
 SYNC IMPACT REPORT
 ==================
+Version change: 1.4.0 → 1.5.0
+Bump rationale: MINOR — yeni ilke eklendi: VII. Domain Süreci Legibility (EventStorming-belgelenmiş
+  süreç). ECommerceWithAgentFramework anayasasından birebir devralındı (kullanıcı isteği,
+  2026-09-16) — iki repo aynı mimari katmanı (docs/conventions.md) paylaştığı için ilke seti de
+  hizalanıyor. Var olan ilke kaldırılmadı/yeniden tanımlanmadı → MAJOR değil.
+
+Added principles:
+  - VII. Domain Süreci Legibility (EventStorming-belgelenmiş süreç): her BC'nin domain süreci
+    EventStorming altitude'unda, ubiquitous dille belgelenir + domain süreci değiştikçe güncel
+    tutulur. "Nasıl" (dosya adı/format/guard = FLOW.md + check-flow-links.sh) docs/conventions.md +
+    CLAUDE.md'de tanımlanır.
+
+Removed sections: (yok)
+
+Deferred TODOs: (değişmedi, bkz. v1.4.0 raporu altında)
+
+Templates/commands: Bağımlı şablonlar (plan/spec/tasks) anayasayı çalışma anında okur; yeni ilke
+  yapısal bir kısıt eklemediği (belgeleme disiplini) için senkron gerektiren tutarsızlık yok.
+
+--- v1.4.0 raporu (2026-08-08) ---
 Version change: 1.3.0 → 1.4.0
 Bump rationale: MINOR — İlke V rehberliği genişledi: token verme kuralı "yalnız Active"ten
   KADEMELİ yetkiye çıktı (013 merchant onboarding). Yeni Provisioning statüsü sınırlı demet
@@ -213,6 +233,26 @@ modelin ayrıntısını ertelemek, "her erişim açıkça yetki gerektirir" kura
 Gerekçe: Spec-driven akış, kararların kod yazılmadan önce yazılı ve gözden geçirilmiş olmasını
 sağlar; anayasa bu akışa tutarlılık zemini verir.
 
+### VII. Domain Süreci Legibility (EventStorming-belgelenmiş süreç)
+
+Her Bounded Context'in domain süreci **okunabilir olmak zorundadır**: BC'nin iş akışı
+(hangi adım, hangi sırayla, hangi komut/olay/policy) **EventStorming altitude'unda**,
+ubiquitous dille (teknoloji değil, iş/ürün anlatısı olarak) belgelenir ve **domain süreci
+değiştikçe** güncel tutulur.
+
+- Kapsam **domain sürecidir** — iş adımlarının sırası ve doğurdukları olaylar; class-by-class
+  çağrı dökümü DEĞİL. Teknoloji yalnız koda-atlama köprüsü olarak kenarda kalır.
+- Güncelleme tetiği **dardır**: yeni/silinen command-event-policy ya da adım sırası değişimi.
+  Mekanik refactor/rename süreci değiştirmez → belgeyi tetiklemez (o drifti guard yakalar).
+- Domain süreci belgesi **olmayan ya da bayat** (koddaki güncel süreçle çelişen) bir BC kabul
+  edilemez. Bir feature domain sürecini değiştiriyorsa belge **aynı PR'da** güncellenir.
+- Bu bir **süreç disiplinidir** (İlke VI Spec-Driven Development gibi), yapı invariant'ı değil.
+  Anayasa yalnız *ne + neden* der; belgenin **dosya adı, formatı ve senkron-guard'ı** "nasıl"
+  olarak `conventions.md`/`CLAUDE.md`'de tanımlanır.
+- Gerekçe: DDD'nin çekirdeği domain legibility'dir. Koda uzun süre uzak kalan sahibin bile süreci
+  geri yükleyebilmesi, domain'in teknolojinin ardında kaybolmaması gerekir. Domain-altitude olduğu
+  için bu belge class-yapısından çok daha az bayatlar — yalnız iş süreci değişince değişir.
+
 ## Teknoloji ve Alan Kısıtları
 
 - **Platform:** .NET 10; her projede `Nullable` ve `ImplicitUsings` açıktır.
@@ -282,4 +322,4 @@ sağlar; anayasa bu akışa tutarlılık zemini verir.
 - Ertelenen kararlar (TODO) Sync Impact Report'ta takip edilir ve karar netleştiğinde
   amendment ile kapatılır.
 
-**Version**: 1.4.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-08-08
+**Version**: 1.5.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-09-16

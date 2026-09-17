@@ -18,6 +18,24 @@ ECommerceWithAgentFramework'ten devraldı — konvansiyonlar iki repo'da aynıd�
 - **Domain-TDD (İLKE VI):** saf domain (aggregate davranışı, saga `On*`, VO) test-first; test task'ı
   implementasyondan önce. Handler/endpoint/UI/altyapı bu kuralın dışı (test-sonra/canlı doğrulama).
 
+## Domain süreci belgesi — FLOW.md (İLKE VII uygulaması)
+
+Anayasa "her BC'nin domain süreci belgelenir" der; **nasıl**'ı budur:
+
+- **Dosya:** her BC kökünde tek `FLOW.md` (ör. `src/services/Payment.Api/FLOW.md`). Kod-yakını → az bayatlar.
+- **IDE görünürlüğü:** bu repo'da servis klasörü DÜZ (`.csproj` doğrudan BC kökünde, ECommerce'teki gibi
+  bir alt `<Bc>.Api/` katmanı YOK) → FLOW.md zaten Solution Explorer'da görünür, linked-file hilesi
+  gerekmez. Non-.NET/altyapı worker'lar (ör. `Mail.Worker`) için de aynı — dosya proje kökünde durur.
+- **Altitude:** domain-önce, ubiquitous dille — "hangi iş adımı, hangi sırayla, hangi olayı doğurur".
+  Teknoloji/class **dökümü değil**; class adı yalnız satır sonunda `(Aggregate.Metot → Event)` **kenar-
+  anchor** (koda atlama). Satır numarası YOK (bayatlar).
+- **İçerik:** (1) BC ne yapar tek cümle, (2) sıralı **Süreç** adımları, (3) **Domain kuralları**
+  (süreci yöneten değişmezler), (4) **Sınır** (BC'nin dokunmadığı). ~1 ekran.
+- **Güncelleme tetiği (dar):** yalnız domain süreci değişince (yeni/silinen command-event-policy, adım
+  sırası). Mekanik rename/refactor tetiklemez. Feature süreci değiştiriyorsa FLOW.md **aynı PR'da** güncellenir.
+- **Guard:** `scripts/check-flow-links.sh` — FLOW.md'deki kenar-anchor tip adlarının kod tabanında hâlâ
+  VAR olduğunu doğrular (rename/silme driftini yakalar). Sıra driftini yakalamaz — o review + tetik disiplini.
+
 ## Mimari kurallar (anayasa-atıflı)
 
 Her rol için: anayasa İLKE = "ne"; buradaki satır = "nasıl uygulanır" (koda özgü, anayasada olmayan).
