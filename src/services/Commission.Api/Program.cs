@@ -44,6 +44,12 @@ builder.Host.UseWolverine(opts =>
 
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
+
+    // 044: tool-bazlı ince yetki (043 Merchant.Api deseninin taşınması — research R4). /mcp mount'u
+    // commission.read ister (okuma yeter); yazma tool'ları [RequiredScope(commission.write)] ile
+    // fail-closed korunur. Yeni scope üretilmez (commission.admin YOK).
+    opts.Policies.AddMiddleware(typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
+        chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
 });
 
 builder.Services.AddApiVersioning(options =>
@@ -66,7 +72,8 @@ builder.Services.AddAllDependencies();
 builder.Services.AddOptionsExt();
 
 // 043: MCP server — Commission.Api'nin İLK MCP kurulumu (Merchant.Api 029 deseniyle birebir).
-// Stateless HTTP; tek tool var (admin_get_commission_policy, salt-okuma).
+// Stateless HTTP. 044: okuma tool'una ek yazma tool'ları (create/margin/status) — tool-seviye
+// commission.write kapısı Wolverine middleware'de.
 builder.Services
     .AddMcpServer()
     .WithHttpTransport(o => o.Stateless = true)
@@ -87,7 +94,8 @@ var apiVersionSet = app.NewApiVersionSet()
 app.AddCommissionPolicyGroupEndpointExtension(apiVersionSet);
 
 // 043: MCP endpoint (Streamable HTTP) — external-admin-agent (Claude Desktop) buraya bağlanır.
-// Yalnız read tool olduğu için CommissionRead yeterli (CommissionWrite GEREKMEZ).
+// Mount policy CommissionRead (liste/okuma); yazma tool'ları tool-seviye [RequiredScope
+// (commission.write)] ile ayrıca korunur (044 — endpoint policy'si yükseltilmez, ince kapı yeter).
 app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.CommissionRead);
 
 await app.RunAsync();

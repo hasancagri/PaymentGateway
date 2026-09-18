@@ -6,8 +6,9 @@ namespace Merchant.Api.Domains.Merchants.Features.Agents.Queries;
 
 // 043 US1/US3: admin merchant listesi — opsiyonel statü filtresi, YALNIZ Merchant aggregate'i
 // sorgular (RegisterRequests'e karışmaz — plan clarify kararı). MerchantKey/SubMerchantKey/Iban
-// yanıtta HİÇ YOK (FR-002 — sır hiçbir MCP yanıtında görünmez). Agent slice kendi sorgusu (mevcut
-// ListMerchants REST query'siyle KOD PAYLAŞMAZ, bilinçli tekrar — conventions.md).
+// yanıtta HİÇ YOK (FR-002 — sır hiçbir MCP yanıtında görünmez). 044 FR-003: Email + GsmNumber
+// da sözleşmeden ÇIKARILDI (kişisel veri agent kanalından geçmez; hassas yönetim BFF sayfasında).
+// Agent slice kendi sorgusu (bilinçli tekrar — conventions.md).
 public static class AdminGetMerchants
 {
     [RequiredScope(AuthorizationScopes.MerchantAdmin)]
@@ -24,8 +25,6 @@ public static class AdminGetMerchants
         public string Status { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string GsmNumber { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string ContactName { get; set; } = string.Empty;
         public string ContactSurname { get; set; } = string.Empty;
@@ -67,8 +66,6 @@ public static class AdminGetMerchants
                     Status = m.Status.ToString(),
                     Type = m.Type.ToString(),
                     Name = m.Name,
-                    Email = m.Email,
-                    GsmNumber = m.GsmNumber,
                     Address = m.Address,
                     ContactName = m.ContactName,
                     ContactSurname = m.ContactSurname
@@ -78,13 +75,13 @@ public static class AdminGetMerchants
     }
 }
 
-/// <summary>US1/US3 — merchant listesi, opsiyonel statü filtresiyle; sır alanı (MerchantKey vb.) YOK.</summary>
+/// <summary>US1/US3 — merchant listesi, opsiyonel statü filtresiyle; hassas/sır alan YOK (044).</summary>
 [McpServerToolType]
 public static class AdminGetMerchantsMcpTool
 {
     [McpServerTool(Name = Shared.MerchantAdminTools.GetMerchants)]
     [Description("Merchant listesini döner (opsiyonel statü filtresi: Active | Passive | Suspended, " +
-                 "boşsa tümü). MerchantKey/SubMerchantKey/Iban YANIT'TA YOK.")]
+                 "boşsa tümü). Kişisel/finansal veri ve sır alanları YANIT'TA YOK.")]
     public static Task<FeatureObjectResultModel<AdminGetMerchants.AdminGetMerchantsResponse>>
         AdminGetMerchantsAsync(
             IMessageBus bus,

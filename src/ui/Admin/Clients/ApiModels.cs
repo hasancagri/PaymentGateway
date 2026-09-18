@@ -124,6 +124,26 @@ public class MerchantDetail
     public DateTime CreatedTime { get; set; }
 }
 
+// 044: hassas-veri sayfası sözleşmesi (GetMerchantSensitive/UpdateMerchantSensitive aynası).
+public class MerchantSensitiveDetail
+{
+    public Guid MerchantId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string GsmNumber { get; set; } = string.Empty;
+    public string? IdentityNumber { get; set; }
+    public string Iban { get; set; } = string.Empty;
+    public string? TaxNumber { get; set; }
+}
+
+public record UpdateMerchantSensitiveRequest(
+    string Email,
+    string GsmNumber,
+    string? IdentityNumber,
+    string Iban,
+    string? TaxNumber);
+
 public class MerchantsResponse
 {
     public List<MerchantListItem> Merchants { get; set; } = new();

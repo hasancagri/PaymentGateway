@@ -13,7 +13,7 @@ US1-US3 canlı doğrulanmadan BAŞLAMAZ (FR-008).
 
 **Purpose**: Tool adı sabitleri — tüm story'lerin ortak ön koşulu.
 
-- [ ] T001 `src/others/Shared/McpToolNames.cs`'e sabitleri ekle:
+- [X] T001 `src/others/Shared/McpToolNames.cs`'e sabitleri ekle:
       `MerchantAdminTools.GetMerchant`/`UpdateMerchant` (admin_get_merchant,
       admin_update_merchant) + `CommissionAdminTools.CreatePolicy`/`UpdateMargin`/`ChangeStatus`
       (admin_create_commission_policy, admin_update_commission_margin,
@@ -35,12 +35,12 @@ yalnız US3'ü bloklar (T012, o fazda). US1/US2/US3 T001 sonrası paralel başla
 **Goal**: `admin_get_merchant` + `admin_update_merchant` — hassas-dışı merchant yönetimi
 ekransız. **Independent Test**: quickstart Senaryo 1.
 
-- [ ] T002 [P] [US1] `src/services/Merchant.Api/Domains/Merchants/Features/Agents/Queries/AdminGetMerchant.cs`
+- [X] T002 [P] [US1] `src/services/Merchant.Api/Domains/Merchants/Features/Agents/Queries/AdminGetMerchant.cs`
       — `[RequiredScope(MerchantAdmin)]` query + handler + MCP wrapper (aynı dosya). Yanıt:
       MerchantId, Status, Type, Name, Address, ContactName, ContactSurname, TaxOffice,
       LegalCompanyTitle, CreatedTime — hassas/sır alan SÖZLEŞMEDE YOK
       (contracts/merchant-admin-mcp-tools.md). NotFound → RECORD_NOT_FOUND.
-- [ ] T003 [P] [US1] `src/services/Merchant.Api/Domains/Merchants/Features/Agents/Commands/AdminUpdateMerchant.cs`
+- [X] T003 [P] [US1] `src/services/Merchant.Api/Domains/Merchants/Features/Agents/Commands/AdminUpdateMerchant.cs`
       — `[Transactional]` + `[RequiredScope(MerchantAdmin)]`; girdi yalnız hassas-dışı alanlar;
       aggregate yüklenir, `UpdateDetails` hassas alanlar MEVCUT değerlerden geçirilerek çağrılır
       (research R3); yanıt T002 alan seti. Geçersiz Type → INVALID_VALUE.
@@ -56,22 +56,22 @@ ekransız. **Independent Test**: quickstart Senaryo 1.
 **Goal**: Mevcut tool yanıtlarından Email+Gsm kırpma + tek hassas-veri ekranı (dar BFF çifti).
 **Independent Test**: quickstart Senaryo 2.
 
-- [ ] T005 [P] [US2] `src/services/Merchant.Api/Domains/Merchants/Features/Agents/Queries/AdminGetMerchants.cs`
+- [X] T005 [P] [US2] `src/services/Merchant.Api/Domains/Merchants/Features/Agents/Queries/AdminGetMerchants.cs`
       — `MerchantItem`'dan Email + GsmNumber alanlarını ve map'lemelerini SİL (FR-003)
-- [ ] T006 [P] [US2] `src/services/Merchant.Api/Domains/RegisterRequests/Features/Agents/Queries/AdminGetPendingRegistrations.cs`
+- [X] T006 [P] [US2] `src/services/Merchant.Api/Domains/RegisterRequests/Features/Agents/Queries/AdminGetPendingRegistrations.cs`
       — yanıt öğesinden Email + GsmNumber sil; kimlik belirleyen başka alan varsa birlikte
       değerlendir (contracts/merchant-admin-mcp-tools.md)
-- [ ] T007 [P] [US2] `src/services/Merchant.Api/Domains/Merchants/Features/Queries/GetMerchantSensitive.cs`
+- [X] T007 [P] [US2] `src/services/Merchant.Api/Domains/Merchants/Features/Queries/GetMerchantSensitive.cs`
       — GET `/merchants/{merchantId}/sensitive`; `MerchantRead` + `AdminPlaneOnly`; yanıt:
       MerchantId, Name, Type, Email, GsmNumber, IdentityNumber, Iban, TaxNumber
       (contracts/admin-sensitive-endpoint.md); endpoint-extension aynı dosyada
-- [ ] T008 [P] [US2] `src/services/Merchant.Api/Domains/Merchants/Features/Commands/UpdateMerchantSensitive.cs`
+- [X] T008 [P] [US2] `src/services/Merchant.Api/Domains/Merchants/Features/Commands/UpdateMerchantSensitive.cs`
       — PUT `/merchants/{merchantId}/sensitive`; `[Transactional]`, `MerchantWrite` +
       `AdminPlaneOnly`; `UpdateDetails` hassas-DIŞI alanlar mevcut değerlerden geçirilir (R3)
-- [ ] T009 [US2] `src/services/Merchant.Api/Domains/Merchants/MerchantEndpointExtension.cs` —
+- [X] T009 [US2] `src/services/Merchant.Api/Domains/Merchants/MerchantEndpointExtension.cs` —
       sensitive get/put endpoint'lerini gruba ekle (T007/T008 sonrası; mevcut kayıtlar bu fazda
       DURUR, söküm US4'te)
-- [ ] T010 [US2] Admin UI hassas-veri sayfası: `src/ui/Admin/Pages/Merchants/Sensitive.cshtml(.cs)`
+- [X] T010 [US2] Admin UI hassas-veri sayfası: `src/ui/Admin/Pages/Merchants/Sensitive.cshtml(.cs)`
       (rota `/Merchants/Sensitive?merchantId=`); `Clients/MerchantApiClient.cs`'e sensitive
       get/put metotları; `Pages/Shared/_Layout.cshtml` menü linki. Bulunamayan merchant →
       anlaşılır mesaj (edge case)
@@ -87,17 +87,17 @@ ekransız. **Independent Test**: quickstart Senaryo 1.
 **Goal**: Commission yazma tool'ları + scope middleware taşıması. **Independent Test**:
 quickstart Senaryo 3. US1/US2'den bağımsız, T001 sonrası paralel yürüyebilir.
 
-- [ ] T012 [US3] 043 Wolverine `ScopeAuthorizationMiddleware` desenini Commission.Api'ye taşı
+- [X] T012 [US3] 043 Wolverine `ScopeAuthorizationMiddleware` desenini Commission.Api'ye taşı
       (`src/services/Commission.Api/Auth/` + `Program.cs` wiring; Merchant.Api'deki uygulama
       referans) — yazma tool'larını `[RequiredScope]` ile korumanın ön koşulu (research R4;
       bilinçli tekrar, Common'a ÇIKARILMAZ)
-- [ ] T013 [P] [US3] `src/services/Commission.Api/Domains/CommissionPolicies/Features/Agents/Commands/AdminCreateCommissionPolicy.cs`
+- [X] T013 [P] [US3] `src/services/Commission.Api/Domains/CommissionPolicies/Features/Agents/Commands/AdminCreateCommissionPolicy.cs`
       — `[Transactional]` + `[RequiredScope(CommissionWrite)]`; girdi merchantId + tiers;
       tekil-aktif kuralı handler sorgusuyla (024 deseni); `CommissionPolicy.Create`
       (contracts/commission-admin-mcp-tools.md)
-- [ ] T014 [P] [US3] `.../Agents/Commands/AdminUpdateCommissionMargin.cs` — tam kademe seti
+- [X] T014 [P] [US3] `.../Agents/Commands/AdminUpdateCommissionMargin.cs` — tam kademe seti
       alır, `CommissionPolicy.UpdateMargin`; politika yoksa NotFound
-- [ ] T015 [P] [US3] `.../Agents/Commands/AdminChangeCommissionStatus.cs` — status string
+- [X] T015 [P] [US3] `.../Agents/Commands/AdminChangeCommissionStatus.cs` — status string
       parse + `CommissionPolicy.ChangeStatus`; geçersiz değer/geçiş Result hatası
 - [ ] T016 [US3] quickstart Senaryo 3'ü canlı çalıştır — oluştur/marj/statü sohbetten; negatif:
       ikinci aktif politika duplicate — SC-001 kanıtı

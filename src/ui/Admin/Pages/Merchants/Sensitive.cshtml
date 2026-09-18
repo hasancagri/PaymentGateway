@@ -1,0 +1,49 @@
+@page
+@model Admin.Pages.Merchants.SensitiveModel
+@{
+    ViewData["Title"] = "Hassas Veriler";
+}
+
+<partial name="_Messages" />
+
+@if (Model.MerchantId is null || Model.MerchantId == Guid.Empty)
+{
+    <p class="muted">Merchant seçilmedi. Sayfayı <code>/Merchants/Sensitive?merchantId=&lt;guid&gt;</code> ile açın.</p>
+}
+else if (Model.Merchant is null)
+{
+    <p class="muted">Merchant bulunamadı: @Model.MerchantId</p>
+}
+else
+{
+    var m = Model.Merchant;
+    <table>
+        <tr><th>MerchantId</th><td class="key">@m.MerchantId</td></tr>
+        <tr><th>İsim</th><td>@m.Name</td></tr>
+        <tr><th>Tip</th><td>@m.Type</td></tr>
+    </table>
+
+    <form method="post">
+        <div>
+            <label for="email">E-posta</label>
+            <input id="email" name="email" type="email" value="@m.Email" required />
+        </div>
+        <div>
+            <label for="gsmNumber">Telefon (GSM)</label>
+            <input id="gsmNumber" name="gsmNumber" value="@m.GsmNumber" required />
+        </div>
+        <div>
+            <label for="identityNumber">TCKN</label>
+            <input id="identityNumber" name="identityNumber" value="@m.IdentityNumber" />
+        </div>
+        <div>
+            <label for="iban">IBAN</label>
+            <input id="iban" name="iban" value="@m.Iban" required />
+        </div>
+        <div>
+            <label for="taxNumber">Vergi No</label>
+            <input id="taxNumber" name="taxNumber" value="@m.TaxNumber" />
+        </div>
+        <button class="btn" type="submit">Kaydet</button>
+    </form>
+}
