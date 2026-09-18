@@ -141,9 +141,11 @@ kalır; build + tüm testler yeşil; merchant yalnız başvuru onayıyla doğar.
   token'la çağrı reddedilmeli.
 - **FR-007**: Doğrudan merchant oluşturma yolu tamamen kaldırılmalı; merchant doğuşunun tek yolu
   başvuru + admin onayı olmalı.
-- **FR-008**: Merchant/komisyon/başvuru REST yönetim uçları ve Admin UI'ın CommissionPolicies +
-  Merchants sayfaları ile ilgili API istemcileri kaldırılmalı; söküm yeni yüzey canlı
-  doğrulanmadan BAŞLAMAMALI.
+- **FR-008**: Merchant/komisyon/başvuru REST yönetim uçları (yalnız admin-düzlemi olanlar) ve
+  Admin UI'ın CommissionPolicies + Merchants sayfaları ile ilgili API istemcileri kaldırılmalı;
+  söküm yeni yüzey canlı doğrulanmadan BAŞLAMAMALI.
+- **FR-011**: Merchant'ın KENDİ token'ıyla kendi kaydını/politikasını okuduğu uçlar (merchant
+  self-service düzlemi) sökümden ETKİLENMEMELİ — bunlar admin yüzeyi değildir.
 - **FR-009**: Makine kanalları değişmeden kalmalı: ödeme uçları, iyzico geri dönüşü, aktivasyon
   redeem, başvuru gönderme/durum araçları, statü yönetim araçları, olay akışı.
 - **FR-010**: Söküm sonrası sistemde hiçbir ölü referans (kullanılmayan istemci, sayfa, uç
@@ -179,8 +181,9 @@ kalır; build + tüm testler yeşil; merchant yalnız başvuru onayıyla doğar.
   sayıldı (kullanıcı çizgisi).
 - Başvuru gönderme (`submit_registration`) mevcut haliyle kalır: merchant kendi verisini kendi
   kanalından girer (veri sahibinin kendisi), admin düzlemi kişisel-veri kısıtı bunu kapsamaz.
-- REST yönetim uçlarının bilinen tek tüketicisi Admin UI'dır (kod taramasıyla doğrulandı);
-  dış tüketici yoktur.
+- Admin-düzlemi REST uçlarının bilinen tek tüketicisi Admin UI'dır (kod taramasıyla doğrulandı).
+  Merchant-düzlemi okuma uçları (tekil merchant + kendi komisyon politikası) merchant token'ıyla
+  dışarıdan tüketilir ve kapsam DIŞIdır.
 - Hassas-veri sayfası mevcut Admin UI altyapısında (aynı giriş/oturum düzeni) yaşar; yeni bir
   uygulama açılmaz.
 - Komisyon politikası oluşturma/güncelleme kuralları mevcut domain davranışlarıyla aynıdır; bu
