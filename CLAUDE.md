@@ -56,7 +56,7 @@ Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel
 | Servis | DB | Ne yapar | Origin spec |
 |---|---|---|---|
 | `Payment.Api` | paymentDb | kart-vault söküldü (041 teardown); **hosted-CF ödeme CANLI (041):** HostedPaymentSession + `/hosted-payment` (CF init) + secret-token'lı iyzico callback (CF retrieve) + HMAC-imzalı store bildirimi; iyzico V2 wire + MerchantStatus + ApiKey auth | `specs/041-hosted-cf-payment` |
-| `Merchant.Api` | merchantDb | Merchant aggregate (SubMerchant hizalı); statü makinesi; `MerchantCreated`/`StatusChanged` outbox; **MCP-only admin düzlemi (044)**: tam yönetim MCP'de, REST'te yalnız MerchantScoped okuma + hassas-veri BFF çifti | `specs/044-mcp-only-admin-plane` |
+| `Merchant.Api` | merchantDb | Merchant aggregate (SubMerchant hizalı); statü makinesi; `MerchantCreated`/`StatusChanged` outbox; **MCP-only admin düzlemi (044)**: tam yönetim MCP'de, REST'te yalnız MerchantScoped okuma + hassas-veri BFF çifti; **hosted onboarding (045, ECom 078 kontratı)**: S2S REST (oturum/durum/validate) + hosted form + approve→mail + tek gösterimlik reveal sayfası + `admin_resend_credential_link`; eski `submit_registration`/`registration_status` canlı PASS sonrası SÖKÜLECEK | `specs/044-mcp-only-admin-plane` |
 | `Commission.Api` | commissionDb | CommissionPolicy (iyzico maliyeti + marj); **admin MCP okuma+yazma tool'ları (043+044)**; REST'te yalnız MerchantScoped okuma | `specs/044-mcp-only-admin-plane` |
 | `identity-server` | identityDb | M2M OpenIddict (client_credentials); scope + merchant OAuth istemci düzlemi | `specs/011-openiddict-migration` |
 | `Mail.Worker` | — | RabbitMQ `mail.delivery` → SMTP/Mailpit; retry→error queue; ClosedXML ek | — |
