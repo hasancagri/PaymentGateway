@@ -44,7 +44,7 @@ ekransız. **Independent Test**: quickstart Senaryo 1.
       — `[Transactional]` + `[RequiredScope(MerchantAdmin)]`; girdi yalnız hassas-dışı alanlar;
       aggregate yüklenir, `UpdateDetails` hassas alanlar MEVCUT değerlerden geçirilerek çağrılır
       (research R3); yanıt T002 alan seti. Geçersiz Type → INVALID_VALUE.
-- [ ] T004 [US1] quickstart Senaryo 1'i canlı çalıştır (Aspire + Claude desktop) — liste/detay/
+- [X] T004 [US1] quickstart Senaryo 1'i canlı çalıştır (Aspire + Claude desktop) — liste/detay/
       güncelleme sohbetten; hassas alan hiçbir yanıtta yok; negatif: bilinmeyen Id → SC-001/SC-002 kanıtı
 
 **Checkpoint**: MVP — merchant hassas-dışı yönetimi tamamen ekransız.
@@ -75,7 +75,7 @@ ekransız. **Independent Test**: quickstart Senaryo 1.
       (rota `/Merchants/Sensitive?merchantId=`); `Clients/MerchantApiClient.cs`'e sensitive
       get/put metotları; `Pages/Shared/_Layout.cshtml` menü linki. Bulunamayan merchant →
       anlaşılır mesaj (edge case)
-- [ ] T011 [US2] quickstart Senaryo 2'yi canlı çalıştır — tool yanıtlarında Email/Gsm yok;
+- [X] T011 [US2] quickstart Senaryo 2'yi canlı çalıştır — tool yanıtlarında Email/Gsm yok;
       hassas düzenleme yalnız ekrandan uçtan uca; `admin_get_merchant`'ta Email hâlâ yok — SC-003 kanıtı
 
 **Checkpoint**: Kişisel veri MCP'den akmıyor; hassas yönetim tek ekranda.
@@ -99,7 +99,7 @@ quickstart Senaryo 3. US1/US2'den bağımsız, T001 sonrası paralel yürüyebil
       alır, `CommissionPolicy.UpdateMargin`; politika yoksa NotFound
 - [X] T015 [P] [US3] `.../Agents/Commands/AdminChangeCommissionStatus.cs` — status string
       parse + `CommissionPolicy.ChangeStatus`; geçersiz değer/geçiş Result hatası
-- [ ] T016 [US3] quickstart Senaryo 3'ü canlı çalıştır — oluştur/marj/statü sohbetten; negatif:
+- [X] T016 [US3] quickstart Senaryo 3'ü canlı çalıştır — oluştur/marj/statü sohbetten; negatif:
       ikinci aktif politika duplicate — SC-001 kanıtı
 
 **Checkpoint**: Komisyon tam yaşam döngüsü ekransız.
@@ -133,7 +133,7 @@ sistem işlevsiz kalmaz (FR-008).
       `external-admin-agent` + diğerleri DURUR
 - [X] T022 [US4] Silinen slice'lara referanslı test/kod artıklarını temizle — çözüm genelinde
       derleme hatası taraması (`dotnet build`), kalan ölü using/kayıt yok
-- [ ] T023 [US4] quickstart Senaryo 4'ü canlı çalıştır — sökülen uçlar 404; MerchantScoped
+- [X] T023 [US4] quickstart Senaryo 4'ü canlı çalıştır — sökülen uçlar 404; MerchantScoped
       uçlar + redeem çalışır; ölü client token alamaz; build+test 0 hata — SC-004 kanıtı
 
 **Checkpoint**: Admin yüzeyi yalnız MCP + tek hassas-veri sayfası.
