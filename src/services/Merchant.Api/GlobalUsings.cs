@@ -27,4 +27,7 @@ global using Merchant.Api.Domains.RegisterRequests;
 global using Newtonsoft.Json;
 global using Newtonsoft.Json.Serialization;
 global using System.Net.Http.Headers;
+global using System.ComponentModel;
+global using Common.Utils.Authorization;
+global using ModelContextProtocol.Server;
 

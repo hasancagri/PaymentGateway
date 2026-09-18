@@ -1,7 +1,3 @@
-using System.ComponentModel;
-using Common.Utils.Authorization;
-using ModelContextProtocol.Server;
-
 namespace Merchant.Api.Domains.Merchants.Features.Agents.Commands;
 
 // 043 US1: AdminActivateMerchant ile birebir aynı desen, hedef Suspended (bilinçli tekrar).
@@ -24,6 +20,7 @@ public static class AdminSuspendMerchant
         public async Task<FeatureObjectResultModel<AdminSuspendMerchantResponse>> Handle(
             AdminSuspendMerchantCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             var merchant = await session.LoadAsync<Merchant>(cmd.MerchantId, ct);
@@ -33,7 +30,13 @@ public static class AdminSuspendMerchant
             var previousStatus = merchant.Status;
             var changed = merchant.ChangeStatus(MerchantStatus.Suspended);
             if (changed.Data!)
+            {
                 session.Store(merchant);
+
+                // 044: REST ChangeMerchantStatus söküldü — statü yayını artık buradan (Identity + Payment tüketir).
+                await bus.PublishAsync(new Shared.IntegrationEvents.MerchantStatusChanged(
+                    merchant.Id, merchant.Status.ToString()));
+            }
 
             return FeatureObjectResultModel<AdminSuspendMerchantResponse>.Ok(new AdminSuspendMerchantResponse
             {

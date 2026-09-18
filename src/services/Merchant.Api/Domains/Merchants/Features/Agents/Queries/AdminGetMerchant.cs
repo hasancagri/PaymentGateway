@@ -1,7 +1,3 @@
-using System.ComponentModel;
-using Common.Utils.Authorization;
-using ModelContextProtocol.Server;
-
 namespace Merchant.Api.Domains.Merchants.Features.Agents.Queries;
 
 // 044 US1: admin tekil merchant detayı — hassas (Email/GsmNumber/IdentityNumber/Iban/TaxNumber)

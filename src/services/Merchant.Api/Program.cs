@@ -111,11 +111,9 @@ var apiVersionSet = app.NewApiVersionSet()
     .ReportApiVersions()
     .Build();
 
-// 023: merchant CRUD + statü uçları (policy'ler slice endpoint'lerinde açıkça beyanlı).
+// 023/044: merchant uçları — MerchantScoped tekil okuma + hassas-veri BFF çifti (admin CRUD
+// REST 044'te söküldü, yönetim MCP'de). register-requests REST grubu da söküldü (MCP muadilleri).
 app.AddMerchantGroupEndpointExtension(apiVersionSet);
-
-// 029: kayıt başvurusu admin uçları (liste + onay/red — AdminPlaneOnly).
-app.AddRegisterRequestGroupEndpointExtension(apiVersionSet);
 
 // 029: MCP endpoint (Streamable HTTP) — ECommerce ChatAgent buraya bağlanır. Yüzey merchant.write
 // ister (ecommerce-onboarding istemcisi taşır; merchant kendi token'ı bu iç yüzeye girmez).

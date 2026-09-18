@@ -27,4 +27,5 @@ global using Wolverine.RabbitMQ;
 global using Commission.Api.Domains.CommissionPolicies;
 global using System.Globalization;
 global using Commission.Api.Domains.CommissionPolicies.ValueObjects;
+global using Common.Utils.Authorization;
 

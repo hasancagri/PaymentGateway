@@ -39,6 +39,15 @@ public sealed class SeedHostedService(IServiceProvider provider, IConfiguration 
                 await apps.UpdateAsync(existing, descriptor, ct);
         }
 
+        // 044 R5: sökülen client'lar store'dan da silinir — seed create/update'li olduğundan
+        // liste-dışı kalmak yetmez, kayıt durursa ölü kimlik token almaya devam eder (fail-closed).
+        foreach (var retired in Config.RetiredClientIds)
+        {
+            var dead = await apps.FindByClientIdAsync(retired, ct);
+            if (dead is not null)
+                await apps.DeleteAsync(dead, ct);
+        }
+
         // G3: bootstrap admin — yalnız config doluysa VE kullanıcı yoksa oluşturulur (idempotent;
         // sonradan admin'in değiştirdiği parola ezilmez).
         var bootstrapAdmin = scope.ServiceProvider.GetRequiredService<Identity.Server.Options.BootstrapAdmin>();

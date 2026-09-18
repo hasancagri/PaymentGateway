@@ -6,7 +6,7 @@ public static class AuthorizationPolicies
 {
     /// <summary>
     /// Token'da merchant_id claim'i varsa route'daki {merchantId} ile birebir eşleşme zorunlu;
-    /// route'ta değer yoksa RET (fail-closed). Claim'siz token'lar (admin-ui, payment-agent) geçer.
+    /// route'ta değer yoksa RET (fail-closed). Claim'siz token'lar (admin-ui) geçer.
     /// </summary>
     public const string MerchantScoped = "merchant-scoped";
 

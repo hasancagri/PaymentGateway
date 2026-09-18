@@ -114,24 +114,24 @@ uçlar + makine kanalları KALIR (FR-009/FR-011).
 **⚠️ CRITICAL**: T004 + T011 + T016 (canlı doğrulamalar) GEÇMEDEN başlama — geçiş penceresinde
 sistem işlevsiz kalmaz (FR-008).
 
-- [ ] T017 [US4] Merchant REST sökümü: `Features/Commands/{CreateMerchant,UpdateMerchant,ChangeMerchantStatus}.cs`
+- [X] T017 [US4] Merchant REST sökümü: `Features/Commands/{CreateMerchant,UpdateMerchant,ChangeMerchantStatus}.cs`
       + `Features/Queries/ListMerchants.cs` SİL; `MerchantEndpointExtension.cs` yalnız
       `GetMerchant` (MerchantScoped) + sensitive çiftini map'ler
-- [ ] T018 [US4] RegisterRequests REST sökümü: `Features/Commands/{ApproveRegisterRequest,RejectRegisterRequest}.cs`
+- [X] T018 [US4] RegisterRequests REST sökümü: `Features/Commands/{ApproveRegisterRequest,RejectRegisterRequest}.cs`
       + `Features/Queries/ListRegisterRequests.cs` + `RegisterRequestEndpointExtension.cs` SİL;
       `Program.cs`'ten `AddRegisterRequestGroupEndpointExtension` kaldır (aktivasyon redeem
       AYRI grupta — DOKUNMA)
-- [ ] T019 [US4] Commission REST sökümü: `Features/Commands/{CreateCommissionPolicy,UpdateCommissionPolicyMargin,ChangeCommissionPolicyStatus}.cs`
+- [X] T019 [US4] Commission REST sökümü: `Features/Commands/{CreateCommissionPolicy,UpdateCommissionPolicyMargin,ChangeCommissionPolicyStatus}.cs`
       + `Features/Queries/{ListCommissionPolicies,CalculateEffectiveCommission}.cs` SİL (R2 —
       aggregate metodu KALIR); `CommissionPolicyEndpointExtension.cs` yalnız `GetCommissionPolicy`
-- [ ] T020 [US4] Admin UI sökümü: `Pages/Merchants/{Index,Details}.*` + `Pages/CommissionPolicies/`
+- [X] T020 [US4] Admin UI sökümü: `Pages/Merchants/{Index,Details}.*` + `Pages/CommissionPolicies/`
       + `Clients/{CommissionPolicyApiClient,RegisterRequestApiClient}.cs` SİL;
       `MerchantApiClient` yalnız sensitive get/put; `_Layout.cshtml` menü sadeleştir;
       `Clients/ApiModels.cs`'ten ölü modelleri ayıkla
-- [ ] T021 [US4] Identity ölü client sökümü: `Config.cs`'ten `merchant-agent` + `payment-agent`
+- [X] T021 [US4] Identity ölü client sökümü: `Config.cs`'ten `merchant-agent` + `payment-agent`
       seed'leri + `appsettings.json` `Clients:` secret'ları SİL (R5); `admin-ui` +
       `external-admin-agent` + diğerleri DURUR
-- [ ] T022 [US4] Silinen slice'lara referanslı test/kod artıklarını temizle — çözüm genelinde
+- [X] T022 [US4] Silinen slice'lara referanslı test/kod artıklarını temizle — çözüm genelinde
       derleme hatası taraması (`dotnet build`), kalan ölü using/kayıt yok
 - [ ] T023 [US4] quickstart Senaryo 4'ü canlı çalıştır — sökülen uçlar 404; MerchantScoped
       uçlar + redeem çalışır; ölü client token alamaz; build+test 0 hata — SC-004 kanıtı
@@ -144,19 +144,19 @@ sistem işlevsiz kalmaz (FR-008).
 
 **Purpose**: İLKE VII (FLOW.md) + repo belgeleri — bunlar olmadan feature TAMAMLANMIŞ sayılmaz.
 
-- [ ] T024 [P] `src/services/Merchant.Api/FLOW.md` — admin sürecinde REST→MCP geçişi,
+- [X] T024 [P] `src/services/Merchant.Api/FLOW.md` — admin sürecinde REST→MCP geçişi,
       CreateMerchant yolunun silinmesi (doğuş yalnız başvuru onayı), hassas-veri BFF adımı;
       kenar-anchor'lar yeni sınıf adlarını gösterir
-- [ ] T025 [P] `src/services/Commission.Api/FLOW.md` — politika yaşam döngüsünün MCP'ye
+- [X] T025 [P] `src/services/Commission.Api/FLOW.md` — politika yaşam döngüsünün MCP'ye
       taşınması; silinen REST/Calculate adımları çıkar
-- [ ] T026 [P] `src/others/Identity.Server/FLOW.md` — ölü `merchant-agent`/`payment-agent`
+- [X] T026 [P] `src/others/Identity.Server/FLOW.md` — ölü `merchant-agent`/`payment-agent`
       client'larının silindiği not düşülür
-- [ ] T027 CLAUDE.md güncelle — BC haritası + Merchant/Commission/Admin satırlarında 044 durumu
+- [X] T027 CLAUDE.md güncelle — BC haritası + Merchant/Commission/Admin satırlarında 044 durumu
       (MCP-only admin, hassas-veri ekranı, sökümler); `specs/044-mcp-only-admin-plane` origin
       referansı gerekiyorsa ekle
-- [ ] T028 `scripts/check-flow-links.sh` + `scripts/check-claude-spec-links.sh` çalıştır —
+- [X] T028 `scripts/check-flow-links.sh` + `scripts/check-claude-spec-links.sh` çalıştır —
       anchor/spec-yolu drifti yok
-- [ ] T029 `dotnet build` + `dotnet test` tüm çözüm — sıfır hata, sıfır regresyon (SC-005 son kanıt)
+- [X] T029 `dotnet build` + `dotnet test` tüm çözüm — sıfır hata, sıfır regresyon (SC-005 son kanıt)
 
 ---
 

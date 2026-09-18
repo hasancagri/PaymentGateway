@@ -19,6 +19,11 @@ public static class Config
     // OIDC identity scope'ları — API scope'larından AYRI, RegisterScopes'a birlikte verilir.
     public static readonly string[] IdentityScopes = ["openid", "profile"];
 
+    // 044 R5: seed listesinden çıkarılan ölü client'lar — SeedHostedService açılışta store'dan
+    // SİLER (yalnız create/update'li seed store kaydını bırakır, ölü kimlik token almaya devam
+    // ederdi — fail-closed). Yeni söküm buraya eklenir.
+    public static readonly string[] RetiredClientIds = ["payment-agent", "merchant-agent"];
+
     // Scope → audience (resource) haritası. Token üretiminde ListResourcesAsync bu eşlemeden
     // 'aud' claim'ini üretir; servisler kendi adını (merchant.api...) ValidateAudience ile arar.
     // G2/G5 genişlemesi (cards.write, charge) buraya eklenir.
@@ -58,23 +63,8 @@ public static class Config
                 "payment.read", "payment.write",
             ],
         },
-        // Payment.Agent m2m: MCP tool çağrıları (yüzey tek policy: payment.write).
-        new ClientSeed
-        {
-            ClientId = "payment-agent",
-            ClientSecret = RequireSecret(configuration, "payment-agent"),
-            DisplayName = "Payment agent (m2m)",
-            Scopes = ["payment.read", "payment.write"],
-        },
-        // 013: Merchant.Agent m2m — başvuru MCP tool'ları (Merchant.Api /mcp, merchant.write).
-        // 019: komisyon teklif/pazarlık MCP tool'ları (Commission.Api /mcp, commission.write) eklendi.
-        new ClientSeed
-        {
-            ClientId = "merchant-agent",
-            ClientSecret = RequireSecret(configuration, "merchant-agent"),
-            DisplayName = "Merchant agent (m2m)",
-            Scopes = ["merchant.read", "merchant.write", "commission.write"],
-        },
+        // 044: payment-agent + merchant-agent seed'leri SİLİNDİ — A2A host'ları 038/043'te söküldü,
+        // ölü ama yetkili (payment.write/commission.write) kimlik yüzeyi bırakıyorlardı (R5, fail-closed).
         // 013: Identity aktivasyon sayfası → Merchant.Api redeem (sanksiyonlu senkron çağrı).
         // Claim'siz (AdminPlaneOnly geçer); merchant.write ile bileti kullanır.
         new ClientSeed

@@ -1,7 +1,3 @@
-using System.ComponentModel;
-using Common.Utils.Authorization;
-using ModelContextProtocol.Server;
-
 namespace Merchant.Api.Domains.Merchants.Features.Agents.Queries;
 
 // 043 US1/US3: admin merchant listesi — opsiyonel statü filtresi, YALNIZ Merchant aggregate'i

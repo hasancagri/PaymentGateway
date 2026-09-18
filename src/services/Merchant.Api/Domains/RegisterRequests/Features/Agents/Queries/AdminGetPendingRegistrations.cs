@@ -1,7 +1,3 @@
-using System.ComponentModel;
-using Common.Utils.Authorization;
-using ModelContextProtocol.Server;
-
 namespace Merchant.Api.Domains.RegisterRequests.Features.Agents.Queries;
 
 // 043 US2: yalnız Pending başvurular — operatörün karar bekleyen listesi. 044 FR-003: başvuru
