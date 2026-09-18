@@ -1,6 +1,3 @@
-using System.ComponentModel;
-using ModelContextProtocol.Server;
-
 namespace Merchant.Api.Domains.RegisterRequests.Features.Agents.Commands;
 
 // 029 US1: agent yüzeyi — MCP tool'u yalnız bu slice'ı çağırır (Commands/Queries'e gitmez,

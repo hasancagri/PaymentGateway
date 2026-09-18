@@ -7,7 +7,7 @@ public static class MerchantScopeEvaluator
 {
     public static bool IsAllowed(string? merchantIdClaim, string? routeMerchantId)
     {
-        // Claim'siz token = statik istemci (admin-ui, payment-agent) — mevcut davranış korunur.
+        // Claim'siz token = statik istemci (admin-ui) — mevcut davranış korunur.
         if (string.IsNullOrWhiteSpace(merchantIdClaim))
             return true;
 

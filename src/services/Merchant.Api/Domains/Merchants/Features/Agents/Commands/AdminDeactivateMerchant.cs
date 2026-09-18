@@ -1,7 +1,3 @@
-using System.ComponentModel;
-using Common.Utils.Authorization;
-using ModelContextProtocol.Server;
-
 namespace Merchant.Api.Domains.Merchants.Features.Agents.Commands;
 
 // 043 US1: AdminActivateMerchant ile birebir aynı desen, hedef Passive (bilinçli tekrar).
@@ -24,6 +20,7 @@ public static class AdminDeactivateMerchant
         public async Task<FeatureObjectResultModel<AdminDeactivateMerchantResponse>> Handle(
             AdminDeactivateMerchantCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             var merchant = await session.LoadAsync<Merchant>(cmd.MerchantId, ct);
@@ -33,7 +30,13 @@ public static class AdminDeactivateMerchant
             var previousStatus = merchant.Status;
             var changed = merchant.ChangeStatus(MerchantStatus.Passive);
             if (changed.Data!)
+            {
                 session.Store(merchant);
+
+                // 044: REST ChangeMerchantStatus söküldü — statü yayını artık buradan (Identity + Payment tüketir).
+                await bus.PublishAsync(new Shared.IntegrationEvents.MerchantStatusChanged(
+                    merchant.Id, merchant.Status.ToString()));
+            }
 
             return FeatureObjectResultModel<AdminDeactivateMerchantResponse>.Ok(new AdminDeactivateMerchantResponse
             {

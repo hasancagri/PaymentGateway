@@ -1,7 +1,3 @@
-using System.ComponentModel;
-using Common.Utils.Authorization;
-using ModelContextProtocol.Server;
-
 namespace Merchant.Api.Domains.Merchants.Features.Agents.Commands;
 
 // 043 US1: admin yüzeyi — sabit hedef statüyle Merchant.ChangeStatus çağırır (agent slice kendi
@@ -26,6 +22,7 @@ public static class AdminActivateMerchant
         public async Task<FeatureObjectResultModel<AdminActivateMerchantResponse>> Handle(
             AdminActivateMerchantCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
             CancellationToken ct)
         {
             var merchant = await session.LoadAsync<Merchant>(cmd.MerchantId, ct);
@@ -35,7 +32,14 @@ public static class AdminActivateMerchant
             var previousStatus = merchant.Status;
             var changed = merchant.ChangeStatus(MerchantStatus.Active);
             if (changed.Data!)
+            {
                 session.Store(merchant);
+
+                // 044: REST ChangeMerchantStatus söküldü — statü yayını artık buradan. Identity.Server
+                // tüketir (token kapısı) + Payment MerchantStatus referansı beslenir; outbox commit'le atomik.
+                await bus.PublishAsync(new Shared.IntegrationEvents.MerchantStatusChanged(
+                    merchant.Id, merchant.Status.ToString()));
+            }
 
             return FeatureObjectResultModel<AdminActivateMerchantResponse>.Ok(new AdminActivateMerchantResponse
             {

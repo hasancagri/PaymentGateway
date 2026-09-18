@@ -10,15 +10,18 @@ vs. merchant istemcisi) claim + scope demeti belirler; downstream servisler yaln
 ## Süreç
 
 1. **Açılışta statik istemciler + API scope'ları idempotent seed edilir**              `(SeedHostedService`
-   (admin-ui, payment-agent, merchant-agent, identity-activation,                       ` .StartAsync)`
-   ecommerce-onboarding); yalnız `Config`'teki sabit liste dokunulur.
+   (admin-ui, identity-activation, ecommerce-onboarding, external-admin-agent);         ` .StartAsync)`
+   yalnız `Config`'teki sabit liste dokunulur. **Sökülen client'lar store'dan da
+   SİLİNİR** (044: `RetiredClientIds` — payment-agent + merchant-agent; ölü ama
+   yetkili kimlik bırakılmaz, fail-closed).
 2. **Merchant.Api bir merchant onaylandığında `MerchantCreated` yayınlar**              `(MerchantClientEventHandler`
-   (admin `CreateMerchant` ya da başvuru-onayı `ApproveRegisterRequest`);                ` .Handle(MerchantCreated))`
+   (044: TEK kaynak başvuru onayı — `AdminApproveRegistration` MCP tool'u);              ` .Handle(MerchantCreated))`
    tüketici bunu OpenIddict istemci kaydına idempotent upsert eder — `ClientId`=
    `MerchantId`, `ClientSecret`=`MerchantKey`, statüye göre izin demeti.
-3. **Merchant.Api statü değiştirdiğinde (`ChangeMerchantStatus`) `MerchantStatusChanged`**  `(MerchantClientEventHandler`
-   yayınlanır; tüketici KAYDI SİLMEZ/SECRET'I DEĞİŞTİRMEZ — yalnız izin demetini             ` .Handle(MerchantStatusChanged))`
-   statüye göre yeniden yazar (`PopulateAsync` ile mevcut secret hash'i taşınır).
+3. **Merchant.Api statü değiştirdiğinde `MerchantStatusChanged` yayınlanır**             `(MerchantClientEventHandler`
+   (044: kaynak MCP statü tool'ları — activate/deactivate/suspend); tüketici              ` .Handle(MerchantStatusChanged))`
+   KAYDI SİLMEZ/SECRET'I DEĞİŞTİRMEZ — yalnız izin demetini statüye göre yeniden
+   yazar (`PopulateAsync` ile mevcut secret hash'i taşınır).
 4. **Merchant/sistem istemcisi `/connect/token`'a `client_credentials` ile gelir.**     `(TokenEndpoint.HandleAsync)`
    OpenIddict grant/secret/scope'u zaten doğrulamıştır — buraya yalnız geçerli istek düşer.
 5. **`sub` = `ClientId`; istemci merchant ise application `Properties`'teki**            `(TokenEndpoint.HandleAsync)`
@@ -36,8 +39,8 @@ vs. merchant istemcisi) claim + scope demeti belirler; downstream servisler yaln
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
-- **İki istemci düzlemi, tek token ucu.** Statik sistem istemcileri (admin-ui, payment-agent,
-  merchant-agent, identity-activation, ecommerce-onboarding) `Config`'te sabit seed edilir ve
+- **İki istemci düzlemi, tek token ucu.** Statik sistem istemcileri (admin-ui, identity-activation,
+  ecommerce-onboarding, external-admin-agent) `Config`'te sabit seed edilir ve
   `merchant_id` claim'i TAŞIMAZ; merchant istemcileri (`ClientId`=`MerchantId`) yalnız Merchant.Api
   event'leriyle çalışma anında yaratılır/güncellenir (`MerchantClientEventHandler`) ve claim taşır.
   Downstream `AdminPlaneOnlyRequirement`/`MerchantScopeRequirement` bu claim'in varlığına göre ayrışır.
@@ -46,15 +49,18 @@ vs. merchant istemcisi) claim + scope demeti belirler; downstream servisler yaln
   DEĞİŞMEZ (`PopulateAsync` taşır). Bugünkü tek statü ayrımı: **Active** → tam demet (`merchant.read`,
   `merchant.write`, `cards.write`, `payment.charge`); **Active olmayan** (Passive/Suspended) →
   `GrantsToken` false, `Permissions` boşalır → token isteği `unauthorized_client` ile reddedilir.
-- **`payment.write` hiçbir statüde merchant'a verilmez** (yalnız `payment-agent` gibi statik
-  istemcilerin scope'unda) — merchant kendi çekim-dışı ödeme yazma yetkisine sahip olamaz.
+- **`payment.write` hiçbir statüde merchant'a verilmez** (yalnız `admin-ui` gibi statik
+  istemcilerin scope'unda; ölü `payment-agent` seed'i 044'te silindi) — merchant kendi
+  çekim-dışı ödeme yazma yetkisine sahip olamaz.
 - **Scope → audience eşlemesi merkezi.** `Config.ScopeResources` her API scope'unu tek bir
   kaynağın (`payment.api`/`merchant.api`/`commission.api`) audience'ına bağlar; yeni scope eklenince
   buraya + ilgili istemcinin `Scopes` listesine eklenir (`SeedHostedService` idempotent upsert eder).
-- **`merchant.admin` capability scope (043).** Merchant.Api'nin 6 admin MCP tool'unu tool-bazlı
-  korur (`cards.write`/`payment.charge` deseni); YALNIZ `admin-ui` ve `external-admin-agent`
-  `Scopes` listesinde — `ecommerce-onboarding` (submit_registration'ı çağıran sistem istemcisi)
-  bu scope'u ALMAZ, admin/sistem-istemci ayrımının temeli budur.
+- **`merchant.admin` capability scope (043/044).** Merchant.Api'nin admin MCP tool'larını
+  tool-bazlı korur (`cards.write`/`payment.charge` deseni); YALNIZ `admin-ui` ve
+  `external-admin-agent` `Scopes` listesinde — `ecommerce-onboarding` (submit_registration'ı
+  çağıran sistem istemcisi) bu scope'u ALMAZ, admin/sistem-istemci ayrımının temeli budur.
+  Commission yazma tool'ları için ayrı admin scope üretilmedi — mevcut `commission.write`
+  yeterli ayrım (044 R4: onu taşıyan tek canlı istemci admin düzlemi).
 - **TUZAK (`ScopeClaimArrayHandler`).** `context.TokenType` URN'dir (`TokenTypeIdentifiers.AccessToken`),
   kısa hint (`TokenTypeHints`) DEĞİL; hint'le kıyaslarsan handler no-op kalır → scope tek string
   kalır → servislerin `RequireClaim("scope", x)` tek-tek arayışı sessizce 403 üretir (029'da canlı

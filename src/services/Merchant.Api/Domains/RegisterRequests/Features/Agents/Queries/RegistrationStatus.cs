@@ -1,6 +1,3 @@
-using System.ComponentModel;
-using ModelContextProtocol.Server;
-
 namespace Merchant.Api.Domains.RegisterRequests.Features.Agents.Queries;
 
 // 029 US3: agent yüzeyi — e-posta ile EN SON başvurunun durumu (case-insensitive, R4).

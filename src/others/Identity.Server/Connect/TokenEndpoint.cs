@@ -38,7 +38,7 @@ public static class TokenEndpoint
             identity.SetClaim(Claims.Subject, request.ClientId);
 
             // 012 (D6): merchant istemcilerinde application Properties'teki merchant_id access token'a
-            // claim olarak girer; statik istemcilerde (admin-ui, payment-agent) property yok → claim yok.
+            // claim olarak girer; statik istemcilerde (admin-ui) property yok → claim yok.
             var application = await applicationManager.FindByClientIdAsync(request.ClientId!)
                 ?? throw new InvalidOperationException("İstemci kaydı bulunamadı.");
             var properties = await applicationManager.GetPropertiesAsync(application);

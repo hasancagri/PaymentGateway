@@ -1,7 +1,3 @@
-using System.ComponentModel;
-using Common.Utils.Authorization;
-using ModelContextProtocol.Server;
-
 namespace Merchant.Api.Domains.RegisterRequests.Features.Agents.Commands;
 
 // 043 US2: red — neden zorunlu, kayıtta saklanır. Agent slice kendi kopyası (mevcut
