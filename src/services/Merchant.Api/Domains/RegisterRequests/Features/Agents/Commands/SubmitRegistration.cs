@@ -36,6 +36,8 @@ public static class SubmitRegistration
         public async Task<FeatureObjectResultModel<SubmitRegistrationResponse>> Handle(
             SubmitRegistrationCommand cmd,
             IDocumentSession session,
+            IMessageBus bus,
+            Merchant.Api.Options.AdminNotification adminNotification,
             CancellationToken ct)
         {
             if (!Enum.TryParse<MerchantType>(cmd.Type?.Trim(), ignoreCase: true, out var type))
@@ -52,6 +54,9 @@ public static class SubmitRegistration
                 .Select(r => r.Status)
                 .ToListAsync(ct);
 
+            // FR-012: kod (sözleşme) DEĞİŞMEZ — yalnız tool [Description]'ı istemci tarafında
+            // "talepte bulunmuştunuz, onayı bekleniyor" anlamına gelecek şekilde netleştirir. Bu
+            // dalda SendEmailRequested publish EDİLMEZ (yalnız yeni Pending kaydında mail gider).
             if (existingStatuses.Contains(RegisterRequestStatus.Pending))
                 return FeatureObjectResultModel<SubmitRegistrationResponse>.Error(new MessageItem
                 {
@@ -75,6 +80,14 @@ public static class SubmitRegistration
             var request = result.Data!;
             session.Store(request);
 
+            // FR-011: admin'e bilgilendirme maili — dormant Mail.Worker altyapısının İLK aktif
+            // çağıranı ([Transactional] outbox: yalnız DB commit'te gider).
+            await bus.PublishAsync(new Shared.IntegrationEvents.SendEmailRequested(
+                adminNotification.AdminEmail,
+                "PG'ye kayıt yaptırmak isteyen var",
+                $"{request.Name} ({request.Email}) PG'ye kayıt başvurusu yaptı (requestId: {request.Id}). " +
+                "Admin panelinden veya admin_get_pending_registrations ile inceleyip onaylayabilir/reddedebilirsiniz."));
+
             return FeatureObjectResultModel<SubmitRegistrationResponse>.Ok(new SubmitRegistrationResponse
             {
                 RequestId = request.Id,
@@ -97,7 +110,9 @@ public static class SubmitRegistrationMcpTool
     [Description("Merchant kayıt başvurusu açar: alanlar doğrulanır (tip-uyum matrisi, TR IBAN, " +
                  "e-posta) ve başvuru Pending (admin onayı bekler) olarak kaydolur; requestId döner. " +
                  "Kimlik/sır KABUL ETMEZ, merchant OLUŞTURMAZ. Aynı e-postayla bekleyen başvuru " +
-                 "varken tekrar çağrılamaz.")]
+                 "varken tekrar çağrılamaz — hata kodu COMMON_MESSAGE_RECORD_DUPLICATE ile döner; " +
+                 "bu, kullanıcının DAHA ÖNCE talepte bulunduğu ve onayının hâlâ beklendiği anlamına " +
+                 "gelir (yeni kayıt/mail oluşmaz).")]
     public static Task<FeatureObjectResultModel<SubmitRegistration.SubmitRegistrationResponse>>
         SubmitRegistrationAsync(
             [Description("İşyeri tipi: Personal | PrivateCompany | LimitedOrJointStockCompany")] string type,

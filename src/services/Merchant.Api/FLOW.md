@@ -55,6 +55,26 @@ erişimi bu duyuruya bağlıdır.
    durum sorgusunda karşı tarafa iletilir; Rejected terminaldir ama aynı e-posta yeniden
    başvurabilir. `(RegisterRequest.Reject)`
 
+### Yol C — Admin MCP yüzeyi (043, Merchant.Agent+Admin sayfaları söküldü)
+
+1. **Başvuru Pending doğduğunda admin'e bilgilendirme maili gider** (mükerrer Pending denemesinde
+   GİTMEZ). `(SendEmailRequested ← SubmitRegistrationMcpTool "submit_registration")`
+2. **Operatör (Claude Desktop, `external-admin-agent`) merchant statüsünü doğal dille değiştirir**
+   — üç ayrı sabit-hedef tool (idempotent no-op, hata dönmez).
+   `(Merchant.ChangeStatus ← AdminActivateMerchantMcpTool "admin_activate_merchant")`
+   `(Merchant.ChangeStatus ← AdminDeactivateMerchantMcpTool "admin_deactivate_merchant")`
+   `(Merchant.ChangeStatus ← AdminSuspendMerchantMcpTool "admin_suspend_merchant")`
+3. **Operatör merchant listesini opsiyonel statü filtresiyle sorgular** (MerchantKey/SubMerchantKey/
+   Iban yanıtta YOK). `(AdminGetMerchantsMcpTool "admin_get_merchants")`
+4. **Operatör bekleyen başvuruları listeler, onaylar veya reddeder** — onay Yol B adım 4 ile aynı
+   fabrikayı çağırır (agent slice bilinçli kopya).
+   `(AdminGetPendingRegistrationsMcpTool "admin_get_pending_registrations")`
+   `(RegisterRequest.Approve → Merchant.Create ← AdminApproveRegistrationMcpTool "admin_approve_registration")`
+   `(RegisterRequest.Reject ← AdminRejectRegistrationMcpTool "admin_reject_registration")`
+5. **`merchant.admin` scope eksikse istek reddedilir** (fail-closed) —
+   `ecommerce-onboarding` (yalnız `merchant.read`/`merchant.write`) bu tool'ları ÇAĞIRAMAZ.
+   `(ScopeAuthorizationMiddleware.Before)`
+
 ## Domain kuralları (süreci yöneten değişmezler)
 
 - **Merchant her zaman Active doğar** (Yol A ve Yol B ile aynı fabrika — `Merchant.Create`).
@@ -71,6 +91,10 @@ erişimi bu duyuruya bağlıdır.
   Rejected'dan yeniden başvuru açılabilir, Approved'dan asla (mükerrer engeli e-posta üstünden).
 - **Admin işlemleri (create/update/status/approve/reject/list) `AdminPlaneOnly` — merchant kendi
   token'ıyla kendi kaydı dışında hiçbir şeyi değiştiremez** (statüsünü kendi askıya alamaz).
+- **Admin MCP tool'ları AYRICA `merchant.admin` capability scope ister (043)** — `/mcp` endpoint'i
+  tek (`merchant.write`, DEĞİŞMEDİ); tool-bazlı ince yetki Wolverine middleware'iyle EK katman.
+  `ecommerce-onboarding` (submit_registration'ı çağıran sistem istemcisi) bu scope'u TAŞIMAZ —
+  `admin-ui`/`external-admin-agent`'ı sistem istemcisinden ayıran budur.
 
 ## Sınır (bu BC'nin dokunmadığı)
 
@@ -79,5 +103,8 @@ Merchant'ın çekim/kart-vault/komisyon davranışı Payment.Api ve (varsa) Comm
 bu BC yalnız statü referansı için event kaynağı. `Program.cs`'te hâlâ deklare edilen
 `MerchantProvisioned` yayın kanalı ve `MerchantCommissionGridReady` dinleyici kuyruğu bu BC'de
 FİİLEN kullanılmıyor (ne yayınlanıyor ne tüketiliyor) — eski 013 kademeli-statü tasarımından kalma
-ölü altyapı, güncel süreç Yol A/Yol B'nin dışındadır. İyzico'ya gerçek SubMerchant kaydı bu BC'de
-YAPILMAZ (SubMerchantKey alanı hep null, ayrı iş).
+ölü altyapı, güncel süreç Yol A/Yol B/Yol C'nin dışındadır. İyzico'ya gerçek SubMerchant kaydı bu
+BC'de YAPILMAZ (SubMerchantKey alanı hep null, ayrı iş). Merchant.Agent (A2A host) + Admin'in
+AgentChat/RegisterRequests Razor sayfaları 043 ile SÖKÜLDÜ — Yol B/Yol C artık yalnız MCP üzerinden
+(dış MCP istemcisi: ECommerce ChatAgent için submit_registration/registration_status,
+external-admin-agent/Claude Desktop için admin tool'ları) yürür, A2A/Razor arayüzü YOK.

@@ -56,6 +56,11 @@ builder.Host.UseWolverine(opts =>
 
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
+
+    // 043: tool-bazlı ince yetki — [RequiredScope] taşıyan admin MCP command/query'lerini
+    // fail-closed korur (merchant.admin, dormant Common middleware'in İLK aktivasyonu).
+    opts.Policies.AddMiddleware(typeof(Common.Utils.Authorization.ScopeAuthorizationMiddleware),
+        chain => chain.MessageType.GetCustomAttribute<Common.Utils.Authorization.RequiredScopeAttribute>() is not null);
 });
 
 builder.Services.AddApiVersioning(options =>
@@ -81,6 +86,12 @@ builder.Services.AddOptions<Merchant.Api.Options.Onboarding>().BindConfiguration
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton<Merchant.Api.Options.Onboarding>(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Merchant.Api.Options.Onboarding>>().Value);
+
+// 043 FR-011: admin bildirim maili (submit_registration sonrası) — sabit alıcı.
+builder.Services.AddOptions<Merchant.Api.Options.AdminNotification>().BindConfiguration(nameof(Merchant.Api.Options.AdminNotification))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<Merchant.Api.Options.AdminNotification>(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Merchant.Api.Options.AdminNotification>>().Value);
 
 // 029: MCP server — ECommerce ChatAgent'a başvuru tool'larını sunar ([McpServerToolType]).
 // Stateless HTTP (013 wiring'inin dirilişi).

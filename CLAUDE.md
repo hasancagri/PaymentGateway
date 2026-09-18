@@ -17,11 +17,16 @@ kod standartları, servisler-arası desenler orada (ECom'dan devralındı). Bu d
   store'a HMAC-imzalı sonuç (durable outbox retry) + müşteri dönüş sayfası. iyzico V2 wire (`Utils/*V2`) +
   MerchantStatus + ApiKey auth kalır. `/mcp` tool'suz (store HTTP çağırır, agent değil).
 - **Merchant** — gateway müşterisi SİTE (pazaryeri/split DEĞİL); iyzico SubMerchant sözleşmesiyle hizalı
-  alan seti + statü makinesi. OAuth istemci düzlemi (aşağıda).
-- **Commission** — komisyon politikası (iyzico maliyeti + marj).
+  alan seti + statü makinesi. OAuth istemci düzlemi (aşağıda). **Admin yüzeyi MCP'de (043):** statü
+  yönetimi (`admin_activate/deactivate/suspend_merchant`, `admin_get_merchants`) + başvuru onay/red
+  (`admin_get_pending_registrations`/`admin_approve/reject_registration`) `merchant.admin` scope'lu
+  admin MCP tool'ları; `merchant-agent` (A2A) SÖKÜLDÜ, Admin `AgentChat`/`RegisterRequests` sayfaları YOK.
+- **Commission** — komisyon politikası (iyzico maliyeti + marj). **İLK MCP yüzeyi (043):** salt-okuma
+  `admin_get_commission_policy` (create/update MCP'ye açılmaz, Admin ekranından yürür).
 - Altyapı: **Identity.Server** (M2M OpenIddict), **Mail.Worker** (RabbitMQ→SMTP/Mailpit), **Admin**
-  (Razor BFF), **gateway** (YARP), **Merchant.Agent** (A2A host, stateless — BC değil). Payment.Agent
-  söküldü: Payment `/mcp` artık dış MCP istemcisiyle (Claude desktop) doğrudan konuşur, A2A yok.
+  (Razor BFF), **gateway** (YARP). Payment.Agent + Merchant.Agent (A2A host'ları) SÖKÜLDÜ: Payment/
+  Merchant/Commission `/mcp` uçlarına artık dış MCP istemcisi (Claude desktop, `external-admin-agent`)
+  doğrudan bağlanır, A2A yok.
 
 ## Komutlar
 
@@ -37,24 +42,20 @@ scripts/check-flow-links.sh                                # FLOW.md domain-sür
 
 - **Sistemi hep Aspire AppHost'tan başlat**; servisler conn-string'i Aspire'dan alır, tek başına açılmaz.
 - **Marten şeması otomatik kurulur** (`ApplyAllDatabaseChangesOnStartup`) — migration komutu yok.
-- **Merchant.Agent OpenAI ister**: `dotnet user-secrets set OpenAI:ApiKey <k> --project
-  src/agents/Merchant.Agent` (chat router; tutar/kart/taksit ÜRETMEZ — A2A + domain'den gelir).
 - **Paket sürümleri yalnız `Directory.Packages.props`'ta** (CPM, istisnasız); `.csproj` sürümsüz listeler.
-  A2A/Agent Framework paketleri preview → pin.
 
 ## BC haritası
 
 Her BC = kendi DB'si + şeması. Origin sütunu = BC'yi tanımlayan spec'in tam yolu (guard'lı).
 Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel`/`Identity.Server`/
-`Mail.Worker`), `src/aspire`, `src/agents`, `src/ui/Admin`.
+`Mail.Worker`), `src/aspire`, `src/ui/Admin`. `src/agents/` boş (Payment.Agent+Merchant.Agent SÖKÜLDÜ).
 
 | Servis | DB | Ne yapar | Origin spec |
 |---|---|---|---|
 | `Payment.Api` | paymentDb | kart-vault söküldü (041 teardown); **hosted-CF ödeme CANLI (041):** HostedPaymentSession + `/hosted-payment` (CF init) + secret-token'lı iyzico callback (CF retrieve) + HMAC-imzalı store bildirimi; iyzico V2 wire + MerchantStatus + ApiKey auth | `specs/041-hosted-cf-payment` |
-| `Merchant.Api` | merchantDb | Merchant aggregate (SubMerchant hizalı); statü makinesi; `MerchantCreated`/`StatusChanged` outbox | `specs/023-merchant-submerchant-model` |
-| `Commission.Api` | commissionDb | CommissionPolicy (iyzico maliyeti + marj) | `specs/024-commission-cost-margin` |
+| `Merchant.Api` | merchantDb | Merchant aggregate (SubMerchant hizalı); statü makinesi; `MerchantCreated`/`StatusChanged` outbox; **admin MCP yüzeyi (043)** (`merchant.admin` scope) | `specs/023-merchant-submerchant-model` |
+| `Commission.Api` | commissionDb | CommissionPolicy (iyzico maliyeti + marj); **salt-okuma admin MCP tool'u (043, İLK MCP)** | `specs/024-commission-cost-margin` |
 | `identity-server` | identityDb | M2M OpenIddict (client_credentials); scope + merchant OAuth istemci düzlemi | `specs/011-openiddict-migration` |
-| `Merchant.Agent` | — | A2A host; merchant onboarding (skill'ler 029'la canlanır) | `specs/029-agent-merchant-onboarding` |
 | `Mail.Worker` | — | RabbitMQ `mail.delivery` → SMTP/Mailpit; retry→error queue; ClosedXML ek | — |
 | `Admin` | — | Razor Pages BFF (yetki yok); typed HttpClient ile API'leri çağırır | — |
 | `gateway` | — | YARP reverse proxy; tek giriş | — |
@@ -84,7 +85,9 @@ Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel
 ## Yapma listesi
 
 - **Sökülenleri geri getirme:** `Iyzico.Provider` paylaşılan SDK + V1 PKI zinciri; `Excel.Mcp` +
-  `document.generate` scope; CP.VPOS/BankRouter/Reference.Api (022 pivotu). Gerekçe ilgili spec + memory'de.
+  `document.generate` scope; CP.VPOS/BankRouter/Reference.Api (022 pivotu); `Payment.Agent`/
+  `Merchant.Agent` (A2A host'ları, 038/043) + Admin `AgentChat`/`RegisterRequests` sayfaları.
+  Gerekçe ilgili spec + memory'de.
 - **iyzico wire tipini paylaşılan lib'e çıkarma** — slice'ta nested kalır (ikinci canlı tüketici çıkana dek YAGNI).
 - **`IConfiguration`'dan doğrudan okuma** / handler'da literal (Options pattern + IyzicoRequestOptions).
 - **MCP'yi agent-dışı koddan** imperatif çağırma; servisler-arası MCP değil (messaging/HTTP).

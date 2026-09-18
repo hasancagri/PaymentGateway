@@ -27,9 +27,8 @@ adaları silindi). iyzico sandbox key/secret **user-secrets**'tan gelir (`Iyzico
 ```text
 src/
 ├── aspire/           AppHost + ServiceDefaults (orkestrasyon, service discovery)
-├── agents/
-│   ├── Payment.Agent  A2A host + LLM router (007 kalıntısı) — BC değil; MCP skill'leri 022'de ÖLÜ
-│   └── Merchant.Agent A2A host — BC değil; register/komisyon skill'leri 022'de ÖLÜ (proje derlenir)
+├── agents/           BOŞ (Payment.Agent 038'de, Merchant.Agent 043'te A2A host olarak SÖKÜLDÜ;
+│                     BC'ler dış MCP istemcisiyle — Claude desktop — doğrudan konuşur)
 ├── services/
 │   ├── Payment.Api    Ödeme BC (iyzico: kart saklama/çekim/taksit; transport engine Utils/, 037)
 │   ├── Merchant.Api   Merchant BC (onboarding + merchant CRUD/statü; = gateway müşterisi SİTE)
@@ -55,7 +54,8 @@ BC sınırını geçmez.
 | **Commission** | `CommissionPolicy` (024): merchant komisyonu = **iyzico maliyeti + marj** (yüzde + sabit). Efektif komisyon hesabı; iyzico maliyeti işlem-sonrası rapordan beslenir (ileride). |
 
 Altyapı (BC değil): `Identity.Server` (OpenIddict IdP), `Gateway` (YARP), `Mail.Worker` (016 — MCP DEĞİL),
-`Excel.Mcp`, `Payment.Agent`/`Merchant.Agent` (A2A host'ları; skill'ler 022'de ölü), Admin BFF. Dev'de `Mailpit`.
+`Excel.Mcp`, Admin BFF. `Payment.Agent`/`Merchant.Agent` (A2A host'ları) SÖKÜLDÜ (038/043) — BC'ler
+dış MCP istemcisiyle (Claude desktop) doğrudan konuşur. Dev'de `Mailpit`.
 
 ## Payment BC — iyzico ödeme + transport (037)
 
@@ -208,9 +208,10 @@ Auth şimdilik kabuk: `ClientCredential`/`Password` policy'leri yalnız geçerli
   `RetryWithCooldown(1s,5s,15s).Then.MoveToErrorQueue()`. Deterministik mailler BC handler'ından
   `[Transactional]` outbox `SendEmailRequested` ile (publish yalnız DB commit'te).
 - **Excel.Mcp** — generic MCP (`document.generate`); MCP = yalnız agent/LLM yüzeyi (016 kuralı).
-- **Payment.Agent / Merchant.Agent** — A2A host'ları (stateless, BC değil). 022'de MCP skill'leri söküldü;
-  ödeme akışı/register/komisyon skill'leri **ölü** (proje derlenir), yeniden kurulmayı bekliyor.
-- **Admin** — Razor Pages BFF (typed `HttpClient` + Aspire service discovery); çoğu ekran ölü, backend'e
+- **Payment.Agent / Merchant.Agent** — A2A host'ları TAMAMEN SÖKÜLDÜ (038/043). Payment/Merchant/
+  Commission `/mcp` uçlarına artık dış MCP istemcisi (Claude desktop) doğrudan bağlanır, A2A yok.
+- **Admin** — Razor Pages BFF (typed `HttpClient` + Aspire service discovery); `AgentChat`/
+  `RegisterRequests` sayfaları 043'te silindi (yerini admin MCP tool'ları aldı); backend'e
   kural sızdırmaz. **Mailpit** — dev SMTP catch-all (SMTP :1025, web :8025).
 - **MCP kuralı (016):** MCP tool'larını YALNIZ agent/LLM çağırır; servisler-arası / BC→altyapı iletişimi
   ASLA MCP değil (messaging veya HTTP).
