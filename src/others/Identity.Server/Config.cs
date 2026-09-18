@@ -33,6 +33,8 @@ public static class Config
             ["payment.charge"] = "payment.api",
             ["merchant.read"] = "merchant.api",
             ["merchant.write"] = "merchant.api",
+            // 043: admin-tool capability scope — Merchant.Api Wolverine ScopeAuthorizationMiddleware'i tool-bazlı uygular.
+            ["merchant.admin"] = "merchant.api",
             ["commission.read"] = "commission.api",
             ["commission.write"] = "commission.api",
         };
@@ -51,7 +53,7 @@ public static class Config
             DisplayName = "Admin BFF (m2m)",
             Scopes =
             [
-                "merchant.read", "merchant.write",
+                "merchant.read", "merchant.write", "merchant.admin",
                 "commission.read", "commission.write",
                 "payment.read", "payment.write",
             ],
@@ -102,7 +104,7 @@ public static class Config
             AllowAuthorizationCode = true,
             AllowRefreshToken = true,
             RedirectUris = ClaudeCallbackRedirectUris,
-            Scopes = ["openid", "profile", "merchant.read", "merchant.write", "commission.read", "commission.write"],
+            Scopes = ["openid", "profile", "merchant.read", "merchant.write", "merchant.admin", "commission.read", "commission.write"],
         },
     ];
 

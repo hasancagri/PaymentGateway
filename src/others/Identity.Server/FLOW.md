@@ -51,6 +51,10 @@ vs. merchant istemcisi) claim + scope demeti belirler; downstream servisler yaln
 - **Scope → audience eşlemesi merkezi.** `Config.ScopeResources` her API scope'unu tek bir
   kaynağın (`payment.api`/`merchant.api`/`commission.api`) audience'ına bağlar; yeni scope eklenince
   buraya + ilgili istemcinin `Scopes` listesine eklenir (`SeedHostedService` idempotent upsert eder).
+- **`merchant.admin` capability scope (043).** Merchant.Api'nin 6 admin MCP tool'unu tool-bazlı
+  korur (`cards.write`/`payment.charge` deseni); YALNIZ `admin-ui` ve `external-admin-agent`
+  `Scopes` listesinde — `ecommerce-onboarding` (submit_registration'ı çağıran sistem istemcisi)
+  bu scope'u ALMAZ, admin/sistem-istemci ayrımının temeli budur.
 - **TUZAK (`ScopeClaimArrayHandler`).** `context.TokenType` URN'dir (`TokenTypeIdentifiers.AccessToken`),
   kısa hint (`TokenTypeHints`) DEĞİL; hint'le kıyaslarsan handler no-op kalır → scope tek string
   kalır → servislerin `RequireClaim("scope", x)` tek-tek arayışı sessizce 403 üretir (029'da canlı

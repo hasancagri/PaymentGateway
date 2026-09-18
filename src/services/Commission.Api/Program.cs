@@ -65,6 +65,13 @@ builder.Services.AddAllDependencies();
 // 019: teklif ayarları (marj + bilet TTL + public link tabanı) — strongly-typed POCO.
 builder.Services.AddOptionsExt();
 
+// 043: MCP server — Commission.Api'nin İLK MCP kurulumu (Merchant.Api 029 deseniyle birebir).
+// Stateless HTTP; tek tool var (admin_get_commission_policy, salt-okuma).
+builder.Services
+    .AddMcpServer()
+    .WithHttpTransport(o => o.Stateless = true)
+    .WithToolsFromAssembly();
+
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -78,5 +85,9 @@ var apiVersionSet = app.NewApiVersionSet()
 
 // 024: Commission BC gerçek domain — marj politikası + efektif komisyon uçları.
 app.AddCommissionPolicyGroupEndpointExtension(apiVersionSet);
+
+// 043: MCP endpoint (Streamable HTTP) — external-admin-agent (Claude Desktop) buraya bağlanır.
+// Yalnız read tool olduğu için CommissionRead yeterli (CommissionWrite GEREKMEZ).
+app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.CommissionRead);
 
 await app.RunAsync();

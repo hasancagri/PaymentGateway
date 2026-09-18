@@ -31,6 +31,10 @@ hakedişini** hesaplar. Kendi DB'sinde yalnız tarife (politika) tutar; ödeme/i
 5. **Merchant kendi politikasını görüntüler.** Yalnız kendi `{merchantId}` (route-claim eşleşmesi,
    fail-closed) `(GetCommissionPolicyQueryHandler)`. Yönetici tüm politikaları merchant/statü
    filtresiyle listeler `(ListCommissionPoliciesQueryHandler)`.
+6. **Operatör (Claude Desktop, `external-admin-agent`) marj politikasını doğal dille sorgular**
+   (043 — Commission.Api'nin İLK MCP yüzeyi, salt-okuma; create/update MCP'DE YOK, Admin
+   ekranından yürür). Politika yoksa hata DEĞİL, "tanımlı politika yok" bilgi döner.
+   `(AdminGetCommissionPolicyMcpTool "admin_get_commission_policy")`
 
 ## Domain kuralları (süreci yöneten değişmezler)
 

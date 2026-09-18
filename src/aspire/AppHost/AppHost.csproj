@@ -11,7 +11,6 @@
     <ItemGroup>
       <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
       <ProjectReference Include="..\..\services\Payment.Api\Payment.Api.csproj" />
-      <ProjectReference Include="..\..\agents\Merchant.Agent\Merchant.Agent.csproj" />
       <ProjectReference Include="..\..\others\Mail.Worker\Mail.Worker.csproj" />
       <ProjectReference Include="..\..\services\Merchant.Api\Merchant.Api.csproj" />
       <ProjectReference Include="..\..\services\Commission.Api\Commission.Api.csproj" />

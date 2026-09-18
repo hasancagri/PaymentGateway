@@ -17,6 +17,9 @@ public static class AuthorizationScopes
     // merchant.api
     public const string MerchantRead = "merchant.read";
     public const string MerchantWrite = "merchant.write";
+    // 043: admin-tool capability scope — ecommerce-onboarding (merchant.write taşır ama admin
+    // DEĞİL) ile admin-ui/external-admin-agent'ı ayırır (cards.write/payment.charge deseni).
+    public const string MerchantAdmin = "merchant.admin";
 
     // commission.api
     public const string CommissionRead = "commission.read";
