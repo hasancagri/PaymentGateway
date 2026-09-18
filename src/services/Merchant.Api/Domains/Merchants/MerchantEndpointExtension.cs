@@ -9,6 +9,8 @@ public static class MerchantEndpointExtension
             .UpdateMerchantGroupItemEndpoint()
             .ChangeMerchantStatusGroupItemEndpoint()
             .GetMerchantGroupItemEndpoint()
+            .GetMerchantSensitiveGroupItemEndpoint()
+            .UpdateMerchantSensitiveGroupItemEndpoint()
             .ListMerchantsGroupItemEndpoint();
     }
 }

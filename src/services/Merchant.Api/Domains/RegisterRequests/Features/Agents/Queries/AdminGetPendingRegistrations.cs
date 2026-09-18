@@ -4,8 +4,10 @@ using ModelContextProtocol.Server;
 
 namespace Merchant.Api.Domains.RegisterRequests.Features.Agents.Queries;
 
-// 043 US2: yalnız Pending başvurular — operatörün karar bekleyen listesi. Agent slice kendi
-// sorgusu (mevcut ListRegisterRequests REST query'siyle KOD PAYLAŞMAZ, bilinçli tekrar).
+// 043 US2: yalnız Pending başvurular — operatörün karar bekleyen listesi. 044 FR-003: başvuru
+// sahibinin kişisel/kimlik-belirleyen alanları (Email, GsmNumber, IdentityNumber, TaxNumber)
+// sözleşmeden ÇIKARILDI — karar için başvuru Id + işletme adı/tipi + tarih yeterli. Agent slice
+// kendi sorgusu (bilinçli tekrar).
 public static class AdminGetPendingRegistrations
 {
     [RequiredScope(AuthorizationScopes.MerchantAdmin)]
@@ -21,15 +23,12 @@ public static class AdminGetPendingRegistrations
         public Guid RequestId { get; set; }
         public string Type { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string GsmNumber { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string ContactName { get; set; } = string.Empty;
         public string ContactSurname { get; set; } = string.Empty;
-        public string? IdentityNumber { get; set; }
         public string? TaxOffice { get; set; }
-        public string? TaxNumber { get; set; }
         public string? LegalCompanyTitle { get; set; }
+        public DateTime CreatedTime { get; set; }
     }
 
     public class AdminGetPendingRegistrationsQueryHandler
@@ -52,28 +51,25 @@ public static class AdminGetPendingRegistrations
                         RequestId = r.Id,
                         Type = r.Type.ToString(),
                         Name = r.Name,
-                        Email = r.Email,
-                        GsmNumber = r.GsmNumber,
                         Address = r.Address,
                         ContactName = r.ContactName,
                         ContactSurname = r.ContactSurname,
-                        IdentityNumber = r.IdentityNumber,
                         TaxOffice = r.TaxOffice,
-                        TaxNumber = r.TaxNumber,
-                        LegalCompanyTitle = r.LegalCompanyTitle
+                        LegalCompanyTitle = r.LegalCompanyTitle,
+                        CreatedTime = r.CreatedTime
                     }).ToList()
                 });
         }
     }
 }
 
-/// <summary>US2 — bekleyen (Pending) kayıt başvurularının listesi, karar için KYC-benzeri alanlarla.</summary>
+/// <summary>US2 — bekleyen (Pending) kayıt başvurularının listesi; kişisel veri YOK (044).</summary>
 [McpServerToolType]
 public static class AdminGetPendingRegistrationsMcpTool
 {
     [McpServerTool(Name = Shared.MerchantAdminTools.GetPendingRegistrations)]
-    [Description("Admin onayı bekleyen (Pending) kayıt başvurularını döner — operatör kararı için " +
-                 "gerekli alanlarla (kimlik/vergi bilgisi dahil, sır DEĞİL).")]
+    [Description("Admin onayı bekleyen (Pending) kayıt başvurularını döner — başvuru Id, işletme " +
+                 "adı/tipi/adresi, iletişim adı ve tarih. Başvuru sahibinin kişisel verisi YANIT'TA YOK.")]
     public static Task<FeatureObjectResultModel<AdminGetPendingRegistrations.AdminGetPendingRegistrationsResponse>>
         AdminGetPendingRegistrationsAsync(IMessageBus bus, CancellationToken ct)
         => bus.InvokeAsync<FeatureObjectResultModel<AdminGetPendingRegistrations.AdminGetPendingRegistrationsResponse>>(
