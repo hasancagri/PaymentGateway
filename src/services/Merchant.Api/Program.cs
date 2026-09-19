@@ -14,6 +14,13 @@ builder.Services.AddMarten(opts =>
                 s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
             });
 
+        // 045: hosted onboarding — form oturumu + teslim linki token'la yüklenir.
+        opts.Schema.For<Merchant.Api.Domains.OnboardingFormSessions.OnboardingFormSession>()
+            .Index(x => x.Token)
+            .Index(x => x.Email);
+        opts.Schema.For<Merchant.Api.Domains.CredentialRevealLinks.CredentialRevealLink>()
+            .Index(x => x.Token)
+            .Index(x => x.MerchantId);
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -114,6 +121,18 @@ var apiVersionSet = app.NewApiVersionSet()
 // 023/044: merchant uçları — MerchantScoped tekil okuma + hassas-veri BFF çifti (admin CRUD
 // REST 044'te söküldü, yönetim MCP'de). register-requests REST grubu da söküldü (MCP muadilleri).
 app.AddMerchantGroupEndpointExtension(apiVersionSet);
+
+// 045: store↔PG onboarding S2S REST kontratı (specs/045-hosted-onboarding-form/contracts) —
+// oturum aç (write) + durum (read) + credential doğrulama (read); ecommerce-onboarding m2m.
+app.MapGroup("api/v{version:apiVersion}/onboarding").WithTags("onboarding").WithApiVersionSet(apiVersionSet)
+    .CreateFormSessionGroupItemEndpoint()
+    .GetOnboardingApplicationStatusGroupItemEndpoint()
+    .ValidateMerchantCredentialsGroupItemEndpoint();
+
+// 045: hosted sayfalar — ANONİM, token = yetki (form ~24 saat tek başvuruluk; teslim ~1 saat
+// tek gösterimlik; Payment 041 hosted sayfa emsali).
+app.MapOnboardingFormPages();
+app.MapCredentialRevealPage();
 
 // 029: MCP endpoint (Streamable HTTP) — ECommerce ChatAgent buraya bağlanır. Yüzey merchant.write
 // ister (ecommerce-onboarding istemcisi taşır; merchant kendi token'ı bu iç yüzeye girmez).

@@ -14,6 +14,8 @@ public static class MerchantAdminTools
     public const string GetPendingRegistrations = "admin_get_pending_registrations";
     public const string ApproveRegistration = "admin_approve_registration";
     public const string RejectRegistration = "admin_reject_registration";
+    // 045: yeniden teslim — yeni tek gösterimlik credential linki mail'ler (eskiler ölür).
+    public const string ResendCredentialLink = "admin_resend_credential_link";
 }
 
 public static class CommissionAdminTools

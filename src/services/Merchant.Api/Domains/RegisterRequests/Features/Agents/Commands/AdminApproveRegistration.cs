@@ -23,6 +23,7 @@ public static class AdminApproveRegistration
             AdminApproveRegistrationCommand cmd,
             IDocumentSession session,
             IMessageBus bus,
+            Merchant.Api.Options.Onboarding onboarding,
             CancellationToken ct)
         {
             var request = await session.LoadAsync<RegisterRequest>(cmd.RequestId, ct);
@@ -49,6 +50,29 @@ public static class AdminApproveRegistration
             // [Transactional] outbox: yayın yalnız DB commit'te gider.
             await bus.PublishAsync(new Shared.IntegrationEvents.MerchantCreated(
                 merchant.Id, merchant.MerchantKey, merchant.Status.ToString()));
+
+            // 045 US2: teslim linki + mail — key sohbet/S2S yanıtına girmez; teslim mail+sayfa
+            // yoluyla (tek gösterimlik). Aynı transaction: link commit'siz mail gitmez (outbox).
+            var reveal = Domains.CredentialRevealLinks.CredentialRevealLink.Create(
+                merchant.Id, onboarding.RevealLinkLifetime);
+            if (!reveal.IsSuccess)
+                return FeatureObjectResultModel<AdminApproveRegistrationResponse>.Error(reveal.Messages);
+            session.Store(reveal.Data!);
+
+            await bus.PublishAsync(new Shared.IntegrationEvents.SendEmailRequested(
+                request.Email,
+                "PG merchant kaydınız onaylandı — erişim bilgileriniz",
+                $"""
+                 <p>Merhaba {request.ContactName},</p>
+                 <p>Ödeme gateway'i kayıt başvurunuz onaylandı. Erişim bilgileriniz
+                 (MerchantId + MerchantKey) aşağıdaki bağlantıda <strong>bir kez</strong> gösterilir:</p>
+                 <p><a href="{onboarding.PublicBaseUrl.TrimEnd('/')}/onboarding/reveal/{reveal.Data!.Token}">
+                 Erişim bilgilerini görüntüle</a></p>
+                 <p>Bağlantı {(int)onboarding.RevealLinkLifetime.TotalMinutes} dakika geçerlidir ve tek
+                 kullanımlıktır. Bilgileri gördükten sonra mağazanızın merchant-bilgisi ekranına girin.
+                 Bağlantının süresi dolarsa gateway yöneticisinden yeni bağlantı isteyin.</p>
+                 """,
+                IsHtml: true));
 
             return FeatureObjectResultModel<AdminApproveRegistrationResponse>.Ok(new AdminApproveRegistrationResponse
             {
