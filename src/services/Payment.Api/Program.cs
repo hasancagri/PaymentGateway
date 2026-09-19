@@ -52,8 +52,8 @@ builder.Host.UseWolverine(opts =>
         .ToRabbitExchange(RabbitMqConstants.PaymentCompleted.Exchange);
 
     // 038: merchant.lifecycle tüketimi — statü referansı (çekim statü kapısı). Message store yok →
-    // ProcessInline + RabbitMQ redelivery (Identity.Server deseni). Handle(...) tekil ...Handler
-    // assembly taramasıyla keşfedilir (kaynak+Consumers adlandırması: MerchantApiConsumers).
+    // ProcessInline + RabbitMQ redelivery (Identity.Server deseni). MerchantApiConsumers
+    // aşağıda IncludeType ile açık kayıtlı (*Consumers taramayla keşfedilmez).
     rabbit.DeclareExchange(RabbitMqConstants.MerchantLifecycle.Exchange,
         e => { e.ExchangeType = ExchangeType.Fanout; });
     rabbit.DeclareQueue(RabbitMqConstants.MerchantLifecycle.PaymentQueue);
@@ -63,6 +63,8 @@ builder.Host.UseWolverine(opts =>
 
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
+    // *Consumers son eki assembly taramasında keşfedilmez → açık kayıt şart (ECom deseni).
+    opts.Discovery.IncludeType(typeof(Payment.Api.MerchantApiConsumers));
 });
 
 builder.Services.AddApiVersioning(options =>

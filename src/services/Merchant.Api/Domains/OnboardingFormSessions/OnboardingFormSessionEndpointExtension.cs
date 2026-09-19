@@ -17,7 +17,7 @@ public static class OnboardingFormSessionEndpointExtension
                 .FirstOrDefaultAsync(x => x.Token == token, ct);
 
             return formSession is not null && formSession.IsUsable(DateTimeOffset.UtcNow)
-                ? Html(FormPage(token, formSession.Email, error: null), StatusCodes.Status200OK)
+                ? Html(FormPage(token, formSession.Email, error: null, new FormValues()), StatusCodes.Status200OK)
                 : Html(NotFoundPage, StatusCodes.Status404NotFound);
         });
 
@@ -48,10 +48,22 @@ public static class OnboardingFormSessionEndpointExtension
             if (messages.Any(m => m.Code == CommonResourceConstants.COMMON_MESSAGE_RECORD_NOT_FOUND))
                 return Html(NotFoundPage, StatusCodes.Status404NotFound);
 
-            // Doğrulama/mükerrer hatası: form yeniden, oturum yaşar.
+            // Doğrulama/mükerrer hatası: form yeniden, oturum yaşar; girilen değerler korunur.
             var email = (await querySession.Query<OnboardingFormSession>()
                 .FirstOrDefaultAsync(x => x.Token == token, ct))?.Email ?? string.Empty;
-            return Html(FormPage(token, email, ErrorText(messages)), StatusCodes.Status400BadRequest);
+            var entered = new FormValues(
+                form["type"].ToString(),
+                form["name"].ToString(),
+                form["gsmNumber"].ToString(),
+                form["address"].ToString(),
+                form["iban"].ToString(),
+                form["contactName"].ToString(),
+                form["contactSurname"].ToString(),
+                form["identityNumber"].ToString(),
+                form["taxOffice"].ToString(),
+                form["taxNumber"].ToString(),
+                form["legalCompanyTitle"].ToString());
+            return Html(FormPage(token, email, ErrorText(messages), entered), StatusCodes.Status400BadRequest);
         });
     }
 
@@ -122,7 +134,19 @@ public static class OnboardingFormSessionEndpointExtension
         </html>
         """;
 
-    private static string FormPage(string token, string email, string? error) => Layout(
+    // Hata sonrası yeniden çizimde girilen değerler geri basılır (form temizlenmez).
+    private sealed record FormValues(
+        string Type = "", string Name = "", string GsmNumber = "", string Address = "",
+        string Iban = "", string ContactName = "", string ContactSurname = "",
+        string IdentityNumber = "", string TaxOffice = "", string TaxNumber = "",
+        string LegalCompanyTitle = "");
+
+    private static string E(string value) => System.Net.WebUtility.HtmlEncode(value);
+
+    private static string Selected(string current, string option) =>
+        current == option ? " selected" : "";
+
+    private static string FormPage(string token, string email, string? error, FormValues v) => Layout(
         "Merchant Kayıt Başvurusu", $"""
         <h1>Merchant Kayıt Başvurusu</h1>
         <p>Ödeme gateway'ine kayıt başvurusu. Bilgiler yalnız gateway'de saklanır; başvurunuz
@@ -130,36 +154,36 @@ public static class OnboardingFormSessionEndpointExtension
         {(error is null ? "" : $"""<div class="error">{error}</div>""")}
         <form method="post" action="/onboarding/form/{token}" autocomplete="off">
           <label for="email">E-posta (başvuru kimliği)</label>
-          <input id="email" value="{email}" readonly>
+          <input id="email" value="{E(email)}" readonly>
           <label for="type">İşyeri tipi</label>
           <select id="type" name="type" required>
-            <option value="Personal">Personal (şahıs)</option>
-            <option value="PrivateCompany">PrivateCompany (şahıs şirketi)</option>
-            <option value="LimitedOrJointStockCompany">LimitedOrJointStockCompany (Ltd/A.Ş.)</option>
+            <option value="Personal"{Selected(v.Type, "Personal")}>Personal (şahıs)</option>
+            <option value="PrivateCompany"{Selected(v.Type, "PrivateCompany")}>PrivateCompany (şahıs şirketi)</option>
+            <option value="LimitedOrJointStockCompany"{Selected(v.Type, "LimitedOrJointStockCompany")}>LimitedOrJointStockCompany (Ltd/A.Ş.)</option>
           </select>
           <label for="name">İşyeri/site adı</label>
-          <input id="name" name="name" required>
+          <input id="name" name="name" required value="{E(v.Name)}">
           <label for="gsmNumber">Telefon (GSM)</label>
-          <input id="gsmNumber" name="gsmNumber" required>
+          <input id="gsmNumber" name="gsmNumber" required value="{E(v.GsmNumber)}">
           <label for="address">Adres</label>
-          <input id="address" name="address" required>
+          <input id="address" name="address" required value="{E(v.Address)}">
           <label for="iban">TR IBAN</label>
-          <input id="iban" name="iban" required placeholder="TR...">
+          <input id="iban" name="iban" required placeholder="TR..." value="{E(v.Iban)}">
           <label for="contactName">Yetkili adı</label>
-          <input id="contactName" name="contactName" required>
+          <input id="contactName" name="contactName" required value="{E(v.ContactName)}">
           <label for="contactSurname">Yetkili soyadı</label>
-          <input id="contactSurname" name="contactSurname" required>
+          <input id="contactSurname" name="contactSurname" required value="{E(v.ContactSurname)}">
           <label for="identityNumber">TCKN</label>
-          <input id="identityNumber" name="identityNumber">
+          <input id="identityNumber" name="identityNumber" value="{E(v.IdentityNumber)}">
           <p class="hint">Personal ve PrivateCompany için zorunlu.</p>
           <label for="taxOffice">Vergi dairesi</label>
-          <input id="taxOffice" name="taxOffice">
+          <input id="taxOffice" name="taxOffice" value="{E(v.TaxOffice)}">
           <p class="hint">PrivateCompany ve LimitedOrJointStockCompany için zorunlu.</p>
           <label for="taxNumber">Vergi no</label>
-          <input id="taxNumber" name="taxNumber">
+          <input id="taxNumber" name="taxNumber" value="{E(v.TaxNumber)}">
           <p class="hint">LimitedOrJointStockCompany için zorunlu.</p>
           <label for="legalCompanyTitle">Ticari unvan</label>
-          <input id="legalCompanyTitle" name="legalCompanyTitle">
+          <input id="legalCompanyTitle" name="legalCompanyTitle" value="{E(v.LegalCompanyTitle)}">
           <p class="hint">Şirket tipleri için zorunlu.</p>
           <button type="submit">Başvuruyu Gönder</button>
         </form>
