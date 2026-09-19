@@ -45,10 +45,6 @@ merchant'ın gateway'e token'lı erişimi bu duyuruya bağlıdır.
     karşı tarafa iletilir; Rejected terminaldir ama aynı e-posta yeniden başvurabilir.
     `(RegisterRequest.Reject ← AdminRejectRegistrationMcpTool "admin_reject_registration")`
 
-> GEÇİŞ NOTU (045 US4): 029'un ECom-yönlü MCP çifti (`submit_registration` +
-> `registration_status` — `RegistrationStatus` Approved'da key döndürür) store 078 canlı
-> doğrulaması PASS olana dek YAŞAR; sonra sökülür. `(SubmitRegistration)`
-
 ### Yol B — Admin yönetimi MCP'den (043/044)
 
 1. **Operatör merchant listesini opsiyonel statü filtresiyle sorgular** — sır (MerchantKey/
@@ -85,8 +81,8 @@ merchant'ın gateway'e token'lı erişimi bu duyuruya bağlıdır.
   string statüye göre karar verir (BC enum'u Shared'a sızmaz).
 - **MerchantKey tek-seferlik açığa çıkar (045):** insan teslimi YALNIZ tek gösterimlik reveal
   sayfası; `MerchantCreated` Identity senkronu için taşır, `MerchantStatusChanged` sır taşımaz.
-  (Eski `registration_status` teslim yolu US4 sökümüne dek yaşar; MerchantScoped `GetMerchant`'taki
-  alan da o fasılda değerlendirilir.)
+  (029'un ECom-yönlü MCP çifti — submit_registration + registration_status — 045 US4'te SÖKÜLDÜ;
+  MerchantScoped `GetMerchant`'taki key alanı ayrı fasılda değerlendirilir.)
 - **Form/teslim token'ları sunucu-durumlu, süreli, tek kullanımlık** — 256-bit URL-safe; loglara
   yazılmaz; nötr 404 (token doğruluğu sızdırılmaz); yeni teslim linki eskiyi öldürür.
 - **Kişisel veri agent kanalından geçmez (044):** MCP girdi/çıktı sözleşmelerinde hassas alan

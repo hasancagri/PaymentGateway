@@ -59,11 +59,11 @@ birlikte koşarak yapılır. US4 sökümü ancak P1-P4 canlı PASS sonrası (FR-
 - [X] T014 [P] [US3] `ValidateMerchantCredentials` query + `POST /api/v1/onboarding/credentials/
   validate` (merchant.read): eşleşme + Active → `{valid}`; ikili loglanmaz —
   `Domains/Merchants/Features/Queries/ValidateMerchantCredentials.cs`
-- [ ] T015 [US3] Canlı doğrulama quickstart P3 + store-E2E P4 (078 S1-S3+S5, iki sistem birlikte).
+- [X] T015 [US3] Canlı doğrulama quickstart P3 + store-E2E P4 (078 S1-S3+S5, iki sistem birlikte).
 
 ## Phase 5: User Story 4 — Eski MCP yüzeyi sökümü (P2; P1-P4 CANLI PASS SONRASI)
 
-- [ ] T016 [US4] `SubmitRegistration.cs` + `RegistrationStatus.cs` sil (literal tool adları —
+- [X] T016 [US4] `SubmitRegistration.cs` + `RegistrationStatus.cs` sil (literal tool adları —
   Shared sabiti yok); admin bildirim mailinin form POST'unda yaşadığını doğrula; build + test.
 - [ ] T017 [US4] Canlı doğrulama quickstart P5 (tool listesi + S2S uçlar sağlıklı).
 

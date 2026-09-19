@@ -109,13 +109,22 @@ public static class HostedPaymentEndpointExtension
             <div class="icon">{{glyph}}</div>
             <h1>{{heading}}</h1>
             <p>{{body}}</p>
-            <button onclick="closePage()">Kapat</button>
-            <div class="hint" id="hint">Bu sekmeyi kapatabilirsiniz.</div>
+            <button id="closeBtn" onclick="closePage()">Kapat</button>
+            <div class="hint" id="hint">Tarayıcı bu sekmenin kendiliğinden kapanmasına izin vermiyor —
+            sekmeyi elle kapatıp asistana dönebilirsiniz (Cmd/Ctrl+W).</div>
           </div>
           <script>
+            // Tarayıcı yalnız script-açılmış sekmeyi kapatmaya izin verir; diğerlerinde
+            // deneme sessiz düşer → kısa gecikmeyle ipucu gösterilir (başarıda görünmez).
             function closePage(){
+              window.open('', '_self');
               window.close();
-              document.getElementById('hint').style.display='block';
+              setTimeout(function(){
+                var b=document.getElementById('closeBtn'), h=document.getElementById('hint');
+                b.disabled=true; b.textContent='Sekmeyi elle kapatın';
+                b.style.background='#9ca3af'; b.style.cursor='default';
+                h.style.display='block';
+              }, 250);
             }
           </script>
         </body>

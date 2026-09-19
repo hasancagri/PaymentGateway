@@ -3,8 +3,8 @@ namespace Merchant.Api.Domains.OnboardingFormSessions.Features.Commands;
 // 045 US1: hosted form POST'u — başvuru doğrulaması RegisterRequest.Submit'te (İlke II; formda
 // kural yok). E-posta OTURUMDAN gelir (store'un verdiği başvuru kimliği; form alanı salt-görsel).
 // Doğrulama hatası oturumu TÜKETMEZ; başarı tüketir + PG Admin bildirim maili (029 davranışı
-// buraya taşındı — [Transactional] outbox). Mükerrer kuralları SubmitRegistration İKİZİ
-// (bilinçli tekrar; US4 sökümünde tek kopya bu kalır).
+// buraya taşındı — [Transactional] outbox). US4 sökümü sonrası başvurunun TEK giriş yolu burasıdır
+// (029 MCP çifti submit_registration/registration_status silindi).
 public static class SubmitOnboardingForm
 {
     public record SubmitOnboardingFormCommand(
