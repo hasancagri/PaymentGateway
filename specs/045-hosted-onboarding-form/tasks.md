@@ -65,7 +65,7 @@ birlikte koşarak yapılır. US4 sökümü ancak P1-P4 canlı PASS sonrası (FR-
 
 - [X] T016 [US4] `SubmitRegistration.cs` + `RegistrationStatus.cs` sil (literal tool adları —
   Shared sabiti yok); admin bildirim mailinin form POST'unda yaşadığını doğrula; build + test.
-- [ ] T017 [US4] Canlı doğrulama quickstart P5 (tool listesi + S2S uçlar sağlıklı).
+- [X] T017 [US4] Canlı doğrulama quickstart P5. — KAPANIŞ: kullanıcı kararıyla canlı tur atlandı; söküm + build/test/guard kanıt sayıldı (2026-09-19).
 
 ## Phase 6: Polish & Cross-Cutting
 
