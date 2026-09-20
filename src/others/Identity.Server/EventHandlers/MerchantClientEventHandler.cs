@@ -54,6 +54,25 @@ public static class MerchantClientEventHandler
         }
     }
 
+    // 046: key yenileme — client_secret yeni MerchantKey'e güncellenir (eski secret geçersiz).
+    // İzinler mevcut statüye göre yeniden kurulur (BuildDescriptor Active demetini uygular).
+    public static async Task Handle(MerchantKeyReissued e, IOpenIddictApplicationManager apps, ILogger logger)
+    {
+        var clientId = e.MerchantId.ToString();
+        var existing = await apps.FindByClientIdAsync(clientId);
+        if (existing is null)
+        {
+            // Reissue yalnız var olan Active merchant için gelir; istemci yoksa sıralama/eksik provision.
+            logger.LogWarning("MerchantKeyReissued: istemci bulunamadı, atlanıyor: {ClientId}", clientId);
+            return;
+        }
+
+        // Reissue yalnız Active merchant'ta olur → Active demeti (BuildDescriptor GrantsToken(Active)).
+        var descriptor = BuildDescriptor(clientId, e.MerchantKey, "Active");
+        await apps.UpdateAsync(existing, descriptor);
+        logger.LogInformation("Merchant istemci client_secret'ı yenilendi (reissue): {ClientId}", clientId);
+    }
+
     public static async Task Handle(MerchantStatusChanged e, IOpenIddictApplicationManager apps, ILogger logger)
     {
         var clientId = e.MerchantId.ToString();

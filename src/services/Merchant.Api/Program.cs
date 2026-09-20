@@ -21,6 +21,10 @@ builder.Services.AddMarten(opts =>
         opts.Schema.For<Merchant.Api.Domains.CredentialRevealLinks.CredentialRevealLink>()
             .Index(x => x.Token)
             .Index(x => x.MerchantId);
+
+        // 046: salt-append key yenileme denetim kaydı — merchantId ile geçmiş sorgusu.
+        opts.Schema.For<Merchant.Api.Domains.MerchantKeyReissueLogs.MerchantKeyReissueLog>()
+            .Index(x => x.MerchantId);
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -43,6 +47,9 @@ builder.Host.UseWolverine(opts =>
         .ToRabbitExchange(RabbitMqConstants.MerchantLifecycle.Exchange);
     // 013: aktivasyon (key teslim) — Identity Provisioning demetiyle client provision eder.
     opts.PublishMessage<Shared.IntegrationEvents.MerchantProvisioned>()
+        .ToRabbitExchange(RabbitMqConstants.MerchantLifecycle.Exchange);
+    // 046: key yenileme — Identity client_secret + Payment KeyHash güncellenir (eski key anında ölür).
+    opts.PublishMessage<Shared.IntegrationEvents.MerchantKeyReissued>()
         .ToRabbitExchange(RabbitMqConstants.MerchantLifecycle.Exchange);
 
     // 013: komisyon grid-hazır tüketimi (Active koşulu #2) — Commission.Api yayınlar, durable queue
@@ -127,7 +134,9 @@ app.AddMerchantGroupEndpointExtension(apiVersionSet);
 app.MapGroup("api/v{version:apiVersion}/onboarding").WithTags("onboarding").WithApiVersionSet(apiVersionSet)
     .CreateFormSessionGroupItemEndpoint()
     .GetOnboardingApplicationStatusGroupItemEndpoint()
-    .ValidateMerchantCredentialsGroupItemEndpoint();
+    .ValidateMerchantCredentialsGroupItemEndpoint()
+    // 046: merchant self-servis key yenileme (store S2S tetik — key yerine reveal URL döner).
+    .ReissueMerchantKeyGroupItemEndpoint();
 
 // 045: hosted sayfalar — ANONİM, token = yetki (form ~24 saat tek başvuruluk; teslim ~1 saat
 // tek gösterimlik; Payment 041 hosted sayfa emsali).

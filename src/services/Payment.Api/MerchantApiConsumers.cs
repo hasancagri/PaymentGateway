@@ -29,6 +29,15 @@ public static class MerchantApiConsumers
         await Upsert(e.MerchantId, e.NewStatus, session, logger);
     }
 
+    // 046: key yenileme — KeyHash REPLACE. Doc merchantId (=Id) anahtarlı → Store eski hash'i
+    // OVERWRITE eder (eski hash KALMAZ, FR-003). Statü referansına dokunmaz (yenileme statü değiştirmez).
+    public static async Task Handle(MerchantKeyReissued e, IDocumentSession session, ILogger logger)
+    {
+        StoreApiKey(e.MerchantId, e.MerchantKey, session);
+        await session.SaveChangesAsync();
+        logger.LogInformation("Merchant API-key hash'i yenilendi (reissue): {MerchantId}", e.MerchantId);
+    }
+
     // 039: X-Api-Key auth için merchant key'in SHA-256 hash'ini kiracı referansına yazar (idempotent).
     private static void StoreApiKey(Guid merchantId, string merchantKey, IDocumentSession session)
     {

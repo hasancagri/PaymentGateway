@@ -264,6 +264,23 @@ public class Merchant : AggregateRoot
     }
 
     /// <summary>
+    /// 046: kaybolan/sızan MerchantKey yerine taze key üretir ("mk_" + Guid) — yalnız Active
+    /// merchant'ta (değilse Result error, key DEĞİŞMEZ). Yeni key her çağrıda eskiden farklıdır;
+    /// eski key'in her temsilde geçersiz kılınması handler'ın işidir (MerchantKeyReissued yayını).
+    /// </summary>
+    /// <remarks>Handler: ReissueMerchantKeyCommandHandler</remarks>
+    public ResultDomain ReissueKey()
+    {
+        if (Status != MerchantStatus.Active)
+            return ResultDomain.Error(new MessageItem
+            { Property = nameof(Status), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_OPERATION_ERROR });
+
+        MerchantKey = "mk_" + Guid.NewGuid();
+        UpdatedTime = DateTime.UtcNow;
+        return ResultDomain.Ok();
+    }
+
+    /// <summary>
     /// Statü geçişi: üç statü arası serbest; aynı statüye geçiş idempotent no-op —
     /// <c>Ok(false)</c> (değişmedi, çağıran event yayınlamaz), gerçek değişiklik <c>Ok(true)</c>.
     /// </summary>

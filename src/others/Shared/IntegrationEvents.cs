@@ -20,6 +20,12 @@ public static class IntegrationEvents
 
     public record MerchantStatusChanged(Guid MerchantId, string NewStatus);
 
+    // 046: merchant self-servis key yenileme — Merchant.Api yayınlar (reissue handler, [Transactional]
+    // outbox). Yeni MerchantKey (istemci sırrı) taşır; iç event, MerchantLifecycle fanout (MerchantCreated
+    // ile aynı exchange). Tüketiciler: Identity.Server (client_secret update), Payment.Api (KeyHash REPLACE)
+    // → eski key HER temsilde anında geçersiz.
+    public record MerchantKeyReissued(Guid MerchantId, string MerchantKey);
+
     // 013: aktivasyon anında (key teslim) yayınlanır — Identity.Server tüketir (OpenIddict istemci
     // provision: Provisioning demeti). Onboarding'de MerchantCreated'ın yerini alır; MerchantKey
     // (istemci sırrı) yalnız burada taşınır, yalnız Identity'ye gider. Status = "Provisioning".
