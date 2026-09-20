@@ -73,6 +73,20 @@ merchant'ın gateway'e token'lı erişimi bu duyuruya bağlıdır.
    değerlerden geçirir; tip-koşullu kurallar aggregate'te aynen çalışır.
    `(GetMerchantSensitive)` `(Merchant.UpdateDetails ← UpdateMerchantSensitive)`
 
+### Yol D — Merchant self-servis key yenileme (046)
+
+1. **Store S2S yenileme tetikler** (ecommerce-onboarding m2m; merchant key ile DEĞİL — chicken-egg).
+   Çıplak MerchantId; yoksa ad/e-posta tam-eşleşme çözümlenir (belirsiz/yok → key DEĞİŞMEZ).
+   `(ResolveMerchantByName ← ReissueMerchantKey)`
+2. **Merchant taze key alır — yalnız Active'te.** Active değilse Result error, key değişmez.
+   `(Merchant.ReissueKey → MerchantKeyReissued ← ReissueMerchantKey)`
+3. **Eski key HER temsilde anında ölür:** Identity client_secret + Payment KeyHash yenisiyle değişir.
+   `(MerchantClientEventHandler.Handle(MerchantKeyReissued))` `(MerchantApiConsumers.Handle(MerchantKeyReissued))`
+4. **Yeni key tek gösterimlik teslim linkiyle bir kez okunur;** önceki yaşayan linkler ölür. Yanıt
+   yalnız reveal URL + expiry (key İÇERMEZ). `(CredentialRevealLink.Create/Kill ← ReissueMerchantKey)`
+5. **Her yenileme salt-append denetim kaydı bırakır** (kim/ne zaman/neden); silinemez/değişmez.
+   Merchant kendi geçmişini okur (MerchantScoped). `(GetMerchantKeyReissueHistory)`
+
 ## Domain kuralları (süreci yöneten değişmezler)
 
 - **Merchant yalnız başvuru onayıyla ve her zaman Active doğar** (044: `Merchant.Create`'in tek
@@ -91,6 +105,9 @@ merchant'ın gateway'e token'lı erişimi bu duyuruya bağlıdır.
   `Merchant.Create` birbirini çağırmaz — aggregate'ler arası çağrı yasak).
 - **RegisterRequest terminal statüleri (Approved/Rejected) tarihçe olarak silinmez;** yalnız
   Rejected'dan yeniden başvuru açılabilir.
+- **Key yenileme yalnız Active merchant'ta (046):** taze `mk_` key üretir; eski key her temsilde
+  (Identity secret + Payment hash) anında geçersizdir; teslim tek gösterimlik reveal + salt-append
+  denetim kaydı. Reveal linki/S2S yanıtı/log key SIZDIRMAZ (yalnız iç `MerchantKeyReissued` taşır).
 - **Admin MCP tool'ları `merchant.admin` capability scope ister (043)** — `/mcp` endpoint'i tek
   (`merchant.write`); tool-bazlı ince yetki Wolverine middleware'iyle EK katman. Hassas BFF çifti
   `AdminPlaneOnly` — merchant kendi statüsünü/verisini admin düzleminden değiştiremez.

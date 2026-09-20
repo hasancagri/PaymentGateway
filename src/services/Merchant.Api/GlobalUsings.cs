@@ -36,4 +36,5 @@ global using Merchant.Api.Domains.OnboardingFormSessions;
 global using Merchant.Api.Domains.OnboardingFormSessions.Features.Commands;
 global using Merchant.Api.Domains.CredentialRevealLinks;
 global using Merchant.Api.Domains.RegisterRequests.Features.Queries;
+global using Merchant.Api.Domains.MerchantKeyReissueLogs.Features.Queries;
 

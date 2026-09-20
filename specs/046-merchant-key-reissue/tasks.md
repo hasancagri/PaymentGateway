@@ -19,7 +19,7 @@ Shared = event kontratı. Testler `tests/Merchant.Api.Tests/` (mevcut xUnit + Sh
 
 ## Phase 1: Setup (Paylaşılan Altyapı)
 
-- [ ] T001 Branch `046-merchant-key-reissue` üzerinde çalıştığını doğrula; `dotnet build` temel yeşil
+- [X] T001 Branch `046-merchant-key-reissue` üzerinde çalıştığını doğrula; `dotnet build` temel yeşil
   (başlangıç durumu) — regresyon karşılaştırma tabanı.
 
 ---
@@ -28,13 +28,13 @@ Shared = event kontratı. Testler `tests/Merchant.Api.Tests/` (mevcut xUnit + Sh
 
 **Amaç**: reissue zincirinin ortak sözleşmeleri — hiçbir hikâye bunlar olmadan tamamlanamaz.
 
-- [ ] T002 Yeni integration event ekle: `MerchantKeyReissued(Guid MerchantId, string MerchantKey)` —
+- [X] T002 Yeni integration event ekle: `MerchantKeyReissued(Guid MerchantId, string MerchantKey)` —
   `src/others/Shared/IntegrationEvents.cs`. Yorumda: yeni key taşır, iç event, `MerchantLifecycle`
   fanout (MerchantCreated ile aynı exchange).
-- [ ] T003 Yeni salt-append doc: `MerchantKeyReissueLog` (Id, MerchantId, ReissuedAt, InitiatedBy,
+- [X] T003 Yeni salt-append doc: `MerchantKeyReissueLog` (Id, MerchantId, ReissuedAt, InitiatedBy,
   Reason?) — `src/services/Merchant.Api/Domains/MerchantKeyReissueLogs/MerchantKeyReissueLog.cs`.
   Yalnız insert; update/delete metodu YOK.
-- [ ] T004 Marten şema kaydı: `MerchantKeyReissueLog` için Merchant.Api `Program.cs`'te `Schema.For<>`
+- [X] T004 Marten şema kaydı: `MerchantKeyReissueLog` için Merchant.Api `Program.cs`'te `Schema.For<>`
   + `MerchantId` index (geçmiş sorgusu için) — `src/services/Merchant.Api/Program.cs`.
 
 **Checkpoint**: event + audit doc derleniyor; tüketiciler henüz yok.
@@ -51,43 +51,43 @@ yeni key geçer, reveal URL bir kez açılır. (quickstart adım 1-4.)
 
 ### Tests for User Story 1 (Domain-TDD — İLKE VI, test-FIRST) ⚠️
 
-- [ ] T005 [P] [US1] `Merchant.ReissueKey()` domain testi (test-first): Active merchant'ta yeni
+- [X] T005 [P] [US1] `Merchant.ReissueKey()` domain testi (test-first): Active merchant'ta yeni
   `mk_`-prefiksli key üretir + eski key'den farklı; Active-olmayan merchant'ta Result error, key
   değişmez — `tests/Merchant.Api.Tests/MerchantReissueKeyTests.cs`.
   ↳ senaryo: kaybını bildiren aktif merchant taze key alır; pasif merchant'ın key'i yanlışlıkla değişmez.
-- [ ] T006 [P] [US1] `CredentialRevealLink` reuse davranış testi: `Create` yeni key ile + eski
+- [X] T006 [P] [US1] `CredentialRevealLink` reuse davranış testi: `Create` yeni key ile + eski
   linkler `Kill` sonrası nötr; `Consume` tek-kullanımlık — `tests/Merchant.Api.Tests/CredentialRevealLinkReissueTests.cs`.
   ↳ senaryo: yeni key yalnız bir kez gösterilir; eski teslim linkleri artık açılmaz.
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] `Merchant.ReissueKey() : ResultDomain` metodu — yeni `MerchantKey = "mk_" + Guid`;
+- [X] T007 [US1] `Merchant.ReissueKey() : ResultDomain` metodu — yeni `MerchantKey = "mk_" + Guid`;
   yalnız Active guard; `src/services/Merchant.Api/Domains/Merchants/Merchant.cs`. (T005 yeşil yapar.)
   ↳ senaryo: merchant "yeni key ver" der, taze bir key doğar.
-- [ ] T008 [US1] Reissue command + handler: merchant yükle → `ReissueKey()` → `MerchantKeyReissued`
+- [X] T008 [US1] Reissue command + handler: merchant yükle → `ReissueKey()` → `MerchantKeyReissued`
   publish ([Transactional] outbox) → yeni `CredentialRevealLink.Create` + önceki linkleri `Kill` →
   reveal URL + expiry döndür. Merchant yok/Active değil → Result error (FR-009). Eşzamanlıda tek key
   (FR-010) — `src/services/Merchant.Api/Domains/Merchants/Features/Commands/ReissueMerchantKey.cs`.
   ↳ senaryo: tek istekle yeni key doğar, eski öldürülür, merchant'a gösterim linki döner.
-- [ ] T009 [US1] S2S REST endpoint `POST api/v1/onboarding/reissue` — ecommerce-onboarding m2m auth
+- [X] T009 [US1] S2S REST endpoint `POST api/v1/onboarding/reissue` — ecommerce-onboarding m2m auth
   (045 onboarding S2S grubu deseni); body `{merchantId, reason?}`; yanıt `{revealUrl, expiresAt}`
   (key İÇERMEZ, FR-005). Endpoint grubuna ekle — `src/services/Merchant.Api/Program.cs` +
   ilgili EndpointExtension.
   ↳ senaryo: merchant kendi admin ekranından tetikler; kaybettiği key'i sunmak zorunda kalmaz.
-- [ ] T010 [US1] Identity.Server tüketici: `MerchantClientEventHandler.Handle(MerchantKeyReissued)`
+- [X] T010 [US1] Identity.Server tüketici: `MerchantClientEventHandler.Handle(MerchantKeyReissued)`
   → OpenIddict client_secret = yeni key (mevcut BuildDescriptor/Update yolu) —
   `src/others/Identity.Server/EventHandlers/MerchantClientEventHandler.cs`. Binding'i tüketici kurar.
   ↳ senaryo: yeni key'le token alınır, eski key'le alınamaz.
-- [ ] T011 [US1] Payment.Api tüketici: `MerchantApiConsumers.Handle(MerchantKeyReissued)` → mevcut
+- [X] T011 [US1] Payment.Api tüketici: `MerchantApiConsumers.Handle(MerchantKeyReissued)` → mevcut
   `MerchantApiKeyReference`'i merchantId ile bul, KeyHash'i REPLACE (sil+store ya da merchantId-
   anahtarlı upsert) — eski hash KALMAMALI (FR-003 kritik, research Karar 2) —
   `src/services/Payment.Api/MerchantApiConsumers.cs`. Binding'i tüketici kurar.
   ↳ senaryo: eski key'le ödeme başlatma anında 401; yeni key'le geçer.
-- [ ] T012 [US1] Wolverine keşif kontrolü: yeni handler/consumer sınıfları `*Handler`/`*Consumers`
+- [X] T012 [US1] Wolverine keşif kontrolü: yeni handler/consumer sınıfları `*Handler`/`*Consumers`
   son-ekiyle bitmiyor ya da taramaya girmiyorsa `opts.Discovery.IncludeType(...)` ekle (Identity +
   Payment + Merchant Program.cs) — sessiz mesaj yutulmasını önle.
   ↳ senaryo: reissue mesajı sessizce yutulmaz — yeni key gerçekten her yere yayılır.
-- [ ] T013 [US1] `dotnet build` (tüm çözüm) + T005/T006 testleri yeşil.
+- [X] T013 [US1] `dotnet build` (tüm çözüm) + T005/T006 testleri yeşil.
   ↳ senaryo: MVP uçtan uca çalışır durumda.
 
 **Checkpoint**: US1 tek başına canlı doğrulanabilir (quickstart 1-4). MVP burada biter.
@@ -101,15 +101,15 @@ yeni key geçer, reveal URL bir kez açılır. (quickstart adım 1-4.)
 **Bağımsız test**: reissue yap → geçmiş sorgusu 1 kayıt (zaman + tetikleyen + neden); kayıt
 düzenlenemez/silinemez. (quickstart adım 5.)
 
-- [ ] T014 [US2] Reissue handler'a audit yazımı ekle: başarılı reissue'de `MerchantKeyReissueLog`
+- [X] T014 [US2] Reissue handler'a audit yazımı ekle: başarılı reissue'de `MerchantKeyReissueLog`
   insert (MerchantId, ReissuedAt, InitiatedBy = m2m/store kimliği, Reason = istekten) — aynı
   [Transactional] commit — `src/services/Merchant.Api/Domains/Merchants/Features/Commands/ReissueMerchantKey.cs`.
   ↳ senaryo: her key değişimi iz bırakır — "kim, ne zaman, neden."
-- [ ] T015 [US2] Geçmiş sorgu slice: merchantId ile `MerchantKeyReissueLog` listesi (salt-okuma) —
+- [X] T015 [US2] Geçmiş sorgu slice: merchantId ile `MerchantKeyReissueLog` listesi (salt-okuma) —
   `src/services/Merchant.Api/Domains/MerchantKeyReissueLogs/Features/Queries/GetMerchantKeyReissueHistory.cs`.
   Erişim yüzeyi: admin MCP tool ya da MerchantScoped S2S (plan'a göre; v1 = MerchantScoped okuma).
   ↳ senaryo: merchant/operatör "key'im ne zaman değişti" sorusuna yanıt alır.
-- [ ] T016 [US2] Kayıt eşzamanlı/tekrarlı reissue'de her seferinde ayrı satır; edit/delete yolu
+- [X] T016 [US2] Kayıt eşzamanlı/tekrarlı reissue'de her seferinde ayrı satır; edit/delete yolu
   olmadığını doğrula (kod incelemesi + T017 canlı).
   ↳ senaryo: merchant "siz habersiz değiştirdiniz" diyemez — kayıt silinemez/değişmez.
 - [ ] T017 [US2] Canlı doğrulama: 2 ardışık reissue → geçmişte 2 kayıt, sırayla.
@@ -126,11 +126,11 @@ düzenlenemez/silinemez. (quickstart adım 5.)
 **Bağımsız test**: tek eşleşen ad → doğru merchant reissue; sıfır/çok eşleşme → belirsizlik/bulunamadı,
 key değişmez. (spec US3 kabul.)
 
-- [ ] T018 [P] [US3] Merchant ad/e-posta → MerchantId çözümleme sorgusu (tam-eşleşme; belirsiz/yok
+- [X] T018 [P] [US3] Merchant ad/e-posta → MerchantId çözümleme sorgusu (tam-eşleşme; belirsiz/yok
   reddi) — `src/services/Merchant.Api/Domains/Merchants/Features/Queries/ResolveMerchantByName.cs`.
   (D5 `admin_find_merchant` ile paylaşılabilir; conventions'a göre bilinçli tekrar kabul.)
   ↳ senaryo: operatör merchant'ı adıyla bulur, GUID ezberlemez.
-- [ ] T019 [US3] Reissue endpoint/handler'a opsiyonel ad-bazlı girdi: `{merchantId?}` ya da
+- [X] T019 [US3] Reissue endpoint/handler'a opsiyonel ad-bazlı girdi: `{merchantId?}` ya da
   `{merchantName?/email?}`; ad verilirse T018 ile çöz, belirsiz/yok → Result error, key değişmez
   (FR-011) — `ReissueMerchantKey.cs` + endpoint.
   ↳ senaryo: "Ayşe Kitap için key yenile" GUID'siz çalışır; belirsiz adda yanlış merchant'a dokunulmaz.
@@ -143,14 +143,14 @@ key değişmez. (spec US3 kabul.)
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T021 [P] FLOW.md güncelle: Merchant.Api `FLOW.md`'ye reissue süreç adımı + kenar-anchor
+- [X] T021 [P] FLOW.md güncelle: Merchant.Api `FLOW.md`'ye reissue süreç adımı + kenar-anchor
   (`Merchant.ReissueKey → MerchantKeyReissued`, `CredentialRevealLink.Create/Kill`) — İLKE VII, AYNI
   PR. `scripts/check-flow-links.sh` yeşil.
-- [ ] T022 [P] Rate-limit iz-bırakma: reissue endpoint FR-012 için S1 (genel rate-limiting borcu)
+- [X] T022 [P] Rate-limit iz-bırakma: reissue endpoint FR-012 için S1 (genel rate-limiting borcu)
   kapsamına alınacak yeri işaretle (yorum/TODO); S1 gelince policy takılır.
 - [ ] T023 Canlı E2E (quickstart tümü): reissue → eski 401 → yeni geçer → reveal tek-kullanımlık →
   geçmiş kaydı → in-flight ödeme tamamlanır (SC-001..006).
-- [ ] T024 `dotnet build` + `dotnet test` (Merchant.Api.Tests dahil bağımlı test projeleri) tam yeşil.
+- [X] T024 `dotnet build` + `dotnet test` (Merchant.Api.Tests dahil bağımlı test projeleri) tam yeşil.
 
 ---
 

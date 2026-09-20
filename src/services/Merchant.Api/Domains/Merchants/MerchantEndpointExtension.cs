@@ -9,6 +9,8 @@ public static class MerchantEndpointExtension
         app.MapGroup("api/v{version:apiVersion}/merchants").WithTags("merchants").WithApiVersionSet(apiVersionSet)
             .GetMerchantGroupItemEndpoint()
             .GetMerchantSensitiveGroupItemEndpoint()
-            .UpdateMerchantSensitiveGroupItemEndpoint();
+            .UpdateMerchantSensitiveGroupItemEndpoint()
+            // 046 US2: key yenileme geçmişi (MerchantScoped salt-okuma).
+            .GetMerchantKeyReissueHistoryGroupItemEndpoint();
     }
 }
