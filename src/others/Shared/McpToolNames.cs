@@ -16,6 +16,8 @@ public static class MerchantAdminTools
     public const string RejectRegistration = "admin_reject_registration";
     // 045: yeniden teslim — yeni tek gösterimlik credential linki mail'ler (eskiler ölür).
     public const string ResendCredentialLink = "admin_resend_credential_link";
+    // 048: hassas-veri hosted sayfası için süreli + tek kullanımlık link (hassas alan sohbete girmez).
+    public const string RequestSensitiveLink = "admin_request_sensitive_link";
 }
 
 public static class CommissionAdminTools

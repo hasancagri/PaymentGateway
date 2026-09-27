@@ -11,7 +11,9 @@ public static class Config
     // 044/047 R5: seed listesinden çıkarılan ölü client'lar — SeedHostedService açılışta store'dan
     // SİLER (yalnız create/update'li seed store kaydını bırakır, ölü kimlik token almaya devam
     // ederdi — fail-closed). 047: external-admin-agent MCP kimlik yüzeyi AgentPlatform IdP'ye taşındı.
-    public static readonly string[] RetiredClientIds = ["payment-agent", "merchant-agent", "external-admin-agent"];
+    // 048: admin-ui SÖKÜLDÜ — Razor Admin BFF projesi kaldırıldı (hassas-veri kanalı hosted link'e
+    // taşındı); ölü ama yetkili (merchant.admin + payment.write...) m2m kimlik yüzeyini bırakmamak için prune.
+    public static readonly string[] RetiredClientIds = ["payment-agent", "merchant-agent", "external-admin-agent", "admin-ui"];
 
     // Scope → audience (resource) haritası. Token üretiminde ListResourcesAsync bu eşlemeden
     // 'aud' claim'ini üretir; servisler kendi adını (merchant.api...) ValidateAudience ile arar.
@@ -39,19 +41,8 @@ public static class Config
     // (appsettings dev varsayılanı + user-secrets/env override); store hash'leyerek saklar.
     public static IReadOnlyList<ClientSeed> Clients(IConfiguration configuration) =>
     [
-        // Admin BFF m2m: tüm yönetim ekranları (admin-düzlemi token).
-        new ClientSeed
-        {
-            ClientId = "admin-ui",
-            ClientSecret = RequireSecret(configuration, "admin-ui"),
-            DisplayName = "Admin BFF (m2m)",
-            Scopes =
-            [
-                "merchant.read", "merchant.write", "merchant.admin",
-                "commission.read", "commission.write",
-                "payment.read", "payment.write",
-            ],
-        },
+        // 048: admin-ui seed SÖKÜLDÜ — Razor Admin BFF kaldırıldı (RetiredClientIds ile store'dan
+        // prune edilir; ölü ama yetkili m2m kimlik yüzeyi bırakmamak için, fail-closed).
         // 044: payment-agent + merchant-agent seed'leri SİLİNDİ — A2A host'ları 038/043'te söküldü,
         // ölü ama yetkili (payment.write/commission.write) kimlik yüzeyi bırakıyorlardı (R5, fail-closed).
         // 013: Identity aktivasyon sayfası → Merchant.Api redeem (sanksiyonlu senkron çağrı).

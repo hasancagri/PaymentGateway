@@ -25,6 +25,10 @@ builder.Services.AddMarten(opts =>
         // 046: salt-append key yenileme denetim kaydı — merchantId ile geçmiş sorgusu.
         opts.Schema.For<Merchant.Api.Domains.MerchantKeyReissueLogs.MerchantKeyReissueLog>()
             .Index(x => x.MerchantId);
+
+        // 048: hassas-veri hosted link oturumu — token ile lookup (capability).
+        opts.Schema.For<Merchant.Api.Domains.Merchants.SensitiveEntrySession>()
+            .Index(x => x.Token);
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -113,6 +117,12 @@ builder.Services.AddOptions<Merchant.Api.Options.AdminNotification>().BindConfig
 builder.Services.AddSingleton<Merchant.Api.Options.AdminNotification>(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Merchant.Api.Options.AdminNotification>>().Value);
 
+// 048: hassas-veri hosted sayfası ayarları (link tabanı + ömür). Düz T singleton enjekte.
+builder.Services.AddOptions<Merchant.Api.Options.SensitiveEntryOptions>().BindConfiguration(nameof(Merchant.Api.Options.SensitiveEntryOptions))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<Merchant.Api.Options.SensitiveEntryOptions>(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Merchant.Api.Options.SensitiveEntryOptions>>().Value);
+
 // 029/047: MCP server — store fasadına (EC Mcp.Gateway) downstream. Stateless HTTP; oturum token'ının
 // scope'una göre tools/list budanır (085 emsali): MerchantAdminSurface.ToolScopeMap'te olmayan tool
 // herkese, olan yalnız gereken scope varsa görünür. tools/call son savunması Wolverine middleware'de.
@@ -163,6 +173,11 @@ app.MapGroup("api/v{version:apiVersion}/onboarding").WithTags("onboarding").With
 // tek gösterimlik; Payment 041 hosted sayfa emsali).
 app.MapOnboardingFormPages();
 app.MapCredentialRevealPage();
+
+// 048: hassas-veri hosted sayfası — ANONİM, token = yetki (süreli 15dk + tek kullanımlık). Agent
+// merchant.admin scope'lu MCP tool ile link üretir; insan tarayıcıda açar/düzenler; hassas alan
+// agent context'ine hiç girmez. GET tüketmez, POST başarısı Consume; nötr 404 (token sızmaz).
+app.MapSensitiveEntryEndpoints();
 
 // 047: MCP endpoint (Streamable HTTP) — store fasadı buraya downstream bağlanır. Mount YALNIZ
 // AgentPlatform token'ını kabul eder (Platform şeması; PG IdP token'ı 401). Admin tool'ları

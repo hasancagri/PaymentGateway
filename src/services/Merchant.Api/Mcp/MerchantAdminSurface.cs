@@ -22,5 +22,6 @@ public static class MerchantAdminSurface
             [MerchantAdminTools.ApproveRegistration] = AuthorizationScopes.MerchantAdmin,
             [MerchantAdminTools.RejectRegistration] = AuthorizationScopes.MerchantAdmin,
             [MerchantAdminTools.ResendCredentialLink] = AuthorizationScopes.MerchantAdmin,
+            [MerchantAdminTools.RequestSensitiveLink] = AuthorizationScopes.MerchantAdmin,
         };
 }

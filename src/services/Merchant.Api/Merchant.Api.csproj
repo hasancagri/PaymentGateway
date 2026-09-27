@@ -31,4 +31,9 @@
       <Folder Include="Domains\" />
     </ItemGroup>
 
+    <!-- 048: hassas-veri hosted sayfası gömülü .html şablonları (dosyada; inline C# string değil). -->
+    <ItemGroup>
+      <EmbeddedResource Include="Pages\SensitiveEntry\*.html" />
+    </ItemGroup>
+
 </Project>

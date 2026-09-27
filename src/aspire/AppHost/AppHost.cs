@@ -25,7 +25,7 @@ var identityServer = builder.AddProject<Projects.Payment_Identity>("identity-ser
     .WaitFor(identityDb)
     .WaitFor(rabbit);
 
-var paymentApi = builder.AddProject<Projects.Payment_Api>("payment-api")
+builder.AddProject<Projects.Payment_Api>("payment-api")
     .WithReference(paymentDb)
     .WithReference(rabbit)
     .WithReference(identityServer)
@@ -55,7 +55,7 @@ var merchantApi = builder.AddProject<Projects.Merchant_Api>("merchant-api")
     .WaitFor(rabbit)
     .WaitFor(identityServer);
 
-var commissionApi = builder.AddProject<Projects.Commission_Api>("commission-api")
+builder.AddProject<Projects.Commission_Api>("commission-api")
     .WithReference(commissionDb)
     .WithReference(rabbit)
     .WithReference(identityServer)
@@ -67,16 +67,8 @@ var commissionApi = builder.AddProject<Projects.Commission_Api>("commission-api"
 // discovery için referans (WaitFor YOK → merchant-api zaten identity'yi beklediğinden döngü olmaz).
 identityServer.WithReference(merchantApi);
 
-// Admin BFF (Razor Pages) — üç API'yi service discovery ile çağırır; 011: her istek
-// AdminTokenHandler ile makine token'ı taşır (admin-ui client'ı, Payment.Identity'dan).
-builder.AddProject<Projects.Admin>("admin-web")
-    .WithReference(merchantApi)
-    .WithReference(commissionApi)
-    .WithReference(paymentApi)
-    .WithReference(identityServer)
-    .WaitFor(merchantApi)
-    .WaitFor(commissionApi)
-    .WaitFor(paymentApi)
-    .WaitFor(identityServer);
+// 048: Razor Admin BFF (admin-web) SÖKÜLDÜ — hassas-veri kanalı artık Merchant.Api'nin hosted
+// link'i (agent merchant.admin MCP tool ile üretir; insan tarayıcıda açar). CRUD ekranları 044'te
+// zaten söküktü; kalan tek iş yüzeyi hassas-veri sayfası da bu hosted link'e taşındı.
 
 builder.Build().Run();
