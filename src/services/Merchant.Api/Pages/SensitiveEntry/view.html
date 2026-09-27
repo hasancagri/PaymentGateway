@@ -1,0 +1,19 @@
+<h1>Hassas Merchant Verisi</h1>
+<p><strong>{{name}}</strong> işyerinin kişisel/finansal alanları. Değerleri düzeltip
+kaydedebilirsiniz. Bu sayfa süreli ve tek kullanımlıktır — başarılı kayıttan sonra link geçersizdir.</p>
+{{error}}
+<form method="post" action="/merchants/sensitive/{{token}}" autocomplete="off">
+  <label for="email">E-posta</label>
+  <input id="email" name="email" required value="{{email}}">
+  <label for="gsmNumber">Telefon (GSM)</label>
+  <input id="gsmNumber" name="gsmNumber" required value="{{gsm}}">
+  <label for="identityNumber">TCKN / Kimlik No</label>
+  <input id="identityNumber" name="identityNumber" value="{{identity}}">
+  <p class="hint">Personal ve PrivateCompany için zorunlu.</p>
+  <label for="iban">IBAN</label>
+  <input id="iban" name="iban" required value="{{iban}}">
+  <label for="taxNumber">Vergi No</label>
+  <input id="taxNumber" name="taxNumber" value="{{tax}}">
+  <p class="hint">Şirket tipleri için zorunlu.</p>
+  <button type="submit">Kaydet</button>
+</form>

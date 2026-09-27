@@ -1,9 +1,9 @@
 namespace Merchant.Api.Domains.Merchants.Features.Queries;
 
 // 044 US2: hassas kişisel/finansal alanların (Email, GsmNumber, IdentityNumber, Iban, TaxNumber)
-// admin düzlemindeki TEK okuma yüzeyi — Admin UI hassas-veri sayfası (dar BFF) tüketir.
-// MerchantKey/SubMerchantKey bu uçta YOK (sır teslimi kapsam dışı; MerchantScoped GetMerchant'ta
-// kalır). AdminPlaneOnly: claim'li merchant token'ı giremez.
+// admin düzlemindeki TEK okuma yüzeyi. MerchantKey/SubMerchantKey bu uçta YOK (sır teslimi kapsam
+// dışı; MerchantScoped GetMerchant'ta kalır). 048: BFF endpoint sarmalayıcı SÖKÜLDÜ — bu HANDLER
+// hosted link token-endpoint'inden (SensitiveEntryEndpointExtension) IMessageBus ile çağrılır.
 public static class GetMerchantSensitive
 {
     public record GetMerchantSensitiveQuery(Guid MerchantId);
@@ -43,28 +43,5 @@ public static class GetMerchantSensitive
                 TaxNumber = merchant.TaxNumber
             });
         }
-    }
-}
-
-public static class GetMerchantSensitiveEndpoint
-{
-    public static RouteGroupBuilder GetMerchantSensitiveGroupItemEndpoint(this RouteGroupBuilder group)
-    {
-        group.MapGet("/{merchantId:guid}/sensitive",
-                async (Guid merchantId, IMessageBus bus) =>
-                {
-                    var result = await bus
-                        .InvokeAsync<FeatureObjectResultModel<GetMerchantSensitive.GetMerchantSensitiveResponse>>(
-                            new GetMerchantSensitive.GetMerchantSensitiveQuery(merchantId));
-                    return result.IsSuccess ? Results.Ok(result.Data) : Results.NotFound(result);
-                })
-            .WithName("GetMerchantSensitive")
-            .MapToApiVersion(1, 0)
-            .RequireAuthorization(AuthorizationScopes.MerchantRead, AuthorizationPolicies.AdminPlaneOnly)
-            .Produces<GetMerchantSensitive.GetMerchantSensitiveResponse>()
-            .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
-            .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);
-
-        return group;
     }
 }

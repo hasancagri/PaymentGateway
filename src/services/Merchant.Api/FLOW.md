@@ -64,14 +64,20 @@ merchant'ın gateway'e token'lı erişimi bu duyuruya bağlıdır.
 6. **`merchant.admin` scope eksikse istek reddedilir** (fail-closed) — `ecommerce-onboarding`
    admin tool'larını ÇAĞIRAMAZ. `(ScopeAuthorizationMiddleware.Before)`
 
-### Yol C — Hassas veri tek ekrandan (044)
+### Yol C — Hassas veri hosted link'ten (048; Razor Admin ekranı SÖKÜLDÜ)
 
 1. **Hassas alanlar (Email, GSM, TCKN, IBAN, vergi no) hiçbir MCP sözleşmesinde YER ALMAZ** —
-   agent sohbette hassas değişiklik istenirse Admin hassas-veri sayfasının linkini verir.
-2. **Operatör Admin ekranından hassas verileri görüntüler/düzenler** — dar BFF çifti
-   (`AdminPlaneOnly`; claim'li merchant token'ı giremez). Handler hassas-DIŞI alanları mevcut
-   değerlerden geçirir; tip-koşullu kurallar aggregate'te aynen çalışır.
-   `(GetMerchantSensitive)` `(Merchant.UpdateDetails ← UpdateMerchantSensitive)`
+   agent hassas veri istenince yalnız süreli + tek kullanımlık bir link üretir; hassas alan sohbete/
+   agent context'ine ASLA girmez. Denetim izi merchantId + isteyen kimliği (token DEĞİL).
+   `(SensitiveEntrySession.Create ← RequestSensitiveLinkMcpTool "admin_request_sensitive_link")`
+2. **Operatör linki tarayıcıda açar** (anonim endpoint, token = yetki). Sayfa merchant'ın güncel
+   hassas alanlarını DAR encoder'la basar; GET tüketmez (süre öldürür). `(GetMerchantSensitive)`
+3. **Operatör alanları düzenleyip kaydeder** — doğrulama başarılıysa oturum tüketilir + PRG
+   (link ölür); doğrulama hatası formu yaşatır. Handler hassas-DIŞI alanları mevcut değerlerden
+   geçirir; tip-koşullu kurallar aggregate'te aynen çalışır.
+   `(Merchant.UpdateDetails ← UpdateMerchantSensitive)` `(SensitiveEntrySession.Consume)`
+4. **Bilinmeyen/süresi geçmiş/tüketilmiş link nötr 404** — aynı gövde + durum (token doğruluğu
+   sızmaz). `(SensitiveEntrySession.IsUsable)`
 
 ### Yol D — Merchant self-servis key yenileme (046)
 

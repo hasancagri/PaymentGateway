@@ -20,6 +20,7 @@ global using Shared.Utils.Constants;
 global using Wolverine.RabbitMQ;
 global using Common.Dependencies;
 global using System.Text.RegularExpressions;
+global using Merchant.Api;
 global using Merchant.Api.Domains.Merchants;
 global using Merchant.Api.Domains.Merchants.Features.Commands;
 global using Merchant.Api.Domains.Merchants.Features.Queries;

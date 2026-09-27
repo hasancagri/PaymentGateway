@@ -1,9 +1,10 @@
 namespace Merchant.Api.Domains.Merchants.Features.Commands;
 
 // 044 US2: hassas alanların (Email, GsmNumber, IdentityNumber, Iban, TaxNumber) admin
-// düzlemindeki TEK yazma yüzeyi — Admin UI hassas-veri sayfası (dar BFF) tüketir. Aggregate'in
-// UpdateDetails'i tüm alanları tek imzada aldığından hassas-DIŞI alanlar MEVCUT değerlerden
-// geçirilir (research R3); tip-koşullu kurallar (Individual→TCKN, Company→vergi) aynen çalışır.
+// düzlemindeki TEK yazma yüzeyi. Aggregate'in UpdateDetails'i tüm alanları tek imzada aldığından
+// hassas-DIŞI alanlar MEVCUT değerlerden geçirilir (research R3); tip-koşullu kurallar
+// (Individual→TCKN, Company→vergi) aynen çalışır. 048: BFF endpoint sarmalayıcı SÖKÜLDÜ — bu
+// HANDLER hosted link token-endpoint'inden (SensitiveEntryEndpointExtension) IMessageBus ile çağrılır.
 public static class UpdateMerchantSensitive
 {
     public record UpdateMerchantSensitiveCommand(
@@ -63,38 +64,5 @@ public static class UpdateMerchantSensitive
                 TaxNumber = merchant.TaxNumber
             });
         }
-    }
-}
-
-public static class UpdateMerchantSensitiveEndpoint
-{
-    /// <summary>Gövde modeli; <c>merchantId</c> rotadan gelir.</summary>
-    public record UpdateMerchantSensitiveBody(
-        string Email,
-        string GsmNumber,
-        string? IdentityNumber,
-        string Iban,
-        string? TaxNumber);
-
-    public static RouteGroupBuilder UpdateMerchantSensitiveGroupItemEndpoint(this RouteGroupBuilder group)
-    {
-        group.MapPut("/{merchantId:guid}/sensitive",
-                async (Guid merchantId, [FromBody] UpdateMerchantSensitiveBody body, IMessageBus bus) =>
-                {
-                    var result = await bus
-                        .InvokeAsync<FeatureObjectResultModel<UpdateMerchantSensitive.UpdateMerchantSensitiveResponse>>(
-                            new UpdateMerchantSensitive.UpdateMerchantSensitiveCommand(
-                                merchantId, body.Email, body.GsmNumber, body.IdentityNumber,
-                                body.Iban, body.TaxNumber));
-                    return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
-                })
-            .WithName("UpdateMerchantSensitive")
-            .MapToApiVersion(1, 0)
-            .RequireAuthorization(AuthorizationScopes.MerchantWrite, AuthorizationPolicies.AdminPlaneOnly)
-            .Produces<UpdateMerchantSensitive.UpdateMerchantSensitiveResponse>()
-            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
-            .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);
-
-        return group;
     }
 }
