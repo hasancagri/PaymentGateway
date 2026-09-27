@@ -1,6 +1,6 @@
 namespace Common.Utils.Constants;
 
-// 011: gateway scope seti (Identity.Server Config.ScopeResources ile birebir).
+// 011: gateway scope seti (Payment.Identity Config.ScopeResources ile birebir).
 // Kural: GET → <bc>.read, durum değiştiren → <bc>.write. G2/G5 genişlemesi (cards.write, charge) buraya.
 public static class AuthorizationScopes
 {

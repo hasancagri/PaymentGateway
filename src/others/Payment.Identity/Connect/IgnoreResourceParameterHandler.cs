@@ -1,6 +1,6 @@
 using OpenIddict.Server;
 
-namespace Identity.Server.Connect;
+namespace Payment.Identity.Connect;
 
 // G3: MCP istemcileri (Claude Desktop / mcp-remote) RFC 8707 `resource` parametresiyle MCP URL'i
 // gönderir. OpenIddict bu değeri scope'lara bağlı resource'ların (merchant.api gibi mantıksal

@@ -38,7 +38,7 @@ builder.Host.UseWolverine(opts =>
     var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
         .AutoProvision();
 
-    // 012: merchant yaşam döngüsü yayını — Identity.Server tüketir (OpenIddict istemci senkronu).
+    // 012: merchant yaşam döngüsü yayını — Payment.Identity tüketir (OpenIddict istemci senkronu).
     rabbit.DeclareExchange(RabbitMqConstants.MerchantLifecycle.Exchange,
         e => { e.ExchangeType = ExchangeType.Fanout; });
     opts.PublishMessage<Shared.IntegrationEvents.MerchantCreated>()
@@ -85,7 +85,7 @@ builder.Services.AddApiVersioning(options =>
     options.ApiVersionReader = new UrlSegmentApiVersionReader();
 });
 
-// 011: JWT bearer (Identity.Server JWKS) + scope policy'leri; endpoint'ler policy'yi açıkça beyan eder.
+// 011: JWT bearer (Payment.Identity JWKS) + scope policy'leri; endpoint'ler policy'yi açıkça beyan eder.
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.MerchantRead,

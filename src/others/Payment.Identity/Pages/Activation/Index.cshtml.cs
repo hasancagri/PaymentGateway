@@ -1,8 +1,8 @@
-using Identity.Server.Activation;
+using Payment.Identity.Activation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace Identity.Server.Pages.Activation;
+namespace Payment.Identity.Pages.Activation;
 
 /// <summary>
 /// US3 — aktivasyon sayfası (013 D4). GET: token'ı gizli alanda formu gösterir. POST: Merchant.Api

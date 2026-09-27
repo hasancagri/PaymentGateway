@@ -46,7 +46,7 @@ public static class AdminApproveRegistration
             session.Store(merchant);
             session.Store(request);
 
-            // Identity.Server tüketir → OpenIddict istemci kaydı (client_secret = MerchantKey).
+            // Payment.Identity tüketir → OpenIddict istemci kaydı (client_secret = MerchantKey).
             // [Transactional] outbox: yayın yalnız DB commit'te gider.
             await bus.PublishAsync(new Shared.IntegrationEvents.MerchantCreated(
                 merchant.Id, merchant.MerchantKey, merchant.Status.ToString()));

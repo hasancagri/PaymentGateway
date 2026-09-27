@@ -1,9 +1,9 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Identity.Server.Options;
+using Payment.Identity.Options;
 
-namespace Identity.Server.Activation;
+namespace Payment.Identity.Activation;
 
 /// <summary>
 /// Aktivasyon sayfasının Merchant.Api <c>redeem</c> ucuna senkron çağrısı (013 sanksiyonlu cross-servis

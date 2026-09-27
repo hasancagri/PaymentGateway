@@ -13,7 +13,7 @@ public static class IntegrationEvents
     public record PaymentChargedEvent(Guid PaymentId, Guid MerchantId, decimal Price, decimal PaidPrice,
         int Installment, string ProviderCommission, string ProviderFee, string ProviderPaymentId);
 
-    // Merchant yaşam döngüsü: Merchant.Api yayınlar; Identity.Server tüketir (OpenIddict istemci upsert).
+    // Merchant yaşam döngüsü: Merchant.Api yayınlar; Payment.Identity tüketir (OpenIddict istemci upsert).
     // Status/NewStatus ∈ { "Active", "Passive", "Suspended" } (string — BC enum'u Shared'a sızmaz).
     // MerchantKey yalnız Created'da taşınır (istemci sırrı); StatusChanged sır taşımaz.
     public record MerchantCreated(Guid MerchantId, string MerchantKey, string Status);
@@ -22,11 +22,11 @@ public static class IntegrationEvents
 
     // 046: merchant self-servis key yenileme — Merchant.Api yayınlar (reissue handler, [Transactional]
     // outbox). Yeni MerchantKey (istemci sırrı) taşır; iç event, MerchantLifecycle fanout (MerchantCreated
-    // ile aynı exchange). Tüketiciler: Identity.Server (client_secret update), Payment.Api (KeyHash REPLACE)
+    // ile aynı exchange). Tüketiciler: Payment.Identity (client_secret update), Payment.Api (KeyHash REPLACE)
     // → eski key HER temsilde anında geçersiz.
     public record MerchantKeyReissued(Guid MerchantId, string MerchantKey);
 
-    // 013: aktivasyon anında (key teslim) yayınlanır — Identity.Server tüketir (OpenIddict istemci
+    // 013: aktivasyon anında (key teslim) yayınlanır — Payment.Identity tüketir (OpenIddict istemci
     // provision: Provisioning demeti). Onboarding'de MerchantCreated'ın yerini alır; MerchantKey
     // (istemci sırrı) yalnız burada taşınır, yalnız Identity'ye gider. Status = "Provisioning".
     public record MerchantProvisioned(Guid MerchantId, string MerchantKey, string Status);

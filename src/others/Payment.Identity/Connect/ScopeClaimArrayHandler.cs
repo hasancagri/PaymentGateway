@@ -2,7 +2,7 @@ using System.Security.Claims;
 using OpenIddict.Server;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
-namespace Identity.Server.Connect;
+namespace Payment.Identity.Connect;
 
 // R3 (EN KRİTİK — 029'dan birebir): OpenIddict access token'a scope'u RFC 9068 gereği tek
 // boşluk-ayrık string yazar; servisler ise RequireClaim("scope", x) ile TEK TEK değer arar →

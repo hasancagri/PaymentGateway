@@ -52,7 +52,7 @@ builder.Host.UseWolverine(opts =>
         .ToRabbitExchange(RabbitMqConstants.PaymentCompleted.Exchange);
 
     // 038: merchant.lifecycle tüketimi — statü referansı (çekim statü kapısı). Message store yok →
-    // ProcessInline + RabbitMQ redelivery (Identity.Server deseni). MerchantApiConsumers
+    // ProcessInline + RabbitMQ redelivery (Payment.Identity deseni). MerchantApiConsumers
     // aşağıda IncludeType ile açık kayıtlı (*Consumers taramayla keşfedilmez).
     rabbit.DeclareExchange(RabbitMqConstants.MerchantLifecycle.Exchange,
         e => { e.ExchangeType = ExchangeType.Fanout; });
@@ -75,7 +75,7 @@ builder.Services.AddApiVersioning(options =>
     options.ApiVersionReader = new UrlSegmentApiVersionReader();
 });
 
-// 011: JWT bearer (Identity.Server JWKS) + scope policy'leri; endpoint'ler policy'yi açıkça beyan eder.
+// 011: JWT bearer (Payment.Identity JWKS) + scope policy'leri; endpoint'ler policy'yi açıkça beyan eder.
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.PaymentRead,

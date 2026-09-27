@@ -38,7 +38,7 @@ public static class ReissueMerchantKey
                 return FeatureObjectResultModel<ReissueMerchantKeyResponse>.Error(reissue.Messages);
             session.Store(merchant);
 
-            // Identity.Server + Payment.Api tüketir → client_secret + KeyHash güncellenir (eski key 401).
+            // Payment.Identity + Payment.Api tüketir → client_secret + KeyHash güncellenir (eski key 401).
             // [Transactional] outbox: yayın yalnız DB commit'te gider.
             await bus.PublishAsync(new Shared.IntegrationEvents.MerchantKeyReissued(
                 merchant.Id, merchant.MerchantKey));

@@ -1,6 +1,6 @@
-using Identity.Server;
-using Identity.Server.Connect;
-using Identity.Server.Options;
+using Payment.Identity;
+using Payment.Identity.Connect;
+using Payment.Identity.Options;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -80,10 +80,10 @@ builder.Services.AddOpenIddict()
     });
 
 // G3: bootstrap admin — email/parola boşsa seed atlanır (Options/BootstrapAdmin.cs).
-builder.Services.AddOptions<Identity.Server.Options.BootstrapAdmin>()
-    .BindConfiguration(nameof(Identity.Server.Options.BootstrapAdmin));
-builder.Services.AddSingleton<Identity.Server.Options.BootstrapAdmin>(sp =>
-    sp.GetRequiredService<IOptions<Identity.Server.Options.BootstrapAdmin>>().Value);
+builder.Services.AddOptions<Payment.Identity.Options.BootstrapAdmin>()
+    .BindConfiguration(nameof(Payment.Identity.Options.BootstrapAdmin));
+builder.Services.AddSingleton<Payment.Identity.Options.BootstrapAdmin>(sp =>
+    sp.GetRequiredService<IOptions<Payment.Identity.Options.BootstrapAdmin>>().Value);
 
 // Açılışta idempotent client + scope seed.
 builder.Services.AddHostedService<SeedHostedService>();
@@ -92,7 +92,7 @@ builder.Services.AddHostedService<SeedHostedService>();
 builder.Services.AddRazorPages();
 // Merchant.Api'ye doğrudan (sabit port 5202) — service discovery DNS'ine bağlı kalma (aktivasyon
 // sayfası tek senkron redeem çağrısı). Config'ten override edilebilir.
-builder.Services.AddHttpClient<Identity.Server.Activation.MerchantActivationClient>(client =>
+builder.Services.AddHttpClient<Payment.Identity.Activation.MerchantActivationClient>(client =>
     client.BaseAddress = new Uri(builder.Configuration["MerchantApi:BaseUrl"] ?? "http://localhost:5202"));
 
 // Aktivasyon istemcisi için Identity adresi POCO (runtime doğrudan IConfiguration okuması yasak; CLAUDE.md).

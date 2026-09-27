@@ -7,7 +7,7 @@ namespace Payment.Api;
 /// Merchant.Api'nin merchant.lifecycle fanout'unun tüketicisi (kaynak = Merchant.Api) — merchant
 /// statüsünü Payment BC'nin yerel referansına izdüşürür (çekim statü kapısının veri temeli).
 /// İdempotent upsert: aynı olay N kez işlense sonuç aynı. Message store yok → ProcessInline +
-/// RabbitMQ redelivery (Identity.Server MerchantClientEventHandler şablonu).
+/// RabbitMQ redelivery (Payment.Identity MerchantClientEventHandler şablonu).
 /// </summary>
 public static class MerchantApiConsumers
 {

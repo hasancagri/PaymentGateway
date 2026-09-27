@@ -35,7 +35,7 @@ public static class AdminActivateMerchant
             {
                 session.Store(merchant);
 
-                // 044: REST ChangeMerchantStatus söküldü — statü yayını artık buradan. Identity.Server
+                // 044: REST ChangeMerchantStatus söküldü — statü yayını artık buradan. Payment.Identity
                 // tüketir (token kapısı) + Payment MerchantStatus referansı beslenir; outbox commit'le atomik.
                 await bus.PublishAsync(new Shared.IntegrationEvents.MerchantStatusChanged(
                     merchant.Id, merchant.Status.ToString()));
