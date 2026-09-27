@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
-namespace Identity.Server.Connect;
+namespace Payment.Identity.Connect;
 
 // Açılışta idempotent scope + client seed (varsa güncelle, yoksa yarat). Yalnız Config'teki
 // statik listeye dokunur — G2'nin çalışma anında ekleyeceği merchant client'ları EZİLMEZ (D4/D9).
@@ -50,7 +50,7 @@ public sealed class SeedHostedService(IServiceProvider provider, IConfiguration 
 
         // G3: bootstrap admin — yalnız config doluysa VE kullanıcı yoksa oluşturulur (idempotent;
         // sonradan admin'in değiştirdiği parola ezilmez).
-        var bootstrapAdmin = scope.ServiceProvider.GetRequiredService<Identity.Server.Options.BootstrapAdmin>();
+        var bootstrapAdmin = scope.ServiceProvider.GetRequiredService<Payment.Identity.Options.BootstrapAdmin>();
         if (!string.IsNullOrWhiteSpace(bootstrapAdmin.Email) && !string.IsNullOrWhiteSpace(bootstrapAdmin.Password))
         {
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();

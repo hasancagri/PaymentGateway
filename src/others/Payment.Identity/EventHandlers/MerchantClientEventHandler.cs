@@ -4,7 +4,7 @@ using static OpenIddict.Abstractions.OpenIddictConstants;
 using static Shared.IntegrationEvents;
 
 // Sınıf adı TEKİL "Handler" ile bitmeli — çoğul "Handlers" Wolverine 6.4'te keşfedilmiyor (bkz. CLAUDE.md).
-namespace Identity.Server.EventHandlers;
+namespace Payment.Identity.EventHandlers;
 
 // 012: merchant.lifecycle tüketicisi — Merchant BC olaylarını OpenIddict istemci kaydına izdüşürür.
 // İdempotent: aynı olay N kez işlense sonuç aynı descriptor. Message store yok (D1) → at-least-once

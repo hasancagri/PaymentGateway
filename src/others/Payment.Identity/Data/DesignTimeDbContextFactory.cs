@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace Identity.Server;
+namespace Payment.Identity;
 
 // dotnet ef migrations ... — design-time context (uygulama host'u ayağa kaldırılmaz).
 public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>

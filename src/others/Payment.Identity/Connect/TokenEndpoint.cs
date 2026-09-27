@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Identity.Server.EventHandlers;
+using Payment.Identity.EventHandlers;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -8,7 +8,7 @@ using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
-namespace Identity.Server.Connect;
+namespace Payment.Identity.Connect;
 
 // /connect/token — client_credentials (M2M, 029'un alt kümesi) + authorization_code/refresh_token
 // (G3: insan/admin akışları, 042). Grant/secret/scope doğrulamasını OpenIddict yapar; buraya yalnız

@@ -15,7 +15,7 @@
       <ProjectReference Include="..\..\services\Merchant.Api\Merchant.Api.csproj" />
       <ProjectReference Include="..\..\services\Commission.Api\Commission.Api.csproj" />
       <ProjectReference Include="..\..\ui\Admin\Admin.csproj" />
-      <ProjectReference Include="..\..\others\Identity.Server\Identity.Server.csproj" />
+      <ProjectReference Include="..\..\others\Payment.Identity\Payment.Identity.csproj" />
     </ItemGroup>
 
     <ItemGroup>

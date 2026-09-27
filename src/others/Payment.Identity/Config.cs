@@ -1,4 +1,4 @@
-namespace Identity.Server;
+namespace Payment.Identity;
 
 // Seed sabitleri: scope registry + istemci listesi. SeedHostedService açılışta OpenIddict
 // application/scope manager'larına idempotent yazar (yalnız BU statik liste — G2'nin çalışma

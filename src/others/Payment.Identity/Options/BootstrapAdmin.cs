@@ -1,4 +1,4 @@
-namespace Identity.Server.Options;
+namespace Payment.Identity.Options;
 
 /// <summary>
 /// G3: Açılışta seed edilen tek admin kimliği — section "BootstrapAdmin". Email/parola boşken

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 
-namespace Identity.Server.Pages.Account;
+namespace Payment.Identity.Pages.Account;
 
 // G3: minimal login — kayıt/şifre sıfırlama/2FA YOK (tek bootstrap admin, YAGNI).
 public class LoginModel(SignInManager<ApplicationUser> signInManager) : PageModel

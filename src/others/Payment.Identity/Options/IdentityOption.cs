@@ -1,4 +1,4 @@
-namespace Identity.Server.Options;
+namespace Payment.Identity.Options;
 
 // Aktivasyon istemcisi Identity token ucunun adresini kullanır. Config yoksa sabit issuer'a düşer
 // (Program.cs SetIssuer ile aynı; D6). Common'a bağımlılık taşımamak için yerel POCO.

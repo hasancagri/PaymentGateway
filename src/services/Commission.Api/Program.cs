@@ -60,7 +60,7 @@ builder.Services.AddApiVersioning(options =>
     options.ApiVersionReader = new UrlSegmentApiVersionReader();
 });
 
-// 011: JWT bearer (Identity.Server JWKS) + scope policy'leri; endpoint'ler policy'yi açıkça beyan eder.
+// 011: JWT bearer (Payment.Identity JWKS) + scope policy'leri; endpoint'ler policy'yi açıkça beyan eder.
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.CommissionRead,

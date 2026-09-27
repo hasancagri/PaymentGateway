@@ -7,7 +7,7 @@ using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
-namespace Identity.Server.Connect;
+namespace Payment.Identity.Connect;
 
 // /connect/authorize — code+PKCE akışının kullanıcı etkileşim ucu. Tek admin, seed istemci
 // (Implicit consent) — consent dalı YOK (YAGNI; DCR/çoklu-kullanıcı gelirse ayrı spec ekler).
