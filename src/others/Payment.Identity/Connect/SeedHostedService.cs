@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Identity;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -48,26 +47,8 @@ public sealed class SeedHostedService(IServiceProvider provider, IConfiguration 
                 await apps.DeleteAsync(dead, ct);
         }
 
-        // G3: bootstrap admin — yalnız config doluysa VE kullanıcı yoksa oluşturulur (idempotent;
-        // sonradan admin'in değiştirdiği parola ezilmez).
-        var bootstrapAdmin = scope.ServiceProvider.GetRequiredService<Payment.Identity.Options.BootstrapAdmin>();
-        if (!string.IsNullOrWhiteSpace(bootstrapAdmin.Email) && !string.IsNullOrWhiteSpace(bootstrapAdmin.Password))
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            if (await userManager.FindByNameAsync(bootstrapAdmin.Email) is null)
-            {
-                var admin = new ApplicationUser
-                {
-                    UserName = bootstrapAdmin.Email,
-                    Email = bootstrapAdmin.Email,
-                    EmailConfirmed = true,
-                };
-                var created = await userManager.CreateAsync(admin, bootstrapAdmin.Password);
-                if (!created.Succeeded)
-                    throw new InvalidOperationException(
-                        $"Bootstrap admin oluşturulamadı: {string.Join("; ", created.Errors.Select(e => e.Description))}");
-            }
-        }
+        // 047+048: bootstrap admin seed SÖKÜLDÜ — insan login akışı kalmadı (external-admin-agent
+        // AgentPlatform IdP'ye taşındı); IdP yalnız M2M client seed'i yönetir.
     }
 
     public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
