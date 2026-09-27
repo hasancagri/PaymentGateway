@@ -15,21 +15,25 @@ kod standartları, servisler-arası desenler orada (ECom'dan devralındı). Bu d
   aggregate + `POST /hosted-payment` (X-Api-Key, Active-kapılı) iyzico CF initialize eder; iyzico dönüşü
   `/internal/payments/callback/{callbackToken}` (secret-token kapılı, CF retrieve teyidi) terminal'e taşır;
   store'a HMAC-imzalı sonuç (durable outbox retry) + müşteri dönüş sayfası. iyzico V2 wire (`Utils/*V2`) +
-  MerchantStatus + ApiKey auth kalır. `/mcp` tool'suz (store HTTP çağırır, agent değil).
+  MerchantStatus + ApiKey auth kalır. **047: Payment `/mcp` SÖKÜLDÜ** (tool taşımıyordu; store HTTP çağırır).
 - **Merchant** — gateway müşterisi SİTE (pazaryeri/split DEĞİL); iyzico SubMerchant sözleşmesiyle hizalı
   alan seti + statü makinesi. OAuth istemci düzlemi (aşağıda). **Admin düzlemi MCP-only (043+044):**
   statü/liste/detay/güncelleme + başvuru onay/red tümü `merchant.admin` scope'lu MCP tool'ları;
-  admin REST CRUD + register-requests grubu SÖKÜLDÜ (044). **Kişisel veri MCP'den geçmez (044):**
+  admin REST CRUD + register-requests grubu SÖKÜLDÜ (044). **047: `/mcp` store fasadına downstream** —
+  kimlik AgentPlatform IdP'de (`"Platform"` şeması, platform token; PG IdP token 401); tools/list token
+  scope'una göre budanır (`MerchantAdminSurface.ToolScopeMap`). **Kişisel veri MCP'den geçmez (044):**
   Email/GSM/TCKN/IBAN/vergi no yalnız Admin hassas-veri sayfası + dar BFF çifti (`/merchants/{id}/sensitive`).
 - **Commission** — komisyon politikası (iyzico maliyeti + marj). **MCP yüzeyi (043+044):** okuma
   `admin_get_commission_policy` + yazma `admin_create_commission_policy`/`admin_update_commission_margin`/
   `admin_change_commission_status` (commission.write, Wolverine scope middleware); admin REST +
-  `CalculateEffectiveCommission` slice'ı SÖKÜLDÜ (hesap davranışı aggregate'te durur).
+  `CalculateEffectiveCommission` slice'ı SÖKÜLDÜ (hesap davranışı aggregate'te durur). **047: `/mcp` store
+  fasadına downstream** (platform token, `CommissionAdminSurface.ToolScopeMap` budaması).
 - Altyapı: **Identity.Server** (M2M OpenIddict), **Mail.Worker** (RabbitMQ→SMTP/Mailpit), **Admin**
   (Razor BFF — 044'te yalnız hassas-veri sayfası, CRUD ekranları YOK), **gateway** (YARP).
-  Payment.Agent + Merchant.Agent (A2A) SÖKÜLDÜ; `/mcp` uçlarına dış MCP istemcisi (Claude desktop,
-  `external-admin-agent`) doğrudan bağlanır. Ölü `payment-agent`/`merchant-agent` OAuth seed'leri
-  silindi + açılışta store'dan prune (044).
+  Payment.Agent + Merchant.Agent (A2A) SÖKÜLDÜ. **047: dış MCP istemcisi (Claude Desktop) artık PG'ye
+  DOĞRUDAN değil, ECommerce store fasadına (Mcp.Gateway) bağlanır** — Merchant/Commission `/mcp` fasadın
+  downstream'i; PG IdP `external-admin-agent` seed'i SÖKÜLDÜ (prune), kimlik platform IdP'ye taşındı. Ölü
+  `payment-agent`/`merchant-agent` OAuth seed'leri de silindi + açılışta store'dan prune (044).
 
 ## Komutlar
 
@@ -56,8 +60,8 @@ Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel
 | Servis | DB | Ne yapar | Origin spec |
 |---|---|---|---|
 | `Payment.Api` | paymentDb | kart-vault söküldü (041 teardown); **hosted-CF ödeme CANLI (041):** HostedPaymentSession + `/hosted-payment` (CF init) + secret-token'lı iyzico callback (CF retrieve) + HMAC-imzalı store bildirimi; iyzico V2 wire + MerchantStatus + ApiKey auth | `specs/041-hosted-cf-payment` |
-| `Merchant.Api` | merchantDb | Merchant aggregate (SubMerchant hizalı); statü makinesi; `MerchantCreated`/`StatusChanged` outbox; **MCP-only admin düzlemi (044)**: tam yönetim MCP'de, REST'te yalnız MerchantScoped okuma + hassas-veri BFF çifti; **hosted onboarding (045, ECom 078 kontratı)**: S2S REST (oturum/durum/validate) + hosted form + approve→mail + tek gösterimlik reveal sayfası + `admin_resend_credential_link`; eski `submit_registration`/`registration_status` canlı PASS sonrası SÖKÜLECEK | `specs/044-mcp-only-admin-plane` |
-| `Commission.Api` | commissionDb | CommissionPolicy (iyzico maliyeti + marj); **admin MCP okuma+yazma tool'ları (043+044)**; REST'te yalnız MerchantScoped okuma | `specs/044-mcp-only-admin-plane` |
+| `Merchant.Api` | merchantDb | Merchant aggregate (SubMerchant hizalı); statü makinesi; `MerchantCreated`/`StatusChanged` outbox; **MCP-only admin düzlemi (044)**: tam yönetim MCP'de, REST'te yalnız MerchantScoped okuma + hassas-veri BFF çifti; **hosted onboarding (045, ECom 078 kontratı)**; **047: `/mcp` store fasadına downstream** (platform token + tool-scope budaması) | `specs/047-platform-single-mcp` |
+| `Commission.Api` | commissionDb | CommissionPolicy (iyzico maliyeti + marj); **admin MCP okuma+yazma tool'ları (043+044)**; REST'te yalnız MerchantScoped okuma; **047: `/mcp` store fasadına downstream** (platform token + tool-scope budaması) | `specs/047-platform-single-mcp` |
 | `identity-server` | identityDb | M2M OpenIddict (client_credentials); scope + merchant OAuth istemci düzlemi | `specs/011-openiddict-migration` |
 | `Mail.Worker` | — | RabbitMQ `mail.delivery` → SMTP/Mailpit; retry→error queue; ClosedXML ek | — |
 | `Admin` | — | Razor BFF — 044'te tek iş yüzeyi hassas-veri sayfası (`/Merchants/Sensitive`); CRUD ekranları söküldü | — |

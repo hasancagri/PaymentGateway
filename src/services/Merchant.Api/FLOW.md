@@ -121,5 +121,5 @@ kanalı ve `MerchantCommissionGridReady` dinleyici kuyruğu FİİLEN kullanılm�
 ölü altyapı). İyzico'ya gerçek SubMerchant kaydı bu BC'de YAPILMAZ (SubMerchantKey hep null).
 Admin-düzlemi REST CRUD (create/update/status/liste + register-requests grubu) 044'te SÖKÜLDÜ —
 kalan REST: MerchantScoped tekil okuma + hassas-veri BFF çifti. Merchant.Agent (A2A) + Admin
-CRUD sayfaları 043/044'te SÖKÜLDÜ — tüm yönetim dış MCP istemcisinden (Claude Desktop,
-`external-admin-agent`) yürür.
+CRUD sayfaları 043/044'te SÖKÜLDÜ — tüm yönetim dış MCP istemcisinden yürür (047: Claude Desktop →
+ECommerce store fasadı → PG `/mcp` downstream; kimlik AgentPlatform IdP).

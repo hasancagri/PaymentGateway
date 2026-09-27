@@ -1,6 +1,28 @@
 <!--
 SYNC IMPACT REPORT
 ==================
+Version change: 1.5.0 → 1.6.0
+Bump rationale: MINOR — İlke V rehberliği genişledi: insan/agent (MCP) düzlemi somutlandı (047).
+  PG MCP yüzeyinin kimlik otoritesi platform IdP'sine (AgentPlatform, issuer https://localhost:5001)
+  taşındı; yüzey başına tek otorite (MCP = platform token, REST = PG Identity.Server). Makine (011) +
+  merchant-istemci (012) + kademeli statü-yetki (013) hükümleri değişmedi → MAJOR değil. TODO(AUTHZ_MODEL)
+  insan/agent düzlemi kısmı kapandı.
+
+Modified principles:
+  - V. Merkezi Kimlik ve Açık Yetki: (a) issuer cümlesi düzlem ayrımıyla güncellendi (makine/merchant
+    = PG Identity.Server 5101; insan/agent MCP = platform IdP 5001). (b) İnsan/agent (MCP) düzlemi
+    KARARLI: tek dış MCP istemcisi store fasadına bağlanır, tek token EC+PG scope'larını taşır. (c)
+    Yüzey başına tek otorite: MCP yalnız platform token'ı ("Platform" JwtBearer şeması), REST yalnız
+    PG IdP token'ı kabul eder; çapraz giriş fail-closed 401.
+
+Added/Removed sections: (yok)
+
+Deferred TODOs: TODO(AUTHZ_MODEL) — insan/agent MCP düzlemi 047'de kapandı; login+RBAC iç yüzeyi
+  platform IdP'sinde yaşar. Kalan: PG-yerel insan/rol düzlemi yok (tasarım gereği MCP dışı yönetim yok).
+
+Templates/commands: Bağımlı şablonlar anayasayı çalışma anında okur; senkron gerektiren tutarsızlık yok.
+
+--- v1.5.0 raporu (2026-09-16) ---
 Version change: 1.4.0 → 1.5.0
 Bump rationale: MINOR — yeni ilke eklendi: VII. Domain Süreci Legibility (EventStorming-belgelenmiş
   süreç). ECommerceWithAgentFramework anayasasından birebir devralındı (kullanıcı isteği,
@@ -186,7 +208,8 @@ Kimlik doğrulama merkezîdir ve hiçbir korunması gereken uç açıkta bırak�
 
 - Kimlik, OpenIddict tabanlı merkezi Identity servisi (`Identity.Server`, sabit issuer
   `https://localhost:5101`) tarafından verilir; servisler bu otoriteye göre (JWKS üzerinden,
-  paylaşılan DB olmadan) kimlik doğrular.
+  paylaşılan DB olmadan) kimlik doğrular. Bu, MAKİNE/MERCHANT düzlemidir; insan/agent (MCP)
+  düzlemi platform IdP'sindedir (aşağıdaki 047 maddesi).
 - Durum değiştiren veya hassas veri döndüren her endpoint ve mesaj handler'ı, erişim için
   gereken yetkiyi AÇIKÇA beyan etmek ZORUNDADIR; "varsayılan açık" uç bırakılMAZ.
 - Multitenant izolasyon korunur: bir merchant'ın verisi başka bir merchant'a asla sızmaz;
@@ -213,7 +236,12 @@ Kimlik doğrulama merkezîdir ve hiçbir korunması gereken uç açıkta bırak�
 - Altyapı MCP servisleri (Mail.Mcp, Excel.Mcp) BC DEĞİLDİR ve domain bilmez; generic tool
   yüzeyleri (`send_email`, `generate_spreadsheet`) scope-korumalıdır. Yeni `mail.send` (+
   opsiyonel `document.generate`) scope; mail atan BC başına Identity client (izlenebilir).
-- İnsan/rol düzlemi (G3) için bkz. TODO(AUTHZ_MODEL) — karar netleştiğinde amendment ile işlenir.
+- İnsan/agent (MCP) düzlemi KARARLIDIR (047): PG MCP yüzeyinin kimlik otoritesi platform IdP'sidir
+  (AgentPlatform, issuer `https://localhost:5001`); tek dış MCP istemcisi store fasadına bağlanır,
+  tek token EC+PG scope'larını taşır. Makine/merchant düzlemi PG Identity.Server'da (5101) kalır.
+- Yüzey başına tek otorite (047): MCP yalnız platform token'ını kabul eder (ayrı `"Platform"` JwtBearer
+  şeması), REST yalnız PG Identity.Server token'ını; her token yalnız kendi yüzeyine girer, çapraz
+  giriş fail-closed 401 (PG IdP token → MCP 401; platform token → REST 401).
 
 Gerekçe: Ödeme sistemi için yetki, sonradan eklenen değil baştan tasarlanan bir kısıttır;
 modelin ayrıntısını ertelemek, "her erişim açıkça yetki gerektirir" kuralını ertelemez.
@@ -322,4 +350,4 @@ değiştikçe** güncel tutulur.
 - Ertelenen kararlar (TODO) Sync Impact Report'ta takip edilir ve karar netleştiğinde
   amendment ile kapatılır.
 
-**Version**: 1.5.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-09-16
+**Version**: 1.6.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-09-27

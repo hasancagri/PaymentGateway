@@ -92,9 +92,9 @@ public sealed class SeedHostedService(IServiceProvider provider, IConfiguration 
             d.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
         }
 
-        // Mevcut 5 M2M istemci AllowAuthorizationCode=false ile gelir → hepsi client_credentials
-        // permission'ı alır (REGRESYON YOK). external-admin-agent AllowAuthorizationCode=true
-        // olduğundan bu dala GİRMEZ — public istemciye client_credentials permission'ı eklenmez.
+        // M2M istemciler AllowAuthorizationCode=false ile gelir → client_credentials permission'ı
+        // alır (REGRESYON YOK). Public+PKCE istemci (varsa) AllowAuthorizationCode=true olduğundan
+        // bu dala GİRMEZ. 047: tek public istemci external-admin-agent AgentPlatform IdP'ye taşındı.
         if (!client.AllowAuthorizationCode)
             d.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
 

@@ -1,1 +1,3 @@
-{"feature_directory":"specs/046-merchant-key-reissue"}
+{
+  "feature_directory": "specs/047-platform-single-mcp"
+}

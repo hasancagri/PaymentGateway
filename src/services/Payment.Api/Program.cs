@@ -136,12 +136,8 @@ builder.Services.AddOptions<Payment.Api.Options.HostedPaymentOptions>()
 builder.Services.AddSingleton<Payment.Api.Options.HostedPaymentOptions>(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.HostedPaymentOptions>>().Value);
 
-// 038: MCP server dirilişi (022'de sökülmüştü) — dış MCP istemcisine (BYO-agent) ödeme tool'larını
-// sunar ([McpServerToolType]). Stateless HTTP (Merchant.Api 029 deseni).
-builder.Services
-    .AddMcpServer()
-    .WithHttpTransport(o => o.Stateless = true)
-    .WithToolsFromAssembly();
+// 047: Payment.Api MCP ucu SÖKÜLDÜ (FR-010, "PG için tek MCP"). Payment tool taşımıyordu (hosted-CF
+// ödeme store HTTP çağırır, agent değil); tool'suz /mcp bırakılmaz. payment.write REST policy'leri kalır.
 
 var app = builder.Build();
 app.UseAuthentication();
@@ -158,8 +154,7 @@ var apiVersionSet = app.NewApiVersionSet()
 // (dış store kontratı sabit yol — D11). Charge statü kapısı slice içinde (Active-only, fail-closed).
 app.AddHostedPaymentEndpointExtension();
 
-// 076: kart-vault + saved-card ödeme uçları SÖKÜLDÜ (card-storage teardown). MCP endpoint kalır (hosted-CF
-// ödeme store HTTP çağırır, agent değil → tool'suz durur; İlke: MCP yalnız agent yüzeyi).
-app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.PaymentWrite);
+// 076: kart-vault + saved-card ödeme uçları SÖKÜLDÜ (card-storage teardown).
+// 047: MCP endpoint SÖKÜLDÜ — Payment tool taşımıyordu (hosted-CF ödeme store HTTP çağırır, agent değil).
 
 await app.RunAsync();

@@ -10,7 +10,7 @@ iyzico maliyeti hesaba dışarıdan GİRDİ olarak gelir.
 
 ## Süreç
 
-1. **Operatör (Claude Desktop, `external-admin-agent`) merchant için marj politikasını doğal
+1. **Operatör (Claude Desktop → store fasadı, platform IdP; 047) merchant için marj politikasını doğal
    dille tanımlar** (044). Tutar-kademeli tarife girilir (her kademe: alt sınır + oran + sabit
    ücret; ilk kademe 0'dan, son kademe açık uçlu); tarife bütünlüğü + kademe başına oran/ücret
    tavanı doğrulanır; merchant başına EN FAZLA bir aktif politika kuralı handler-sorgusuyla

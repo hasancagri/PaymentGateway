@@ -90,6 +90,12 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.MerchantRead,
     AuthorizationScopes.MerchantWrite);
+// 047: MCP yüzeyi ayrı authority (AgentPlatform IdP) — "Platform" şeması + Platform:<scope> policy'leri.
+// REST default şeması (PG IdP) değişmez (FR-005).
+builder.Services.AddPlatformMcpAuthentication(
+    builder.Configuration,
+    AuthorizationScopes.MerchantWrite,
+    AuthorizationScopes.MerchantAdmin);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
@@ -107,11 +113,26 @@ builder.Services.AddOptions<Merchant.Api.Options.AdminNotification>().BindConfig
 builder.Services.AddSingleton<Merchant.Api.Options.AdminNotification>(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Merchant.Api.Options.AdminNotification>>().Value);
 
-// 029: MCP server — ECommerce ChatAgent'a başvuru tool'larını sunar ([McpServerToolType]).
-// Stateless HTTP (013 wiring'inin dirilişi).
+// 029/047: MCP server — store fasadına (EC Mcp.Gateway) downstream. Stateless HTTP; oturum token'ının
+// scope'una göre tools/list budanır (085 emsali): MerchantAdminSurface.ToolScopeMap'te olmayan tool
+// herkese, olan yalnız gereken scope varsa görünür. tools/call son savunması Wolverine middleware'de.
 builder.Services
     .AddMcpServer()
-    .WithHttpTransport(o => o.Stateless = true)
+    .WithHttpTransport(http =>
+    {
+        http.Stateless = true;
+        http.ConfigureSessionOptions = (ctx, opts, _) =>
+        {
+            var tools = opts.ToolCollection;
+            if (tools is null)
+                return Task.CompletedTask;
+            foreach (var tool in tools
+                         .Where(t => !McpScopePruningExtension.IsToolVisible(
+                             t.ProtocolTool.Name, Merchant.Api.Mcp.MerchantAdminSurface.ToolScopeMap, ctx.User)).ToArray())
+                tools.Remove(tool);
+            return Task.CompletedTask;
+        };
+    })
     .WithToolsFromAssembly();
 
 var app = builder.Build();
@@ -143,8 +164,9 @@ app.MapGroup("api/v{version:apiVersion}/onboarding").WithTags("onboarding").With
 app.MapOnboardingFormPages();
 app.MapCredentialRevealPage();
 
-// 029: MCP endpoint (Streamable HTTP) — ECommerce ChatAgent buraya bağlanır. Yüzey merchant.write
-// ister (ecommerce-onboarding istemcisi taşır; merchant kendi token'ı bu iç yüzeye girmez).
-app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.MerchantWrite);
+// 047: MCP endpoint (Streamable HTTP) — store fasadı buraya downstream bağlanır. Mount YALNIZ
+// AgentPlatform token'ını kabul eder (Platform şeması; PG IdP token'ı 401). Admin tool'ları
+// merchant.admin scope'lu; mount merchant.write ister (tool budaması + [RequiredScope] ince kapı).
+app.MapMcp("/mcp").RequireAuthorization(AuthenticationExtension.PlatformPolicyPrefix + AuthorizationScopes.MerchantWrite);
 
 await app.RunAsync();

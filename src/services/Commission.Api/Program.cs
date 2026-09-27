@@ -65,6 +65,12 @@ builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.CommissionRead,
     AuthorizationScopes.CommissionWrite);
+// 047: MCP yüzeyi ayrı authority (AgentPlatform IdP) — "Platform" şeması + Platform:<scope> policy'leri.
+// REST default şeması (PG IdP) değişmez (FR-005).
+builder.Services.AddPlatformMcpAuthentication(
+    builder.Configuration,
+    AuthorizationScopes.CommissionRead,
+    AuthorizationScopes.CommissionWrite);
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
@@ -76,7 +82,23 @@ builder.Services.AddOptionsExt();
 // commission.write kapısı Wolverine middleware'de.
 builder.Services
     .AddMcpServer()
-    .WithHttpTransport(o => o.Stateless = true)
+    .WithHttpTransport(http =>
+    {
+        http.Stateless = true;
+        // 047: oturum token'ının scope'una göre tools/list budanır (085 emsali) —
+        // CommissionAdminSurface.ToolScopeMap (okuma commission.read, yazma commission.write).
+        http.ConfigureSessionOptions = (ctx, opts, _) =>
+        {
+            var tools = opts.ToolCollection;
+            if (tools is null)
+                return Task.CompletedTask;
+            foreach (var tool in tools
+                         .Where(t => !McpScopePruningExtension.IsToolVisible(
+                             t.ProtocolTool.Name, Commission.Api.Mcp.CommissionAdminSurface.ToolScopeMap, ctx.User)).ToArray())
+                tools.Remove(tool);
+            return Task.CompletedTask;
+        };
+    })
     .WithToolsFromAssembly();
 
 var app = builder.Build();
@@ -93,9 +115,9 @@ var apiVersionSet = app.NewApiVersionSet()
 // 024: Commission BC gerçek domain — marj politikası + efektif komisyon uçları.
 app.AddCommissionPolicyGroupEndpointExtension(apiVersionSet);
 
-// 043: MCP endpoint (Streamable HTTP) — external-admin-agent (Claude Desktop) buraya bağlanır.
-// Mount policy CommissionRead (liste/okuma); yazma tool'ları tool-seviye [RequiredScope
-// (commission.write)] ile ayrıca korunur (044 — endpoint policy'si yükseltilmez, ince kapı yeter).
-app.MapMcp("/mcp").RequireAuthorization(AuthorizationScopes.CommissionRead);
+// 047: MCP endpoint (Streamable HTTP) — store fasadı buraya downstream bağlanır. Mount YALNIZ
+// AgentPlatform token'ını kabul eder (Platform şeması; PG IdP token'ı 401). Mount commission.read
+// ister (okuma yeter); yazma tool'ları tool-seviye [RequiredScope(commission.write)] ile korunur.
+app.MapMcp("/mcp").RequireAuthorization(AuthenticationExtension.PlatformPolicyPrefix + AuthorizationScopes.CommissionRead);
 
 await app.RunAsync();
