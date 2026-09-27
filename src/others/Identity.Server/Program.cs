@@ -39,8 +39,8 @@ builder.Services.AddOpenIddict()
     .AddCore(options =>
     {
         options.UseEntityFrameworkCore().UseDbContext<ApplicationDbContext>();
-        // G3: seed admin istemcisine loopback redirect muafiyeti (yalnız o ClientId).
-        options.ReplaceApplicationManager(typeof(AdminAgentApplicationManager<>));
+        // 047: AdminAgentApplicationManager (loopback redirect muafiyeti) SÖKÜLDÜ — tek tüketicisi
+        // external-admin-agent'tı, o da AgentPlatform IdP'ye taşındı. Kalan istemciler birebir eşleşme.
     })
     .AddServer(options =>
     {

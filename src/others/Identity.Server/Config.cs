@@ -5,24 +5,13 @@ namespace Identity.Server;
 // anında ekleyeceği merchant client'larına dokunulmaz).
 public static class Config
 {
-    // G3: seed'li admin istemcisi (Claude Desktop). Loopback muafiyeti Task 3'teki
-    // AdminAgentApplicationManager ile yalnız BU ClientId için.
-    public const string ExternalAdminAgentClientId = "external-admin-agent";
-
-    // Claude sabit callback'leri.
-    public static readonly string[] ClaudeCallbackRedirectUris =
-    [
-        "https://claude.ai/api/mcp/auth_callback",
-        "https://claude.com/api/mcp/auth_callback",
-    ];
-
     // OIDC identity scope'ları — API scope'larından AYRI, RegisterScopes'a birlikte verilir.
     public static readonly string[] IdentityScopes = ["openid", "profile"];
 
-    // 044 R5: seed listesinden çıkarılan ölü client'lar — SeedHostedService açılışta store'dan
+    // 044/047 R5: seed listesinden çıkarılan ölü client'lar — SeedHostedService açılışta store'dan
     // SİLER (yalnız create/update'li seed store kaydını bırakır, ölü kimlik token almaya devam
-    // ederdi — fail-closed). Yeni söküm buraya eklenir.
-    public static readonly string[] RetiredClientIds = ["payment-agent", "merchant-agent"];
+    // ederdi — fail-closed). 047: external-admin-agent MCP kimlik yüzeyi AgentPlatform IdP'ye taşındı.
+    public static readonly string[] RetiredClientIds = ["payment-agent", "merchant-agent", "external-admin-agent"];
 
     // Scope → audience (resource) haritası. Token üretiminde ListResourcesAsync bu eşlemeden
     // 'aud' claim'ini üretir; servisler kendi adını (merchant.api...) ValidateAudience ile arar.
@@ -83,19 +72,8 @@ public static class Config
             DisplayName = "ECommerce onboarding client (m2m)",
             Scopes = ["merchant.read", "merchant.write"],
         },
-        // G3: seed'li admin istemcisi — Claude Desktop, public+PKCE, secret'sız. Consent YOK
-        // (seed istemci → Implicit, bkz. SeedHostedService.BuildDescriptor).
-        new ClientSeed
-        {
-            ClientId = ExternalAdminAgentClientId,
-            ClientSecret = null,
-            DisplayName = "External admin agent (Claude Desktop)",
-            IsPublic = true,
-            AllowAuthorizationCode = true,
-            AllowRefreshToken = true,
-            RedirectUris = ClaudeCallbackRedirectUris,
-            Scopes = ["openid", "profile", "merchant.read", "merchant.write", "merchant.admin", "commission.read", "commission.write"],
-        },
+        // 047: external-admin-agent seed'i SÖKÜLDÜ — MCP kimlik yüzeyi AgentPlatform IdP'ye taşındı
+        // (yüzey başına tek otorite; RetiredClientIds ile store'dan prune edilir).
     ];
 
     private static string RequireSecret(IConfiguration configuration, string clientId) =>
