@@ -23,17 +23,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseOpenIddict();
 });
 
-// Kullanıcı deposu şimdiden kurulur (kullanıcı seed edilmez) — G3/RBAC zemini + tek Initial migration (D2).
+// Kullanıcı deposu (Identity EF şeması) kurulur — RBAC/schema zemini. 047+048: insan login akışı
+// SÖKÜLDÜ (external-admin-agent AgentPlatform IdP'ye taşındı); kullanıcı seed edilmez, cookie login yok.
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
-
-// G3: login yolu — cookie doğrulaması başarısızsa buraya yönlenir (Task 5'teki AuthorizeEndpoint
-// bu davranışa güvenir: Results.Challenge → varsayılan LoginPath).
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.LoginPath = "/Account/Login";
-});
 
 builder.Services.AddOpenIddict()
     .AddCore(options =>
@@ -48,12 +42,10 @@ builder.Services.AddOpenIddict()
         // 5001 ECommerce Identity'de; A2A senaryosunda iki sistem aynı anda koşar.
         options.SetIssuer(new Uri("https://localhost:5101"));
 
-        options.SetAuthorizationEndpointUris("connect/authorize")
-               .SetTokenEndpointUris("connect/token");
+        options.SetTokenEndpointUris("connect/token");
 
-        options.AllowClientCredentialsFlow()
-               .AllowAuthorizationCodeFlow()
-               .AllowRefreshTokenFlow();
+        // 047+048: yalnız M2M (client_credentials). İnsan akışları (authorization_code/refresh) SÖKÜLDÜ.
+        options.AllowClientCredentialsFlow();
 
         options.RegisterScopes([.. Config.AllApiScopes, .. Config.IdentityScopes]);
 
@@ -70,20 +62,12 @@ builder.Services.AddOpenIddict()
         // R3: access token scope claim'ini JSON dizisine çevir (029 tuzağı — D3).
         options.AddEventHandler(ScopeClaimArrayHandler.Descriptor);
 
-        // G3: MCP `resource` parametresi yok sayılır (yukarı bkz).
-        options.AddEventHandler(IgnoreResourceParameterHandler.ForAuthorization.Descriptor);
+        // MCP `resource` parametresi token isteğinde yok sayılır.
         options.AddEventHandler(IgnoreResourceParameterHandler.ForToken.Descriptor);
 
         options.UseAspNetCore()
-               .EnableAuthorizationEndpointPassthrough()
                .EnableTokenEndpointPassthrough();
     });
-
-// G3: bootstrap admin — email/parola boşsa seed atlanır (Options/BootstrapAdmin.cs).
-builder.Services.AddOptions<Payment.Identity.Options.BootstrapAdmin>()
-    .BindConfiguration(nameof(Payment.Identity.Options.BootstrapAdmin));
-builder.Services.AddSingleton<Payment.Identity.Options.BootstrapAdmin>(sp =>
-    sp.GetRequiredService<IOptions<Payment.Identity.Options.BootstrapAdmin>>().Value);
 
 // Açılışta idempotent client + scope seed.
 builder.Services.AddHostedService<SeedHostedService>();
@@ -139,10 +123,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// G3: /connect/authorize — insan etkileşim ucu (cookie login + PKCE code akışı).
-app.MapAuthorizeEndpoint();
-
-// Tek uç: /connect/token (OpenIddict passthrough ile ASP.NET Core'da işlenir).
+// Tek uç: /connect/token (OpenIddict passthrough ile ASP.NET Core'da işlenir; yalnız M2M).
 app.MapTokenEndpoint();
 
 // 013: aktivasyon sayfası (/activation).

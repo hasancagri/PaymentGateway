@@ -31,8 +31,10 @@ kod standartları, servisler-arası desenler orada (ECom'dan devralındı). Bu d
 - Altyapı: **Identity.Server** (M2M OpenIddict), **Mail.Worker** (RabbitMQ→SMTP/Mailpit), **Admin**
   (Razor BFF — 044'te yalnız hassas-veri sayfası, CRUD ekranları YOK), **gateway** (YARP).
   Payment.Agent + Merchant.Agent (A2A) SÖKÜLDÜ. **047: dış MCP istemcisi (Claude Desktop) artık PG'ye
-  DOĞRUDAN değil, ECommerce store fasadına (Mcp.Gateway) bağlanır** — Merchant/Commission `/mcp` fasadın
-  downstream'i; PG IdP `external-admin-agent` seed'i SÖKÜLDÜ (prune), kimlik platform IdP'ye taşındı. Ölü
+  DOĞRUDAN değil, platform MCP fasadına bağlanır** — Merchant/Commission `/mcp` fasadın downstream'i;
+  PG IdP `external-admin-agent` seed'i SÖKÜLDÜ (prune), kimlik platform IdP'ye taşındı. **001: fasad
+  ECommerce repo'sundan AgentPlatform'a taşındı** (platform tek MCP girişini de barındırır — Anayasa
+  İlke III); PG çalışan davranışı DEĞİŞMEDİ, merchant/commission `/mcp` uçları aynen downstream kalır. Ölü
   `payment-agent`/`merchant-agent` OAuth seed'leri de silindi + açılışta store'dan prune (044).
 
 ## Komutlar

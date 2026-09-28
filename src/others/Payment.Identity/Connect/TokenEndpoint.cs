@@ -1,8 +1,6 @@
 using System.Security.Claims;
 using Payment.Identity.EventHandlers;
 using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
@@ -22,13 +20,14 @@ public static class TokenEndpoint
     private static async Task<IResult> HandleAsync(
         HttpContext context,
         IOpenIddictScopeManager scopeManager,
-        IOpenIddictApplicationManager applicationManager,
-        UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        IOpenIddictApplicationManager applicationManager)
     {
         var request = context.GetOpenIddictServerRequest()
             ?? throw new InvalidOperationException("OIDC token isteği çözülemedi.");
 
+        // 047+048: yalnız M2M. authorization_code/refresh_token (insan) dalı SÖKÜLDÜ — auth-code
+        // istemci kalmadı (external-admin-agent AgentPlatform IdP'ye taşındı); OpenIddict yalnız
+        // client_credentials'ı kabul eder, başka grant zaten buraya düşmez.
         if (request.IsClientCredentialsGrantType())
         {
             // M2M: sub = client id (029 paritesi).
@@ -53,56 +52,6 @@ public static class TokenEndpoint
                 resources.Add(resource);
             identity.SetResources(resources);
 
-            identity.SetDestinations(OidcClaimDestinations.GetDestinations);
-
-            return Results.SignIn(new ClaimsPrincipal(identity), null,
-                OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-        }
-
-        // G3: insan akışları — OpenIddict'in code/refresh token'da sakladığı principal'ı geri al.
-        if (request.IsAuthorizationCodeGrantType() || request.IsRefreshTokenGrantType())
-        {
-            var authResult = await context.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-            if (!authResult.Succeeded || authResult.Principal is not { } principal)
-            {
-                return Results.Forbid(
-                    new AuthenticationProperties(new Dictionary<string, string?>
-                    {
-                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
-                            "Token süresi geçmiş veya iptal edilmiş.",
-                    }),
-                    [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
-            }
-
-            var subjectId = principal.GetClaim(Claims.Subject);
-            if (subjectId is null)
-            {
-                return Results.Forbid(
-                    new AuthenticationProperties(new Dictionary<string, string?>
-                    {
-                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
-                            "Token içinde kullanıcı kimliği bulunamadı.",
-                    }),
-                    [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
-            }
-
-            var user = await userManager.FindByIdAsync(subjectId);
-            if (user is null || !await signInManager.CanSignInAsync(user))
-            {
-                return Results.Forbid(
-                    new AuthenticationProperties(new Dictionary<string, string?>
-                    {
-                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
-                            "Kullanıcı artık giriş yapamıyor.",
-                    }),
-                    [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
-            }
-
-            var identity = new ClaimsIdentity(principal.Claims,
-                TokenValidationParameters.DefaultAuthenticationType, Claims.Name, Claims.Role);
             identity.SetDestinations(OidcClaimDestinations.GetDestinations);
 
             return Results.SignIn(new ClaimsPrincipal(identity), null,

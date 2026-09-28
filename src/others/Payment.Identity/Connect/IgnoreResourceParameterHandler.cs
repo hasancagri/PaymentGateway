@@ -8,24 +8,7 @@ namespace Payment.Identity.Connect;
 // eşlemesinden üretildiği için `resource` parametresi YOK SAYILIR.
 public static class IgnoreResourceParameterHandler
 {
-    public sealed class ForAuthorization
-        : IOpenIddictServerHandler<OpenIddictServerEvents.ValidateAuthorizationRequestContext>
-    {
-        public static OpenIddictServerHandlerDescriptor Descriptor { get; } =
-            OpenIddictServerHandlerDescriptor.CreateBuilder<OpenIddictServerEvents.ValidateAuthorizationRequestContext>()
-                .UseSingletonHandler<ForAuthorization>()
-                .SetOrder(int.MinValue + 100_000)
-                .SetType(OpenIddictServerHandlerType.Custom)
-                .Build();
-
-        public ValueTask HandleAsync(OpenIddictServerEvents.ValidateAuthorizationRequestContext context)
-        {
-            ArgumentNullException.ThrowIfNull(context);
-            context.Request.Resources = null;
-            return default;
-        }
-    }
-
+    // 047+048: ForAuthorization SÖKÜLDÜ — authorization endpoint + insan akışı kalmadı; yalnız token.
     public sealed class ForToken
         : IOpenIddictServerHandler<OpenIddictServerEvents.ValidateTokenRequestContext>
     {
