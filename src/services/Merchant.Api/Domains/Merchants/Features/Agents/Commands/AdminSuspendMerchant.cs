@@ -54,8 +54,7 @@ public static class AdminSuspendMerchant
 public static class AdminSuspendMerchantMcpTool
 {
     [McpServerTool(Name = Shared.MerchantAdminTools.SuspendMerchant)]
-    [Description("Merchant'ı Suspended durumuna alır. Zaten Suspended ise hata DÖNMEZ, changed=false ile " +
-                 "idempotent no-op sonucu döner.")]
+    [Description(Shared.McpToolDescriptions.MerchantAdminTools.SuspendMerchant)]
     public static Task<FeatureObjectResultModel<AdminSuspendMerchant.AdminSuspendMerchantResponse>>
         AdminSuspendMerchantAsync(
             [Description("Statüsü değiştirilecek merchant kimliği")] Guid merchantId,

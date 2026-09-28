@@ -45,9 +45,7 @@ public static class AdminRejectRegistration
 public static class AdminRejectRegistrationMcpTool
 {
     [McpServerTool(Name = Shared.MerchantAdminTools.RejectRegistration)]
-    [Description("Pending başvuruyu reddeder — neden zorunludur, başvuruda saklanır. Başvuru zaten " +
-                 "terminal statüdeyse INVALID_OPERATION_ERROR döner; neden boşsa " +
-                 "COMMON_MESSAGE_VALUE_IS_REQUIRED döner.")]
+    [Description(Shared.McpToolDescriptions.MerchantAdminTools.RejectRegistration)]
     public static Task<FeatureObjectResultModel<AdminRejectRegistration.AdminRejectRegistrationResponse>>
         AdminRejectRegistrationAsync(
             [Description("Reddedilecek başvuru kimliği")] Guid requestId,

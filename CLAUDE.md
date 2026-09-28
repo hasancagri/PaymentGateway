@@ -98,4 +98,5 @@ Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel
 - **iyzico wire tipini paylaşılan lib'e çıkarma** — slice'ta nested kalır (ikinci canlı tüketici çıkana dek YAGNI).
 - **`IConfiguration`'dan doğrudan okuma** / handler'da literal (Options pattern + IyzicoRequestOptions).
 - **MCP'yi agent-dışı koddan** imperatif çağırma; servisler-arası MCP değil (messaging/HTTP).
+- **Tool description'ı standart-dışı yazma:** expose edilen her MCP tool description'ı [MCP Tool Description Standardı](../AgentPlatform/docs/mcp-tool-description-standard.md)'na uyar (eylem-önce, Türkçe tetikleyici ifade "'...' gibi istekler için", kısıt/PII sonda, prose prefix yok) ve `src/others/Shared/McpToolDescriptions.cs` const'ından referanslanır — inline `[Description("...")]` string bırakma (003).
 - **Wolverine event-handler'ı "Handlers" (çoğul) adlandırma** — sessizce keşfedilmez (bkz. conventions TUZAK).

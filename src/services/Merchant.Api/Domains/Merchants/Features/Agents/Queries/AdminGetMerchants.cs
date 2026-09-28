@@ -76,8 +76,7 @@ public static class AdminGetMerchants
 public static class AdminGetMerchantsMcpTool
 {
     [McpServerTool(Name = Shared.MerchantAdminTools.GetMerchants)]
-    [Description("Merchant listesini döner (opsiyonel statü filtresi: Active | Passive | Suspended, " +
-                 "boşsa tümü). Kişisel/finansal veri ve sır alanları YANIT'TA YOK.")]
+    [Description(Shared.McpToolDescriptions.MerchantAdminTools.GetMerchants)]
     public static Task<FeatureObjectResultModel<AdminGetMerchants.AdminGetMerchantsResponse>>
         AdminGetMerchantsAsync(
             IMessageBus bus,

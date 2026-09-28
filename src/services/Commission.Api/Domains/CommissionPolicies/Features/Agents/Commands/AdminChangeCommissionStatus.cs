@@ -62,9 +62,7 @@ public static class AdminChangeCommissionStatus
 public static class AdminChangeCommissionStatusMcpTool
 {
     [McpServerTool(Name = Shared.CommissionAdminTools.ChangeStatus)]
-    [Description("Merchant'ın komisyon politikasının statüsünü değiştirir (Active | Passive). Pasif " +
-                 "politika hesaplamada yok sayılır. Aynı statüye geçiş hata DÖNMEZ (idempotent no-op). " +
-                 "Politika yoksa kayıt-bulunamadı hatası döner.")]
+    [Description(Shared.McpToolDescriptions.CommissionAdminTools.ChangeStatus)]
     public static Task<FeatureObjectResultModel<AdminChangeCommissionStatus.AdminChangeCommissionStatusResponse>>
         AdminChangeCommissionStatusAsync(
             [Description("Politikası değiştirilecek merchant kimliği")] Guid merchantId,

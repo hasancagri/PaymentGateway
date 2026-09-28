@@ -68,10 +68,7 @@ public static class AdminCreateCommissionPolicy
 public static class AdminCreateCommissionPolicyMcpTool
 {
     [McpServerTool(Name = Shared.CommissionAdminTools.CreatePolicy)]
-    [Description("Merchant'a komisyon (marj) politikası oluşturur. tiers: kademe listesi — fromAmount " +
-                 "TL (ilki 0), ratePercent ondalık oran (0.025 = %2,5), fixedFee TL. Merchant'ın zaten " +
-                 "aktif politikası varsa duplicate hatası döner (önce statüsünü Passive yapın veya " +
-                 "marjı güncelleyin).")]
+    [Description(Shared.McpToolDescriptions.CommissionAdminTools.CreatePolicy)]
     public static Task<FeatureObjectResultModel<AdminCreateCommissionPolicy.AdminCreateCommissionPolicyResponse>>
         AdminCreateCommissionPolicyAsync(
             [Description("Politika tanımlanacak merchant kimliği")] Guid merchantId,

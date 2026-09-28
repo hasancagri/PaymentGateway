@@ -60,9 +60,7 @@ public static class AdminGetMerchant
 public static class AdminGetMerchantMcpTool
 {
     [McpServerTool(Name = Shared.MerchantAdminTools.GetMerchant)]
-    [Description("Tekil merchant detayını döner (statü, tip, ad, adres, iletişim adı, vergi dairesi, " +
-                 "unvan). Kişisel/finansal veri ve sır alanları YANIT'TA YOK; onlar yalnız Admin " +
-                 "hassas-veri sayfasından yönetilir.")]
+    [Description(Shared.McpToolDescriptions.MerchantAdminTools.GetMerchant)]
     public static Task<FeatureObjectResultModel<AdminGetMerchant.AdminGetMerchantResponse>>
         AdminGetMerchantAsync(
             [Description("Sorgulanacak merchant kimliği")] Guid merchantId,
