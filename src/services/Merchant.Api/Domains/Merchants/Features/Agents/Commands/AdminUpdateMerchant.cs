@@ -85,10 +85,7 @@ public static class AdminUpdateMerchant
 public static class AdminUpdateMerchantMcpTool
 {
     [McpServerTool(Name = Shared.MerchantAdminTools.UpdateMerchant)]
-    [Description("Merchant'ın hassas-dışı alanlarını günceller (tip, ad, adres, iletişim adı/soyadı, " +
-                 "vergi dairesi, unvan). Kişisel/finansal alanlar bu tool'dan DEĞİŞTİRİLEMEZ; onlar " +
-                 "yalnız Admin hassas-veri sayfasından yönetilir. Tip: Personal | PrivateCompany | " +
-                 "LimitedOrJointStockCompany.")]
+    [Description(Shared.McpToolDescriptions.MerchantAdminTools.UpdateMerchant)]
     public static Task<FeatureObjectResultModel<AdminUpdateMerchant.AdminUpdateMerchantResponse>>
         AdminUpdateMerchantAsync(
             [Description("Güncellenecek merchant kimliği")] Guid merchantId,

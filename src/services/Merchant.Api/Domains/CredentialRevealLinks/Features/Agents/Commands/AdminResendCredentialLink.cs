@@ -71,10 +71,7 @@ public static class AdminResendCredentialLink
 public static class AdminResendCredentialLinkMcpTool
 {
     [McpServerTool(Name = Shared.MerchantAdminTools.ResendCredentialLink)]
-    [Description("Merchant'ın erişim bilgileri (MerchantId + MerchantKey) için YENİ tek kullanımlık " +
-                 "teslim bağlantısı üretir ve merchant e-postasına mail'ler; yaşayan eski bağlantılar " +
-                 "geçersiz olur. Key/link yanıtında DÖNMEZ — teslim yalnız mail + tek gösterimlik " +
-                 "sayfa yoluyladır. Kullanım: teslim maili kaybolduğunda ya da süresi dolduğunda.")]
+    [Description(Shared.McpToolDescriptions.MerchantAdminTools.ResendCredentialLink)]
     public static Task<FeatureObjectResultModel<AdminResendCredentialLink.AdminResendCredentialLinkResponse>>
         AdminResendCredentialLinkAsync(
             [Description("Merchant kimliği (admin_get_merchants ile bulunabilir)")] Guid merchantId,

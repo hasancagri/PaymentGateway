@@ -63,9 +63,7 @@ public static class AdminUpdateCommissionMargin
 public static class AdminUpdateCommissionMarginMcpTool
 {
     [McpServerTool(Name = Shared.CommissionAdminTools.UpdateMargin)]
-    [Description("Merchant'ın komisyon politikasının marj tarifesini günceller. TAM kademe seti " +
-                 "gönderilir (kısmi patch yok) — tablo bütünüyle yenisiyle değişir. Politika yoksa " +
-                 "kayıt-bulunamadı hatası döner.")]
+    [Description(Shared.McpToolDescriptions.CommissionAdminTools.UpdateMargin)]
     public static Task<FeatureObjectResultModel<AdminUpdateCommissionMargin.AdminUpdateCommissionMarginResponse>>
         AdminUpdateCommissionMarginAsync(
             [Description("Politikası güncellenecek merchant kimliği")] Guid merchantId,

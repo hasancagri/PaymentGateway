@@ -89,8 +89,7 @@ public static class AdminApproveRegistration
 public static class AdminApproveRegistrationMcpTool
 {
     [McpServerTool(Name = Shared.MerchantAdminTools.ApproveRegistration)]
-    [Description("Pending başvuruyu onaylar: yeni Active merchant doğar, merchantId döner. " +
-                 "Başvuru zaten terminal statüdeyse (Approved/Rejected) INVALID_OPERATION_ERROR döner.")]
+    [Description(Shared.McpToolDescriptions.MerchantAdminTools.ApproveRegistration)]
     public static Task<FeatureObjectResultModel<AdminApproveRegistration.AdminApproveRegistrationResponse>>
         AdminApproveRegistrationAsync(
             [Description("Onaylanacak başvuru kimliği")] Guid requestId,

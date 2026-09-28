@@ -60,9 +60,7 @@ public static class AdminGetCommissionPolicy
 public static class AdminGetCommissionPolicyMcpTool
 {
     [McpServerTool(Name = Shared.CommissionAdminTools.GetCommissionPolicy)]
-    [Description("Merchant'ın marj politikasını özetler (ör. \"%2.5 + 0.10 TL, 3 kademe\"). Politika " +
-                 "tanımlı değilse hata DÖNMEZ, hasPolicy=false + \"Tanımlı politika yok\" döner. " +
-                 "Politika OLUŞTURMAZ/GÜNCELLEMEZ (salt-okuma; create/update Admin ekranından yürür).")]
+    [Description(Shared.McpToolDescriptions.CommissionAdminTools.GetCommissionPolicy)]
     public static Task<FeatureObjectResultModel<AdminGetCommissionPolicy.AdminGetCommissionPolicyResponse>>
         AdminGetCommissionPolicyAsync(
             [Description("Sorgulanacak merchant kimliği")] Guid merchantId,

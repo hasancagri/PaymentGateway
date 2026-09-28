@@ -60,8 +60,7 @@ public static class AdminActivateMerchant
 public static class AdminActivateMerchantMcpTool
 {
     [McpServerTool(Name = Shared.MerchantAdminTools.ActivateMerchant)]
-    [Description("Merchant'ı Active durumuna alır. Zaten Active ise hata DÖNMEZ, changed=false ile " +
-                 "idempotent no-op sonucu döner.")]
+    [Description(Shared.McpToolDescriptions.MerchantAdminTools.ActivateMerchant)]
     public static Task<FeatureObjectResultModel<AdminActivateMerchant.AdminActivateMerchantResponse>>
         AdminActivateMerchantAsync(
             [Description("Statüsü değiştirilecek merchant kimliği")] Guid merchantId,

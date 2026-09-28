@@ -54,8 +54,7 @@ public static class AdminDeactivateMerchant
 public static class AdminDeactivateMerchantMcpTool
 {
     [McpServerTool(Name = Shared.MerchantAdminTools.DeactivateMerchant)]
-    [Description("Merchant'ı Passive durumuna alır. Zaten Passive ise hata DÖNMEZ, changed=false ile " +
-                 "idempotent no-op sonucu döner.")]
+    [Description(Shared.McpToolDescriptions.MerchantAdminTools.DeactivateMerchant)]
     public static Task<FeatureObjectResultModel<AdminDeactivateMerchant.AdminDeactivateMerchantResponse>>
         AdminDeactivateMerchantAsync(
             [Description("Statüsü değiştirilecek merchant kimliği")] Guid merchantId,

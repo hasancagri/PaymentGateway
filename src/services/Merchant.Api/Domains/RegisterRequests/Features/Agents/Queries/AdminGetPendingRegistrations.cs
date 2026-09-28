@@ -64,8 +64,7 @@ public static class AdminGetPendingRegistrations
 public static class AdminGetPendingRegistrationsMcpTool
 {
     [McpServerTool(Name = Shared.MerchantAdminTools.GetPendingRegistrations)]
-    [Description("Admin onayı bekleyen (Pending) kayıt başvurularını döner — başvuru Id, işletme " +
-                 "adı/tipi/adresi, iletişim adı ve tarih. Başvuru sahibinin kişisel verisi YANIT'TA YOK.")]
+    [Description(Shared.McpToolDescriptions.MerchantAdminTools.GetPendingRegistrations)]
     public static Task<FeatureObjectResultModel<AdminGetPendingRegistrations.AdminGetPendingRegistrationsResponse>>
         AdminGetPendingRegistrationsAsync(IMessageBus bus, CancellationToken ct)
         => bus.InvokeAsync<FeatureObjectResultModel<AdminGetPendingRegistrations.AdminGetPendingRegistrationsResponse>>(
