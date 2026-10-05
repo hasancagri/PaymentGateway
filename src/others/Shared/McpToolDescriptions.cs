@@ -22,6 +22,12 @@ public static class McpToolDescriptions
             "\"Şu merchant'ın detayı\", \"satıcı bilgisini göster\" gibi istekler için. " +
             "Not: kişisel/finansal veri ve sır alanları yanıtta yok; onlar yalnız Admin hassas-veri sayfasından yönetilir.";
 
+        public const string FindMerchant =
+            "Merchant'ı ad ya da e-posta parçasıyla arar ve eşleşen aday listesini (merchantId, ad, statü, tip) döndürür. " +
+            "\"merchant@test.dev için komisyon tanımla\", \"Acme adlı satıcının kimliği\" gibi id bilinmeyen akışların ilk adımı için; " +
+            "dönen merchantId komisyon/merchant yönetim tool'larına beslenir. " +
+            "Not: e-posta yalnız arama girdisidir; yanıtta kişisel/finansal veri ve sır alanları yer almaz.";
+
         public const string ActivateMerchant =
             "Merchant'ı Active durumuna alır. " +
             "\"Satıcıyı aktifleştir\", \"merchant'ı aktif yap\" gibi istekler için. " +

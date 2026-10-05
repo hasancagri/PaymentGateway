@@ -10,6 +10,7 @@ public static class MerchantAdminTools
     public const string SuspendMerchant = "admin_suspend_merchant";
     public const string GetMerchants = "admin_get_merchants";
     public const string GetMerchant = "admin_get_merchant";
+    public const string FindMerchant = "admin_find_merchant";
     public const string UpdateMerchant = "admin_update_merchant";
     public const string GetPendingRegistrations = "admin_get_pending_registrations";
     public const string ApproveRegistration = "admin_approve_registration";

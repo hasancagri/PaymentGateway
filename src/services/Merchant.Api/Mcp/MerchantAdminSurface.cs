@@ -14,6 +14,7 @@ public static class MerchantAdminSurface
         {
             [MerchantAdminTools.GetMerchants] = AuthorizationScopes.MerchantAdmin,
             [MerchantAdminTools.GetMerchant] = AuthorizationScopes.MerchantAdmin,
+            [MerchantAdminTools.FindMerchant] = AuthorizationScopes.MerchantAdmin,
             [MerchantAdminTools.UpdateMerchant] = AuthorizationScopes.MerchantAdmin,
             [MerchantAdminTools.ActivateMerchant] = AuthorizationScopes.MerchantAdmin,
             [MerchantAdminTools.DeactivateMerchant] = AuthorizationScopes.MerchantAdmin,
