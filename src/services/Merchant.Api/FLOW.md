@@ -12,38 +12,35 @@ merchant'ın gateway'e token'lı erişimi bu duyuruya bağlıdır.
 
 ## Süreç
 
-### Yol A — Hosted form başvurusu → admin onay/red → mail'le teslim (045; doğuş yolu)
+### Yol A — Store S2S kayıt → admin onay/red → makine-callback teslim (087; doğuş yolu)
 
-1. **Store S2S form oturumu açtırır** (makine kimliği; e-posta = başvuru kimliği). Aynı e-postada
-   Pending/Approved varsa oturum AÇILMAZ, yalnız durum döner; oturum süreli (~24 saat) + tek
-   başvuruluk. `(OnboardingFormSession.Create ← CreateFormSession)`
-2. **Müstakbel merchant formu PG'nin hosted sayfasında doldurur** — PII (TCKN/IBAN) store'a ve
-   LLM'e uğramaz. Doğrulama (zorunlu alanlar, e-posta, TR IBAN mod-97, tip-uyum matrisi)
-   aggregate'te; hata formu yeniden gösterir, oturumu TÜKETMEZ.
-   `(RegisterRequest.Submit ← SubmitOnboardingForm)`
-3. **Başvuru Pending doğar, oturum tüketilir,** admin'e bilgilendirme maili gider; kimlik/sır bu
-   adımda ÜRETİLMEZ. `(OnboardingFormSession.Consume → SendEmailRequested)`
-4. **Store durumu S2S sorgular** (en son başvuru; hiç yoksa "None"). Yanıtta MerchantId/
-   MerchantKey ASLA yok. `(GetOnboardingApplicationStatus)`
-5. **Operatör (Claude Desktop) bekleyen başvuruları listeler** — yanıtta başvuru sahibinin
+1. **Store S2S kayıt başvurusu açar** (makine kimliği + `X-Registration-Key` bootstrap sır; finansal/
+   PII yalnız S2S gövdede, LLM'e/MCP'ye uğramaz). `correlationId` + `callbackUrl` başvuruda saklanır;
+   doğrulama (zorunlu alanlar, e-posta, TR IBAN mod-97, tip-uyum matrisi + correlation/callbackUrl)
+   aggregate'te. Aynı correlationId / mükerrer e-posta → idempotent (çift yaratmaz).
+   `(RegisterRequest.Submit ← SubmitRegistration)`
+2. **Başvuru Pending doğar;** kimlik/sır bu adımda ÜRETİLMEZ; yanıt yalnız kabul makbuzu
+   (MerchantId/MerchantKey YOK). `(SubmitRegistration)`
+3. **Store durumu S2S sorgular** (en son başvuru; hiç yoksa "None"). Yanıtta MerchantId/
+   MerchantKey ASLA yok; red'i de buradan öğrenir. `(GetOnboardingApplicationStatus)`
+4. **Operatör (Claude Desktop) bekleyen başvuruları listeler** — yanıtta başvuru sahibinin
    kişisel/kimlik-belirleyen verisi YOK (044: karar için Id + işletme adı/tipi + tarih yeterli).
    `(AdminGetPendingRegistrationsMcpTool "admin_get_pending_registrations")`
-6. **Operatör başvuruyu onaylar.** Merchant Active doğar, tek-seferlik `MerchantKey` üretilir;
-   başvuru Approved'a bağlanır; AYRICA tek gösterimlik teslim linki (~1 saat) üretilip başvuru
-   e-postasına mail'lenir (outbox — commit'siz mail yok).
-   `(RegisterRequest.Approve → Merchant.Create → MerchantCreated → CredentialRevealLink.Create → SendEmailRequested ← AdminApproveRegistrationMcpTool "admin_approve_registration")`
-7. **Merchant teslim sayfasını açar: MerchantId + MerchantKey BİR KEZ gösterilir** — gösterim
-   linki tüketir; ikinci açılış/süre sonu nötr sayfa. Operatör yeni teslim linki üretebilir
-   (eskiler ölür, yeni mail). `(CredentialRevealLink.Consume ← RevealCredentials)`
-   `(CredentialRevealLink.Kill ← AdminResendCredentialLinkMcpTool "admin_resend_credential_link")`
-8. **Identity.Server duyuruyu tüketir, OpenIddict istemcisi doğar.** `client_id=MerchantId`,
+5. **Operatör başvuruyu onaylar.** Merchant Active doğar, tek-seferlik `MerchantKey` üretilir;
+   başvuru Approved'a bağlanır; credential store `callbackUrl`'ine HMAC-imzalı dayanıklı callback'le
+   teslim edilir (echo `correlationId`). Onay dönüşü credential İÇERMEZ (MerchantId opak tutamaç);
+   reveal sayfası + onay-maili SÖKÜLDÜ (087 — insan-yüzeyi yok).
+   `(RegisterRequest.Approve → Merchant.Create → MerchantCreated → DeliverCredentialCallback ← AdminApproveRegistrationMcpTool "admin_approve_registration")`
+6. **Store imzalı callback'i doğrular + persist eder;** teslim başarısızsa Wolverine durable retry
+   (kayıpsız yeniden gönderim). Credential log/trace/ekrana düşmez. `(DeliverCredentialCallback)`
+7. **Identity.Server duyuruyu tüketir, OpenIddict istemcisi doğar.** `client_id=MerchantId`,
    `client_secret=MerchantKey`; Active olduğu için izinler hemen açılır (idempotent upsert).
    `(MerchantClientEventHandler.Handle(MerchantCreated))`
-9. **Store credential-giriş ekranı kayıt anında ikiliyi doğrulatır** — yanıt yalnız
+8. **Store credential-giriş ekranı kayıt anında ikiliyi doğrulatır** — yanıt yalnız
    `{valid}` (eşleşme + Active); başka bilgi sızmaz. `(ValidateMerchantCredentials)`
-10. **Operatör başvuruyu reddedebilir** (yalnız Pending'den); neden zorunlu, durum sorgusunda
-    karşı tarafa iletilir; Rejected terminaldir ama aynı e-posta yeniden başvurabilir.
-    `(RegisterRequest.Reject ← AdminRejectRegistrationMcpTool "admin_reject_registration")`
+9. **Operatör başvuruyu reddedebilir** (yalnız Pending'den); neden zorunlu; red callback
+   GÖNDERMEZ — store durumu status sorgusuyla öğrenir. Rejected terminaldir ama aynı e-posta
+   yeniden başvurabilir. `(RegisterRequest.Reject ← AdminRejectRegistrationMcpTool "admin_reject_registration")`
 
 ### Yol B — Admin yönetimi MCP'den (043/044)
 
@@ -82,8 +79,9 @@ merchant'ın gateway'e token'lı erişimi bu duyuruya bağlıdır.
    `(Merchant.ReissueKey → MerchantKeyReissued ← ReissueMerchantKey)`
 3. **Eski key HER temsilde anında ölür:** Identity client_secret + Payment KeyHash yenisiyle değişir.
    `(MerchantClientEventHandler.Handle(MerchantKeyReissued))` `(MerchantApiConsumers.Handle(MerchantKeyReissued))`
-4. **Yeni key tek gösterimlik teslim linkiyle bir kez okunur;** önceki yaşayan linkler ölür. Yanıt
-   yalnız reveal URL + expiry (key İÇERMEZ). `(CredentialRevealLink.Create/Kill ← ReissueMerchantKey)`
+4. **Yeni key store `callbackUrl`'ine HMAC-imzalı dayanıklı callback'le teslim edilir** (echo
+   `correlationId`; register ile simetrik). S2S yanıtı yalnız kabul makbuzu (key/RevealUrl İÇERMEZ);
+   reveal sayfası SÖKÜLDÜ (087). `(DeliverCredentialCallback ← ReissueMerchantKey)`
 5. **Her yenileme salt-append denetim kaydı bırakır** (kim/ne zaman/neden); silinemez/değişmez.
    Merchant kendi geçmişini okur (MerchantScoped). `(GetMerchantKeyReissueHistory)`
 
@@ -93,21 +91,26 @@ merchant'ın gateway'e token'lı erişimi bu duyuruya bağlıdır.
   çağıranı onay handler'ları; doğrudan admin kayıt REST'i YOK).
 - **Token verme statü-kapılı:** yalnız Active merchant OpenIddict'ten token alabilir; Identity.Server
   string statüye göre karar verir (BC enum'u Shared'a sızmaz).
-- **MerchantKey tek-seferlik açığa çıkar (045):** insan teslimi YALNIZ tek gösterimlik reveal
-  sayfası; `MerchantCreated` Identity senkronu için taşır, `MerchantStatusChanged` sır taşımaz.
-  (029'un ECom-yönlü MCP çifti — submit_registration + registration_status — 045 US4'te SÖKÜLDÜ;
-  MerchantScoped `GetMerchant`'taki key alanı ayrı fasılda değerlendirilir.)
-- **Form/teslim token'ları sunucu-durumlu, süreli, tek kullanımlık** — 256-bit URL-safe; loglara
-  yazılmaz; nötr 404 (token doğruluğu sızdırılmaz); yeni teslim linki eskiyi öldürür.
+- **MerchantKey insana HİÇ render edilmez (087):** credential store'a YALNIZ makine-handoff ile
+  gider — HMAC-imzalı dayanıklı callback (reveal sayfası + onay-maili + resend SÖKÜLDÜ). `MerchantCreated`/
+  `MerchantKeyReissued` Identity/Payment senkronu için taşır; `MerchantStatusChanged` sır taşımaz.
+  MerchantId tek başına sır DEĞİL (opak tutamaç; admin MCP'de görünebilir). Dayanak ADR
+  `adr-mcp-control-plane-no-secret-return`.
+- **Credential callback tek tetik = onay/reissue:** onaysız teslim YOK; red callback göndermez.
+  İmza ham gövde üstünde HMAC-SHA256(`CallbackSecret`) hex; idempotent (echo `correlationId`); 2xx
+  dışı → durable retry. `CallbackSecret` ≠ `BootstrapRegistrationKey` ≠ `MerchantKey` (üç ayrı sır).
+- **Register ucu iki katman yetki:** m2m bearer (`merchant.write`, taşıma kimliği) + `X-Registration-Key`
+  (bootstrap sır, kayıt-ucu dar yetkisi; constant-time, fail-closed). Finansal/PII yalnız S2S gövdede.
 - **Kişisel veri agent kanalından geçmez (044):** MCP girdi/çıktı sözleşmelerinde hassas alan
-  adı bile yok; kırpma alan silmedir, null/boş döndürme değil.
+  adı bile yok; kırpma alan silmedir, null/boş döndürme değil. MerchantScoped `GetMerchant` de
+  MerchantKey döndürmez (087 scrub).
 - **Başvuru ve fabrika doğrulamaları BİLİNÇLİ tekrar eder** (`RegisterRequest.Submit` ve
   `Merchant.Create` birbirini çağırmaz — aggregate'ler arası çağrı yasak).
 - **RegisterRequest terminal statüleri (Approved/Rejected) tarihçe olarak silinmez;** yalnız
   Rejected'dan yeniden başvuru açılabilir.
-- **Key yenileme yalnız Active merchant'ta (046):** taze `mk_` key üretir; eski key her temsilde
-  (Identity secret + Payment hash) anında geçersizdir; teslim tek gösterimlik reveal + salt-append
-  denetim kaydı. Reveal linki/S2S yanıtı/log key SIZDIRMAZ (yalnız iç `MerchantKeyReissued` taşır).
+- **Key yenileme yalnız Active merchant'ta (046/087):** taze `mk_` key üretir; eski key her temsilde
+  (Identity secret + Payment hash) anında geçersizdir; teslim makine-callback + salt-append denetim
+  kaydı. S2S yanıtı/log key SIZDIRMAZ (yalnız iç `MerchantKeyReissued` + imzalı callback gövdesi taşır).
 - **Admin MCP tool'ları `merchant.admin` capability scope ister (043)** — `/mcp` endpoint'i tek
   (`merchant.write`); tool-bazlı ince yetki Wolverine middleware'iyle EK katman. Hassas BFF çifti
   `AdminPlaneOnly` — merchant kendi statüsünü/verisini admin düzleminden değiştiremez.

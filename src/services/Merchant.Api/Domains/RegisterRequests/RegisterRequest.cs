@@ -55,12 +55,19 @@ public class RegisterRequest : AggregateRoot
     /// <summary>Onayda doğan merchant'ın kimliği — yalnız Approved'da dolu.</summary>
     public Guid? MerchantId { get; private set; }
 
+    /// <summary>087: store üretir; onayda/reissue'da credential callback'ini bununla eşler (idempotency).</summary>
+    public Guid CorrelationId { get; private set; }
+
+    /// <summary>087: PG→store credential teslim hedefi (HMAC-callback); register'da saklanır, onayda okunur.</summary>
+    public string CallbackUrl { get; private set; } = string.Empty;
+
     /// <summary>
     /// Başvuru fabrikası: zorunlu alanlar + e-posta biçimi + TR IBAN (normalize + mod-97) +
     /// tip-uyum matrisi (Personal → kimlik no; PrivateCompany → kimlik no + vergi dairesi +
-    /// unvan; LimitedOrJointStockCompany → vergi dairesi + vergi no + unvan). Geçerse Pending doğar.
+    /// unvan; LimitedOrJointStockCompany → vergi dairesi + vergi no + unvan) + 087 makine-handoff
+    /// alanları (correlationId non-empty Guid, callbackUrl mutlak URL). Geçerse Pending doğar.
     /// </summary>
-    /// <remarks>Handler: SubmitOnboardingFormCommandHandler (hosted form; 029 MCP çifti 045 US4'te söküldü)</remarks>
+    /// <remarks>Handler: SubmitRegistrationCommandHandler (087 store S2S register ucu)</remarks>
     public static ResultDomain<RegisterRequest> Submit(
         MerchantType type,
         string name,
@@ -73,7 +80,9 @@ public class RegisterRequest : AggregateRoot
         string? identityNumber,
         string? taxOffice,
         string? taxNumber,
-        string? legalCompanyTitle)
+        string? legalCompanyTitle,
+        Guid correlationId,
+        string callbackUrl)
     {
         if (string.IsNullOrWhiteSpace(name))
             return ResultDomain<RegisterRequest>.Error(new MessageItem
@@ -139,6 +148,17 @@ public class RegisterRequest : AggregateRoot
             return ResultDomain<RegisterRequest>.Error(new MessageItem
             { Property = nameof(LegalCompanyTitle), Code = CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED });
 
+        // 087: makine-handoff — correlation (store üretir, callback eşleme) + teslim hedefi zorunlu.
+        if (correlationId == Guid.Empty)
+            return ResultDomain<RegisterRequest>.Error(new MessageItem
+            { Property = nameof(CorrelationId), Code = CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED });
+        if (string.IsNullOrWhiteSpace(callbackUrl))
+            return ResultDomain<RegisterRequest>.Error(new MessageItem
+            { Property = nameof(CallbackUrl), Code = CommonResourceConstants.COMMON_MESSAGE_VALUE_IS_REQUIRED });
+        if (!Uri.TryCreate(callbackUrl, UriKind.Absolute, out _))
+            return ResultDomain<RegisterRequest>.Error(new MessageItem
+            { Property = nameof(CallbackUrl), Code = CommonResourceConstants.COMMON_MESSAGE_INVALID_FORMAT });
+
         return ResultDomain<RegisterRequest>.Ok(new RegisterRequest
         {
             Status = RegisterRequestStatus.Pending,
@@ -153,7 +173,9 @@ public class RegisterRequest : AggregateRoot
             IdentityNumber = string.IsNullOrWhiteSpace(identityNumber) ? null : identityNumber.Trim(),
             TaxOffice = string.IsNullOrWhiteSpace(taxOffice) ? null : taxOffice.Trim(),
             TaxNumber = string.IsNullOrWhiteSpace(taxNumber) ? null : taxNumber.Trim(),
-            LegalCompanyTitle = string.IsNullOrWhiteSpace(legalCompanyTitle) ? null : legalCompanyTitle.Trim()
+            LegalCompanyTitle = string.IsNullOrWhiteSpace(legalCompanyTitle) ? null : legalCompanyTitle.Trim(),
+            CorrelationId = correlationId,
+            CallbackUrl = callbackUrl.Trim()
         });
     }
 

@@ -59,13 +59,6 @@ public static class McpToolDescriptions
             "\"Başvuruyu reddet\", \"kaydı geri çevir\" gibi istekler için. " +
             "Başvuru zaten terminal statüdeyse INVALID_OPERATION_ERROR döner; neden boşsa COMMON_MESSAGE_VALUE_IS_REQUIRED döner.";
 
-        public const string ResendCredentialLink =
-            "Merchant'ın erişim bilgileri (MerchantId + MerchantKey) için yeni tek kullanımlık teslim bağlantısı üretir " +
-            "ve merchant e-postasına mailler; yaşayan eski bağlantılar geçersiz olur. " +
-            "\"Credential linkini yeniden gönder\", \"erişim bilgisi bağlantısını tekrar yolla\" gibi istekler için " +
-            "(teslim maili kaybolduğunda ya da süresi dolduğunda). " +
-            "Not: key/link yanıtta dönmez — teslim yalnız mail + tek gösterimlik sayfa yoluyladır.";
-
         public const string RequestSensitiveLink =
             "Bir merchant'ın hassas kişisel/finansal alanlarını (Email/GSM/TCKN/IBAN/vergi no) görüntülemek ve düzenlemek " +
             "için store'un hosted ekranına süreli + tek kullanımlık link üretir. " +

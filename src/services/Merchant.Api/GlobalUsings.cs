@@ -30,11 +30,7 @@ global using System.Net.Http.Headers;
 global using System.ComponentModel;
 global using Common.Utils.Authorization;
 global using ModelContextProtocol.Server;
-
-// --- 045: hosted onboarding (form oturumu + teslim linki) ---
-global using Merchant.Api.Domains.OnboardingFormSessions;
-global using Merchant.Api.Domains.OnboardingFormSessions.Features.Commands;
-global using Merchant.Api.Domains.CredentialRevealLinks;
+global using Merchant.Api.Domains.RegisterRequests.Features.Commands;
 global using Merchant.Api.Domains.RegisterRequests.Features.Queries;
 global using Merchant.Api.Domains.MerchantKeyReissueLogs.Features.Queries;
 

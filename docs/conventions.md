@@ -163,6 +163,11 @@ Domains/<Aggregate>/
   API'sine erişir (DB'sine değil). Sunucu ince sarmalayıcı (iş mantığı yok, `IMessageBus`'a devreder).
 - **MCP yalnız agent tüketir.** Agent olmayan kod (servis/UI) imperatif `CallToolAsync` süremez →
   messaging/HTTP. MCP tool YALNIZ `Features/Agents/Commands|Queries/<X>` slice'ını çağırır (ince sarmalayıcı).
+- **Kontrol-düzlemi sır döndürmez (ADR `adr-mcp-control-plane-no-secret-return`).** MCP/REST tool + query
+  dönüşleri credential/sır İÇERMEZ; LLM yalnız opak tutamaç görür. Sır (ör. merchant credential) insana
+  render EDİLMEZ — yalnız makine-handoff: S2S kayıt (bootstrap-key'li) + HMAC-imzalı dayanıklı callback
+  (publisher ham gövde imzalar, tüketici aynı ham body'yi doğrular). Sır ASLA log/trace/dönüş DTO'sunda.
+  Register-bootstrap ≠ per-kaynak sır ≠ callback-secret (ayrı ömür, ayrı rotate).
 
 ## Bilinçli tekrar (tek gerekçe)
 

@@ -7,6 +7,7 @@ namespace Merchant.Api.Tests;
 public class RegisterRequestTests
 {
     private const string ValidIban = "TR330006100519786457841326";
+    private const string ValidCallbackUrl = "https://store.example/internal/merchant-registration/callback";
 
     private static ResultDomain<RegisterRequest> SubmitValid(
         MerchantType type = MerchantType.Personal,
@@ -20,17 +21,22 @@ public class RegisterRequestTests
         string? identityNumber = "11111111110",
         string? taxOffice = null,
         string? taxNumber = null,
-        string? legalCompanyTitle = null)
+        string? legalCompanyTitle = null,
+        Guid? correlationId = null,
+        string callbackUrl = ValidCallbackUrl)
         => RegisterRequest.Submit(
             type, name, email, gsmNumber, address, iban, contactName, contactSurname,
-            identityNumber, taxOffice, taxNumber, legalCompanyTitle);
+            identityNumber, taxOffice, taxNumber, legalCompanyTitle,
+            correlationId ?? Guid.NewGuid(), callbackUrl);
 
     // --- Submit: üç tip geçerli ---
 
     [Fact]
     public void Submit_PersonalGecerliAlanlarla_PendingDogar()
     {
-        var result = SubmitValid();
+        var correlationId = Guid.NewGuid();
+
+        var result = SubmitValid(correlationId: correlationId);
 
         Assert.True(result.IsSuccess);
         var request = result.Data!;
@@ -38,6 +44,39 @@ public class RegisterRequestTests
         Assert.Equal(RegisterRequestStatus.Pending, request.Status);
         Assert.Null(request.MerchantId);
         Assert.Null(request.RejectReason);
+        // 087: makine-handoff eşleme + teslim hedefi başvuruda saklanır (onayda okunur).
+        Assert.Equal(correlationId, request.CorrelationId);
+        Assert.Equal(ValidCallbackUrl, request.CallbackUrl);
+    }
+
+    // --- 087: correlation + callback doğrulamaları ---
+
+    [Fact]
+    public void Submit_BosCorrelationId_Hata()
+    {
+        var result = SubmitValid(correlationId: Guid.Empty);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Messages, m => m.Property == nameof(RegisterRequest.CorrelationId));
+    }
+
+    [Fact]
+    public void Submit_BosCallbackUrl_Hata()
+    {
+        var result = SubmitValid(callbackUrl: "  ");
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Messages, m => m.Property == nameof(RegisterRequest.CallbackUrl));
+    }
+
+    [Fact]
+    public void Submit_GecersizCallbackUrl_Hata()
+    {
+        // Mutlak URL değil (şema yok) → biçim hatası.
+        var result = SubmitValid(callbackUrl: "store.example/callback");
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Messages, m => m.Property == nameof(RegisterRequest.CallbackUrl));
     }
 
     [Fact]

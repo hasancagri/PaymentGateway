@@ -1,21 +1,23 @@
 using System.Security.Claims;
-using Merchant.Api.Domains.CredentialRevealLinks;
 
 namespace Merchant.Api.Domains.Merchants.Features.Commands;
 
-// 046 US1: merchant self-servis key yenileme (store S2S tetik, ecommerce-onboarding m2m — 045 deseni).
-// Merchant kimliğiyle taze key üretir → MerchantKeyReissued outbox'la yayınlanır (Identity client_secret
-// + Payment KeyHash güncellenir → eski key HER temsilde anında ölür) → yeni tek gösterimlik teslim linki
-// doğar, eski yaşayan linkler öldürülür → yanıt yalnız revealUrl + expiry (key İÇERMEZ, FR-005).
+// 046/087 US1: merchant self-servis key yenileme (store S2S tetik, ecommerce-onboarding m2m). Merchant
+// kimliğiyle taze key üretir → MerchantKeyReissued outbox'la yayınlanır (Identity client_secret + Payment
+// KeyHash güncellenir → eski key HER temsilde anında ölür) → 087: yeni key reveal sayfası yerine store
+// callbackUrl'ine HMAC-imzalı dayanıklı callback'le teslim edilir (echo correlationId). Reveal-link SÖKÜLDÜ;
+// S2S dönüşü yalnız kabul-makbuzu (key/RevealUrl İÇERMEZ, FR-A1/A2).
 public static class ReissueMerchantKey
 {
-    // v1 = çıplak merchantId (kontrat). FR-011 ad/e-posta çözümlemeli varyant US3'te eklenir.
-    public record ReissueMerchantKeyCommand(Guid MerchantId, string? Reason, string InitiatedBy);
+    // v1 = çıplak merchantId (kontrat); US3 ad/e-posta çözümlemeli varyant. 087: correlationId +
+    // callbackUrl register ile simetrik (store sağlar, PG echo'lar).
+    public record ReissueMerchantKeyCommand(
+        Guid MerchantId, Guid CorrelationId, string CallbackUrl, string? Reason, string InitiatedBy);
 
     public class ReissueMerchantKeyResponse
     {
-        public string RevealUrl { get; set; } = string.Empty;
-        public DateTimeOffset ExpiresAt { get; set; }
+        public bool Accepted { get; set; }
+        public Guid CorrelationId { get; set; }
     }
 
     [Transactional]
@@ -25,7 +27,6 @@ public static class ReissueMerchantKey
             ReissueMerchantKeyCommand cmd,
             IDocumentSession session,
             IMessageBus bus,
-            global::Merchant.Api.Options.Onboarding onboarding,
             CancellationToken ct)
         {
             var merchant = await session.LoadAsync<Merchant>(cmd.MerchantId, ct);
@@ -43,37 +44,26 @@ public static class ReissueMerchantKey
             await bus.PublishAsync(new Shared.IntegrationEvents.MerchantKeyReissued(
                 merchant.Id, merchant.MerchantKey));
 
-            var now = DateTimeOffset.UtcNow;
-
-            // FR-010: yeni link eskiyi öldürür (aynı anda tek yaşayan teslim linki).
-            var living = await session.Query<CredentialRevealLink>()
-                .Where(l => l.MerchantId == merchant.Id && l.ConsumedAt == null && l.ExpiresAt > now)
-                .ToListAsync(ct);
-            foreach (var old in living)
-            {
-                old.Kill(now);
-                session.Store(old);
-            }
-
-            var reveal = CredentialRevealLink.Create(merchant.Id, onboarding.RevealLinkLifetime);
-            if (!reveal.IsSuccess)
-                return FeatureObjectResultModel<ReissueMerchantKeyResponse>.Error(reveal.Messages);
-            session.Store(reveal.Data!);
+            // 087 US1: yeni key store callbackUrl'ine HMAC-imzalı dayanıklı teslim (reveal SÖKÜLDÜ;
+            // echo correlationId). Aynı transaction: commit'siz callback gitmez (outbox).
+            await bus.PublishAsync(new DeliverCredentialCallback.Deliver(
+                cmd.CallbackUrl, cmd.CorrelationId, merchant.Id, merchant.MerchantKey, "Active"));
 
             // 046 US2/FR-007: salt-append denetim kaydı (aynı [Transactional] commit).
             session.Store(new Domains.MerchantKeyReissueLogs.MerchantKeyReissueLog
             {
                 Id = Guid.NewGuid(),
                 MerchantId = merchant.Id,
-                ReissuedAt = now,
+                ReissuedAt = DateTimeOffset.UtcNow,
                 InitiatedBy = cmd.InitiatedBy,
                 Reason = string.IsNullOrWhiteSpace(cmd.Reason) ? null : cmd.Reason.Trim()
             });
 
+            // Dönüş credential/RevealUrl-free — yalnız kabul makbuzu (teslim callback'le asenkron).
             return FeatureObjectResultModel<ReissueMerchantKeyResponse>.Ok(new ReissueMerchantKeyResponse
             {
-                RevealUrl = $"{onboarding.PublicBaseUrl.TrimEnd('/')}/onboarding/reveal/{reveal.Data!.Token}",
-                ExpiresAt = reveal.Data!.ExpiresAt
+                Accepted = true,
+                CorrelationId = cmd.CorrelationId
             });
         }
     }
@@ -106,7 +96,8 @@ public static class ReissueMerchantKey
                     }
 
                     var result = await bus.InvokeAsync<FeatureObjectResultModel<ReissueMerchantKeyResponse>>(
-                        new ReissueMerchantKeyCommand(merchantId.Value, body.Reason, initiatedBy));
+                        new ReissueMerchantKeyCommand(
+                            merchantId.Value, body.CorrelationId, body.CallbackUrl, body.Reason, initiatedBy));
                     return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
                 })
             .WithName("ReissueMerchantKey")
@@ -120,5 +111,8 @@ public static class ReissueMerchantKey
     }
 
     // v1 kontrat = merchantId; US3 opsiyonel merchantName/email (biri verilir). reason opsiyonel.
-    public record ReissueRequest(Guid? MerchantId, string? MerchantName, string? Email, string? Reason);
+    // 087: correlationId + callbackUrl register ile simetrik (store sağlar; callback teslim hedefi).
+    public record ReissueRequest(
+        Guid? MerchantId, string? MerchantName, string? Email, string? Reason,
+        Guid CorrelationId, string CallbackUrl);
 }
