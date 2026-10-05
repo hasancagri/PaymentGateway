@@ -23,6 +23,10 @@ kod standartları, servisler-arası desenler orada (ECom'dan devralındı). Bu d
   kimlik AgentPlatform IdP'de (`"Platform"` şeması, platform token; PG IdP token 401); tools/list token
   scope'una göre budanır (`MerchantAdminSurface.ToolScopeMap`). **Kişisel veri MCP'den geçmez (044):**
   Email/GSM/TCKN/IBAN/vergi no yalnız Admin hassas-veri sayfası + dar BFF çifti (`/merchants/{id}/sensitive`).
+  **087: MerchantKey insana HİÇ render edilmez** — kayıt store-başlatan S2S (`POST /onboarding/register`,
+  m2m + `X-Registration-Key` bootstrap); credential onay/reissue'da store'a YALNIZ HMAC-imzalı dayanıklı
+  callback'le (`DeliverCredentialCallback`, 041 aynası) gider; reveal sayfası + hosted form + resend +
+  onay-maili SÖKÜLDÜ; `GetMerchant` dönüşü MerchantKey-free (scrub). Dayanak ADR `adr-mcp-control-plane-no-secret-return`.
 - **Commission** — komisyon politikası (iyzico maliyeti + marj). **MCP yüzeyi (043+044):** okuma
   `admin_get_commission_policy` + yazma `admin_create_commission_policy`/`admin_update_commission_margin`/
   `admin_change_commission_status` (commission.write, Wolverine scope middleware); admin REST +
@@ -86,6 +90,12 @@ Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel
 - **Merchant OAuth istemci düzlemi.** Merchant = OAuth istemcisi (`client_id=merchantId`,
   `client_secret=MerchantKey`; MerchantKey yalnız `connect/token`'a gider). Token statü-kapılı (yalnız Active).
   `MerchantScoped` (claim-route eşleşmesi, fail-closed) + `AdminPlaneOnly` (claim'li token giremez).
+- **Credential ele-alma politikası (087, ADR `adr-mcp-control-plane-no-secret-return`; store ile tutarlı).**
+  MerchantKey: **render YOK** (hiçbir HTML/sohbet) / **kayıt S2S** (store-başlatan, bootstrap key'li) /
+  **dönüş HMAC-callback** (onay+reissue → store callbackUrl, 041 aynası; onaysız/red teslim yok) /
+  **kullanım** server belleği + `connect/token` + iç `MerchantCreated`/`MerchantKeyReissued` event'leri /
+  **LLM yalnız opak MerchantId tutamacı** görür. MerchantKey ASLA log/trace/tool-dönüşü/query DTO'sunda.
+  Üç ayrı sır: `BootstrapRegistrationKey` ≠ `MerchantKey` ≠ `CallbackSecret` (`OnboardingCallbackOptions`).
 - **TUZAK (`ScopeClaimArrayHandler`):** scope claim JSON dizisidir; tek-string'te policy'ler sessizce 403
   verir — dokunma. Identity.Server sabit issuer `https://localhost:5101` (ECom Identity 5001; A2A'da ikisi birlikte koşar).
 

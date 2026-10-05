@@ -14,14 +14,6 @@ builder.Services.AddMarten(opts =>
                 s.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
             });
 
-        // 045: hosted onboarding — form oturumu + teslim linki token'la yüklenir.
-        opts.Schema.For<Merchant.Api.Domains.OnboardingFormSessions.OnboardingFormSession>()
-            .Index(x => x.Token)
-            .Index(x => x.Email);
-        opts.Schema.For<Merchant.Api.Domains.CredentialRevealLinks.CredentialRevealLink>()
-            .Index(x => x.Token)
-            .Index(x => x.MerchantId);
-
         // 046: salt-append key yenileme denetim kaydı — merchantId ile geçmiş sorgusu.
         opts.Schema.For<Merchant.Api.Domains.MerchantKeyReissueLogs.MerchantKeyReissueLog>()
             .Index(x => x.MerchantId);
@@ -101,17 +93,17 @@ builder.Services.AddAllDependencies();
 
 // 016: deterministik mailler Mail.Worker'a RabbitMQ ile publish edilir (MCP/IMailSender YOK).
 
-// Onboarding akış ayarları (aktivasyon taban linki).
-builder.Services.AddOptions<Merchant.Api.Options.Onboarding>().BindConfiguration(nameof(Merchant.Api.Options.Onboarding))
-    .ValidateDataAnnotations().ValidateOnStart();
-builder.Services.AddSingleton<Merchant.Api.Options.Onboarding>(sp =>
-    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Merchant.Api.Options.Onboarding>>().Value);
-
 // 043 FR-011: admin bildirim maili (submit_registration sonrası) — sabit alıcı.
 builder.Services.AddOptions<Merchant.Api.Options.AdminNotification>().BindConfiguration(nameof(Merchant.Api.Options.AdminNotification))
     .ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddSingleton<Merchant.Api.Options.AdminNotification>(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Merchant.Api.Options.AdminNotification>>().Value);
+
+// 087: store↔PG makine-handoff sırları (bootstrap register key + callback HMAC secret).
+builder.Services.AddOptions<Merchant.Api.Options.OnboardingCallbackOptions>().BindConfiguration(nameof(Merchant.Api.Options.OnboardingCallbackOptions))
+    .ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddSingleton<Merchant.Api.Options.OnboardingCallbackOptions>(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Merchant.Api.Options.OnboardingCallbackOptions>>().Value);
 
 // 029/047: MCP server — store fasadına (EC Mcp.Gateway) downstream. Stateless HTTP; oturum token'ının
 // scope'una göre tools/list budanır (085 emsali): MerchantAdminSurface.ToolScopeMap'te olmayan tool
@@ -150,19 +142,15 @@ var apiVersionSet = app.NewApiVersionSet()
 // REST 044'te söküldü, yönetim MCP'de). register-requests REST grubu da söküldü (MCP muadilleri).
 app.AddMerchantGroupEndpointExtension(apiVersionSet);
 
-// 045: store↔PG onboarding S2S REST kontratı (specs/045-hosted-onboarding-form/contracts) —
-// oturum aç (write) + durum (read) + credential doğrulama (read); ecommerce-onboarding m2m.
+// 087: store↔PG onboarding S2S REST kontratı — kayıt (write, X-Registration-Key) + durum (read) +
+// credential doğrulama (read) + key yenileme (write); ecommerce-onboarding m2m. Hosted form + reveal
+// sayfaları + CreateFormSession SÖKÜLDÜ (credential makine-handoff'a taşındı; insan-yüzeyi yok).
 app.MapGroup("api/v{version:apiVersion}/onboarding").WithTags("onboarding").WithApiVersionSet(apiVersionSet)
-    .CreateFormSessionGroupItemEndpoint()
+    .SubmitRegistrationGroupItemEndpoint()
     .GetOnboardingApplicationStatusGroupItemEndpoint()
     .ValidateMerchantCredentialsGroupItemEndpoint()
-    // 046: merchant self-servis key yenileme (store S2S tetik — key yerine reveal URL döner).
+    // 046/087: merchant self-servis key yenileme (store S2S tetik — yeni key callback'le teslim).
     .ReissueMerchantKeyGroupItemEndpoint();
-
-// 045: hosted sayfalar — ANONİM, token = yetki (form ~24 saat tek başvuruluk; teslim ~1 saat
-// tek gösterimlik; Payment 041 hosted sayfa emsali).
-app.MapOnboardingFormPages();
-app.MapCredentialRevealPage();
 
 // 047: MCP endpoint (Streamable HTTP) — store fasadı buraya downstream bağlanır. Mount YALNIZ
 // AgentPlatform token'ını kabul eder (Platform şeması; PG IdP token'ı 401). Admin tool'ları
