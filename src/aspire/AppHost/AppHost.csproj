@@ -6,6 +6,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <UserSecretsId>7f2b7c2e-0a5d-4a7e-9f0f-dropshop0001</UserSecretsId>
+        <!-- Aspire container-registry/compute API'leri önizleme (experimental) → diagnostic'i bastır. -->
+        <NoWarn>$(NoWarn);ASPIRECOMPUTE003</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -20,6 +22,7 @@
 
     <ItemGroup>
       <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+      <PackageReference Include="Aspire.Hosting.Docker" />
       <PackageReference Include="Aspire.Hosting.RabbitMQ" />
     </ItemGroup>
 
