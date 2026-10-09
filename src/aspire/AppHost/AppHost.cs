@@ -1,5 +1,13 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+// Yayın hedefi (publish/push-only): `aspire do push` her AddProject'i container image'ine çevirip ghcr'a iter.
+// Yalnız publish/push'ta devreye girer — yerel `aspire run` dev akışı değişmez.
+builder.AddDockerComposeEnvironment("compose");
+
+// Otopark (registry) = ghcr.io/hasancagri/paymentgateway. PREFIX ZORUNLU: identity-server/payment-api
+// isimleri AgentPlatform + ECommerce ile çakışır; repo-başına ayrı namespace → çakışma yok.
+var ghcr = builder.AddContainerRegistry("ghcr", "ghcr.io", "hasancagri/paymentgateway");
+
 // Host portu sabit 5433 (varsayılan 5432 değil) — başka bir Aspire uygulaması da PostgreSQL'i
 // Aspire üzerinden kaldırdığı için port çakışmasını önler.
 var postgres = builder.AddPostgres("postgres", port: 5433)
@@ -42,7 +50,7 @@ var mailpit = builder.AddContainer("mailpit", "axllent/mailpit")
 
 // 016: Mail.Worker = düz mail projesi (MCP DEĞİL). mail.delivery fanout'unu RabbitMQ ile tüketip
 // SMTP (Mailpit) ile gönderir. Auth yok (HTTP yüzeyi yok); yalnız kuyruk consumer'ı.
-builder.AddProject<Projects.Mail_Worker>("mail-worker")
+var mailWorker = builder.AddProject<Projects.Mail_Worker>("mail-worker")
     .WithReference(rabbit)
     .WaitFor(rabbit)
     .WaitFor(mailpit);
@@ -69,7 +77,7 @@ identityServer.WithReference(merchantApi);
 
 // Admin BFF (Razor Pages) — üç API'yi service discovery ile çağırır; 011: her istek
 // AdminTokenHandler ile makine token'ı taşır (admin-ui client'ı, Identity.Server'dan).
-builder.AddProject<Projects.Admin>("admin-web")
+var adminWeb = builder.AddProject<Projects.Admin>("admin-web")
     .WithReference(merchantApi)
     .WithReference(commissionApi)
     .WithReference(paymentApi)
@@ -78,5 +86,15 @@ builder.AddProject<Projects.Admin>("admin-web")
     .WaitFor(commissionApi)
     .WaitFor(paymentApi)
     .WaitFor(identityServer);
+
+// Tüm deploy edilebilir servisleri (6) ghcr'a bağla — döngüyle. `aspire do push` image'lerini basıp
+// ghcr.io/hasancagri/paymentgateway/<servis>'e iter. Altyapı (postgres/rabbit/mailpit) public → girmez.
+foreach (var svc in new[]
+{
+    identityServer, paymentApi, mailWorker, merchantApi, commissionApi, adminWeb
+})
+{
+    svc.WithContainerRegistry(ghcr);
+}
 
 builder.Build().Run();
