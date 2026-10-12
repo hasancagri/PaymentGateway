@@ -170,6 +170,8 @@ spec:
             - { name: "PlatformIdentityOption__Audience", value: "merchant.api" }
             - { name: "Onboarding__PublicBaseUrl", value: "http://merchant-api:8080" }
             - { name: "AdminNotification__AdminEmail", value: "admin@paymentgateway.local" }
+            - { name: "OnboardingCallbackOptions__BootstrapRegistrationKey", value: "dummy-bootstrap-key" }
+            - { name: "OnboardingCallbackOptions__CallbackSecret", value: "dummy-callback-secret" }
 ---
 apiVersion: v1
 kind: Service
