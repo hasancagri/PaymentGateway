@@ -166,7 +166,7 @@ spec:
             - { name: "IdentityOption__Address", value: "http://identity-server:8080" }
             - { name: "IdentityOption__Issuer", value: "https://localhost:5101" }
             - { name: "IdentityOption__Audience", value: "merchant.api" }
-            - { name: "PlatformIdentityOption__Address", value: "http://identity-server.agentplatform:8080" }
+            - { name: "PlatformIdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
             - { name: "PlatformIdentityOption__Audience", value: "merchant.api" }
             - { name: "Onboarding__PublicBaseUrl", value: "http://merchant-api:8080" }
             - { name: "AdminNotification__AdminEmail", value: "admin@paymentgateway.local" }
@@ -200,7 +200,7 @@ spec:
             - { name: "IdentityOption__Address", value: "http://identity-server:8080" }
             - { name: "IdentityOption__Issuer", value: "https://localhost:5101" }
             - { name: "IdentityOption__Audience", value: "commission.api" }
-            - { name: "PlatformIdentityOption__Address", value: "http://identity-server.agentplatform:8080" }
+            - { name: "PlatformIdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
             - { name: "PlatformIdentityOption__Audience", value: "commission.api" }
 ---
 apiVersion: v1
