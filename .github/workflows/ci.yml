@@ -40,9 +40,44 @@ jobs:
           dotnet tool install -g Aspire.Cli
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
+      # ghcr login: GITHUB_TOKEN kişisel (user) namespace'inde yeni paket OLUŞTURAMAZ
+      # (denied: permission_denied: write_package) → write:packages'li PAT (GHCR_PAT secret) şart.
       - name: ghcr login
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       # Dockerfile'sız SDK container build + ghcr'a it → ghcr.io/hasancagri/paymentgateway/<servis> (6 image).
       - name: Image bas + ghcr'a it
         run: aspire do push --apphost src/aspire/AppHost/AppHost.csproj --non-interactive
+
+      # CD kararlı tag: aspire-tag'li image'ları :latest'e retag + push (deploy rollout bunu çeker).
+      - name: latest tag retag + push
+        run: |
+          for svc in identity-server payment-api merchant-api commission-api mail-worker admin-web; do
+            repo="ghcr.io/hasancagri/paymentgateway/$svc"
+            src=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "^${repo}:aspire-deploy-" | head -1)
+            if [ -n "$src" ]; then docker tag "$src" "$repo:latest" && docker push "$repo:latest"; fi
+          done
+
+  # ───────────── CD: master merge'inde cluster'a deploy (SSH → kubectl, namespace pg) ─────────────
+  deploy:
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH deploy key
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          ssh-keyscan -H 91.132.49.70 >> ~/.ssh/known_hosts 2>/dev/null
+      # NOT: remote script tek-tirnakli; icine Turkce apostrof KOYMA (tirnagi kapatir).
+      - name: Manifest kopyala + uygula + app rollout
+        run: |
+          scp -i ~/.ssh/deploy -r deploy/k8s root@91.132.49.70:/tmp/pg-k8s
+          ssh -i ~/.ssh/deploy root@91.132.49.70 '
+            set -e
+            kubectl apply -f /tmp/pg-k8s/
+            apps=$(kubectl -n pg get deploy -o name | grep -vE "postgres|rabbitmq")
+            kubectl -n pg rollout restart $apps
+            kubectl -n pg rollout status $apps --timeout=300s
+          '
