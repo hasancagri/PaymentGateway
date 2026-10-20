@@ -1,6 +1,6 @@
-# PaymentGateway k8s — ns pg + Postgres(4 DB) + RabbitMQ + Mailpit + 6 servis.
+# PaymentGateway k8s — ns pg + Postgres(2 DB) + RabbitMQ + yaşayan servisler (identity-server, payment-api).
 # ÖĞRENME/DEV: ephemeral PG, Identity.Server issuer https://localhost:5101 HARDCODED (http:8080 dinler,
-# boot geçer), Iyzico/HostedPayment/Auth = placeholder (gerçek ödeme/auth ingress+TLS+gerçek sır ister).
+# boot geçer), HostedPayment/Auth = placeholder (gerçek ödeme/auth ingress+TLS+gerçek sır ister).
 # Bir-kerelik: ghcr-pull (kopyalandı) + DEPLOY_SSH_KEY (kuruldu) + GHCR_PAT repo secret (kullanıcı).
 ---
 apiVersion: v1
@@ -13,8 +13,6 @@ metadata: { name: postgres-init, namespace: pg }
 data:
   init.sql: |
     CREATE DATABASE "paymentDb";
-    CREATE DATABASE "merchantDb";
-    CREATE DATABASE "commissionDb";
     CREATE DATABASE "identityDb";
 ---
 apiVersion: apps/v1
@@ -64,27 +62,6 @@ spec:
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: mailpit, namespace: pg }
-spec:
-  replicas: 1
-  selector: { matchLabels: { app: mailpit } }
-  template:
-    metadata: { labels: { app: mailpit } }
-    spec:
-      containers:
-        - name: mailpit
-          image: axllent/mailpit:latest
-          ports: [ { containerPort: 1025 }, { containerPort: 8025 } ]
----
-apiVersion: v1
-kind: Service
-metadata: { name: mailpit, namespace: pg }
-spec:
-  selector: { app: mailpit }
-  ports: [ { name: smtp, port: 1025, targetPort: 1025 }, { name: ui, port: 8025, targetPort: 8025 } ]
----
-apiVersion: apps/v1
-kind: Deployment
 metadata: { name: identity-server, namespace: pg }
 spec:
   replicas: 1
@@ -130,11 +107,7 @@ spec:
             - { name: "IdentityOption__Address", value: "http://identity-server:8080" }
             - { name: "IdentityOption__Issuer", value: "https://localhost:5101" }
             - { name: "IdentityOption__Audience", value: "payment.api" }
-            - { name: "IyzicoProviderSettings__ApiKey", value: "sandbox-dummy" }
-            - { name: "IyzicoProviderSettings__SecretKey", value: "sandbox-dummy" }
-            - { name: "IyzicoProviderSettings__BaseUrl", value: "https://sandbox-api.iyzipay.com" }
             - { name: "HostedPaymentOptions__CallbackSecret", value: "dummy-callback-secret" }
-            - { name: "HostedPaymentOptions__IyzicoCallbackBaseUrl", value: "http://payment-api:8080/internal/payments/callback" }
             - { name: "HostedPaymentOptions__ReturnPageBaseUrl", value: "http://payment-api:8080/payments/return" }
             - { name: "HostedPaymentOptions__ReturnSuccessText", value: "Odeme basarili" }
             - { name: "HostedPaymentOptions__ReturnFailureText", value: "Odeme basarisiz" }
@@ -143,123 +116,3 @@ apiVersion: v1
 kind: Service
 metadata: { name: payment-api, namespace: pg }
 spec: { selector: { app: payment-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
----
-apiVersion: apps/v1
-kind: Deployment
-metadata: { name: merchant-api, namespace: pg }
-spec:
-  replicas: 1
-  selector: { matchLabels: { app: merchant-api } }
-  template:
-    metadata: { labels: { app: merchant-api } }
-    spec:
-      imagePullSecrets: [ { name: ghcr-pull } ]
-      containers:
-        - name: merchant-api
-          image: ghcr.io/hasancagri/paymentgateway/merchant-api:latest
-          imagePullPolicy: Always
-          ports: [ { containerPort: 8080 } ]
-          env:
-            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
-            - { name: "ConnectionStrings__merchantDb", value: "Host=postgres;Port=5432;Username=postgres;Password=PgwPg2026;Database=merchantDb" }
-            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "http://identity-server:8080" }
-            - { name: "IdentityOption__Issuer", value: "https://localhost:5101" }
-            - { name: "IdentityOption__Audience", value: "merchant.api" }
-            - { name: "PlatformIdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "PlatformIdentityOption__Audience", value: "merchant.api" }
-            - { name: "Onboarding__PublicBaseUrl", value: "http://merchant-api:8080" }
-            - { name: "AdminNotification__AdminEmail", value: "admin@paymentgateway.local" }
-            - { name: "OnboardingCallbackOptions__BootstrapRegistrationKey", value: "dummy-bootstrap-key" }
-            - { name: "OnboardingCallbackOptions__CallbackSecret", value: "dummy-callback-secret" }
----
-apiVersion: v1
-kind: Service
-metadata: { name: merchant-api, namespace: pg }
-spec: { selector: { app: merchant-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
----
-apiVersion: apps/v1
-kind: Deployment
-metadata: { name: commission-api, namespace: pg }
-spec:
-  replicas: 1
-  selector: { matchLabels: { app: commission-api } }
-  template:
-    metadata: { labels: { app: commission-api } }
-    spec:
-      imagePullSecrets: [ { name: ghcr-pull } ]
-      containers:
-        - name: commission-api
-          image: ghcr.io/hasancagri/paymentgateway/commission-api:latest
-          imagePullPolicy: Always
-          ports: [ { containerPort: 8080 } ]
-          env:
-            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
-            - { name: "ConnectionStrings__commissionDb", value: "Host=postgres;Port=5432;Username=postgres;Password=PgwPg2026;Database=commissionDb" }
-            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "http://identity-server:8080" }
-            - { name: "IdentityOption__Issuer", value: "https://localhost:5101" }
-            - { name: "IdentityOption__Audience", value: "commission.api" }
-            - { name: "PlatformIdentityOption__Address", value: "https://id.91.132.49.70.sslip.io" }
-            - { name: "PlatformIdentityOption__Audience", value: "commission.api" }
----
-apiVersion: v1
-kind: Service
-metadata: { name: commission-api, namespace: pg }
-spec: { selector: { app: commission-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
----
-apiVersion: apps/v1
-kind: Deployment
-metadata: { name: mail-worker, namespace: pg }
-spec:
-  replicas: 1
-  selector: { matchLabels: { app: mail-worker } }
-  template:
-    metadata: { labels: { app: mail-worker } }
-    spec:
-      imagePullSecrets: [ { name: ghcr-pull } ]
-      containers:
-        - name: mail-worker
-          image: ghcr.io/hasancagri/paymentgateway/mail-worker:latest
-          imagePullPolicy: Always
-          ports: [ { containerPort: 8080 } ]
-          env:
-            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
-            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "Mail__Smtp__Host", value: "mailpit" }
-            - { name: "Mail__Smtp__Port", value: "1025" }
-            - { name: "Mail__Smtp__From", value: "onboarding@paymentgateway.local" }
----
-apiVersion: v1
-kind: Service
-metadata: { name: mail-worker, namespace: pg }
-spec: { selector: { app: mail-worker }, ports: [ { port: 8080, targetPort: 8080 } ] }
----
-apiVersion: apps/v1
-kind: Deployment
-metadata: { name: admin-web, namespace: pg }
-spec:
-  replicas: 1
-  selector: { matchLabels: { app: admin-web } }
-  template:
-    metadata: { labels: { app: admin-web } }
-    spec:
-      imagePullSecrets: [ { name: ghcr-pull } ]
-      containers:
-        - name: admin-web
-          image: ghcr.io/hasancagri/paymentgateway/admin-web:latest
-          imagePullPolicy: Always
-          ports: [ { containerPort: 8080 } ]
-          env:
-            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
-            - { name: "IdentityOption__Address", value: "http://identity-server:8080" }
-            - { name: "AdminAuth__ClientId", value: "admin-ui" }
-            - { name: "AdminAuth__ClientSecret", value: "admin-ui-secret" }
-            - { name: "services__merchant-api__http__0", value: "http://merchant-api:8080" }
-            - { name: "services__commission-api__http__0", value: "http://commission-api:8080" }
-            - { name: "services__payment-api__http__0", value: "http://payment-api:8080" }
----
-apiVersion: v1
-kind: Service
-metadata: { name: admin-web, namespace: pg }
-spec: { selector: { app: admin-web }, ports: [ { port: 8080, targetPort: 8080 } ] }

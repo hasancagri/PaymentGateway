@@ -8,36 +8,20 @@ kod standartları, servisler-arası desenler orada (ECom'dan devralındı). Bu d
 
 ## Proje
 
-**iyzico ödeme gateway'i** (eski adı DropShop; 021-022 pivotuyla iyzico ödeme kanalına döndü).
-Üç BC + destekleyen altyapı; her iş kendi spec döngüsüyle (`specs/<NNN>/`).
+**Banka-adaptörlü ödeme gateway'i** (eski adı DropShop; constitution v2.0.0 banka-adaptör pivotu). Ödeme yönü
+**pay-by-link**: kart bilgisi sohbete/agent'a girmez, tek kullanımlık TTL'li link üzerinden PG'nin hosted
+ödeme sayfasında toplanır, sonuç store'a webhook'la bildirilir. **Tek Payment BC** + destekleyen altyapı.
 
-- **Payment** — kart-saklama söküldü (041 teardown). **Ödeme yönü hosted-CF CANLI (041):** HostedPaymentSession
-  aggregate + `POST /hosted-payment` (X-Api-Key, Active-kapılı) iyzico CF initialize eder; iyzico dönüşü
-  `/internal/payments/callback/{callbackToken}` (secret-token kapılı, CF retrieve teyidi) terminal'e taşır;
-  store'a HMAC-imzalı sonuç (durable outbox retry) + müşteri dönüş sayfası. iyzico V2 wire (`Utils/*V2`) +
-  MerchantStatus + ApiKey auth kalır. **047: Payment `/mcp` SÖKÜLDÜ** (tool taşımıyordu; store HTTP çağırır).
-- **Merchant** — gateway müşterisi SİTE (pazaryeri/split DEĞİL); iyzico SubMerchant sözleşmesiyle hizalı
-  alan seti + statü makinesi. OAuth istemci düzlemi (aşağıda). **Admin düzlemi MCP-only (043+044):**
-  statü/liste/detay/güncelleme + başvuru onay/red tümü `merchant.admin` scope'lu MCP tool'ları;
-  admin REST CRUD + register-requests grubu SÖKÜLDÜ (044). **047: `/mcp` store fasadına downstream** —
-  kimlik AgentPlatform IdP'de (`"Platform"` şeması, platform token; PG IdP token 401); tools/list token
-  scope'una göre budanır (`MerchantAdminSurface.ToolScopeMap`). **Kişisel veri MCP'den geçmez (044):**
-  Email/GSM/TCKN/IBAN/vergi no yalnız Admin hassas-veri sayfası + dar BFF çifti (`/merchants/{id}/sensitive`).
-  **087: MerchantKey insana HİÇ render edilmez** — kayıt store-başlatan S2S (`POST /onboarding/register`,
-  m2m + `X-Registration-Key` bootstrap); credential onay/reissue'da store'a YALNIZ HMAC-imzalı dayanıklı
-  callback'le (`DeliverCredentialCallback`, 041 aynası) gider; reveal sayfası + hosted form + resend +
-  onay-maili SÖKÜLDÜ; `GetMerchant` dönüşü MerchantKey-free (scrub). Dayanak ADR `adr-mcp-control-plane-no-secret-return`.
-- **Commission** — komisyon politikası (iyzico maliyeti + marj). **MCP yüzeyi (043+044):** okuma
-  `admin_get_commission_policy` + yazma `admin_create_commission_policy`/`admin_update_commission_margin`/
-  `admin_change_commission_status` (commission.write, Wolverine scope middleware); admin REST +
-  `CalculateEffectiveCommission` slice'ı SÖKÜLDÜ (hesap davranışı aggregate'te durur). **047: `/mcp` store
-  fasadına downstream** (platform token, `CommissionAdminSurface.ToolScopeMap` budaması).
-- Altyapı: **Identity.Server** (M2M OpenIddict), **Mail.Worker** (RabbitMQ→SMTP/Mailpit), **Admin**
-  (Razor BFF — 044'te yalnız hassas-veri sayfası, CRUD ekranları YOK), **gateway** (YARP).
-  Payment.Agent + Merchant.Agent (A2A) SÖKÜLDÜ. **047: dış MCP istemcisi (Claude Desktop) artık PG'ye
-  DOĞRUDAN değil, ECommerce store fasadına (Mcp.Gateway) bağlanır** — Merchant/Commission `/mcp` fasadın
-  downstream'i; PG IdP `external-admin-agent` seed'i SÖKÜLDÜ (prune), kimlik platform IdP'ye taşındı. Ölü
-  `payment-agent`/`merchant-agent` OAuth seed'leri de silindi + açılışta store'dan prune (044).
+> **Durum (088 Phase-0 teardown TAMAM):** eski iyzico ödeme kanalı + Merchant BC + Commission BC +
+> Mail.Worker + Admin BFF SÖKÜLDÜ. **Phase-1 (bank-adapter-skeleton) HENÜZ YAZILMADI** — hosted ödeme
+> akışı kavramsal iskelet olarak durur, sağlayıcı çağrıları `PROVIDER_UNAVAILABLE` ile stub'lıdır;
+> banka PaymentLink adapter'ı (anayasa İlke VII port/adapter) + yeni auth modeli Phase-1'de bağlanacak.
+
+- **Payment** — kart-saklama yok (anayasa İlke VI). Hosted ödeme akışı: `HostedPaymentSession` aggregate +
+  `POST /hosted-payment` (store başlatır) + `/internal/payments/callback/{callbackToken}` (secret-token
+  kapılı sağlayıcı dönüşü, C1) + müşteri dönüş sayfası; terminal geçişte store'a HMAC-imzalı sonuç (durable
+  outbox retry). **088: eski ödeme kanalı transport engine + MerchantKey/MerchantStatus X-Api-Key auth
+  zinciri SÖKÜLDÜ.** PG bir MCP yüzeyi expose ETMEZ (anayasa İlke V).
 
 ## Komutlar
 
@@ -45,10 +29,10 @@ Repo kökünden. Çözüm: `PaymentGateway.slnx` (`dotnet build/test` otomatik b
 
 ```bash
 dotnet build                                              # tüm çözüm
-dotnet run --project src/aspire/AppHost/AppHost.csproj    # tüm sistem (Aspire; Postgres + RabbitMQ + Mailpit)
-dotnet test                                               # tüm testler (Payment/Merchant/Commission.Api.Tests)
+dotnet run --project src/aspire/AppHost/AppHost.csproj    # tüm sistem (Aspire; Postgres + RabbitMQ)
+dotnet test                                               # tüm testler (Payment.Api.Tests)
 scripts/check-claude-spec-links.sh                        # BC haritası spec yolları guard'ı
-scripts/check-flow-links.sh                                # FLOW.md domain-süreç anchor guard'ı (İLKE VII)
+scripts/check-flow-links.sh                                # FLOW.md domain-süreç anchor guard'ı (İLKE IX)
 ```
 
 - **Sistemi hep Aspire AppHost'tan başlat**; servisler conn-string'i Aspire'dan alır, tek başına açılmaz.
@@ -58,55 +42,42 @@ scripts/check-flow-links.sh                                # FLOW.md domain-sür
 ## BC haritası
 
 Her BC = kendi DB'si + şeması. Origin sütunu = BC'yi tanımlayan spec'in tam yolu (guard'lı).
-Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel`/`Identity.Server`/
-`Mail.Worker`), `src/aspire`, `src/ui/Admin`. `src/agents/` boş (Payment.Agent+Merchant.Agent SÖKÜLDÜ).
+Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel`/`Identity.Server`),
+`src/aspire`. Aspire yalnız yaşayan servisleri ayağa kaldırır.
 
 | Servis | DB | Ne yapar | Origin spec |
 |---|---|---|---|
-| `Payment.Api` | paymentDb | kart-vault söküldü (041 teardown); **hosted-CF ödeme CANLI (041):** HostedPaymentSession + `/hosted-payment` (CF init) + secret-token'lı iyzico callback (CF retrieve) + HMAC-imzalı store bildirimi; iyzico V2 wire + MerchantStatus + ApiKey auth | `specs/041-hosted-cf-payment` |
-| `Merchant.Api` | merchantDb | Merchant aggregate (SubMerchant hizalı); statü makinesi; `MerchantCreated`/`StatusChanged` outbox; **MCP-only admin düzlemi (044)**: tam yönetim MCP'de, REST'te yalnız MerchantScoped okuma + hassas-veri BFF çifti; **hosted onboarding (045, ECom 078 kontratı)**; **047: `/mcp` store fasadına downstream** (platform token + tool-scope budaması) | `specs/047-platform-single-mcp` |
-| `Commission.Api` | commissionDb | CommissionPolicy (iyzico maliyeti + marj); **admin MCP okuma+yazma tool'ları (043+044)**; REST'te yalnız MerchantScoped okuma; **047: `/mcp` store fasadına downstream** (platform token + tool-scope budaması) | `specs/047-platform-single-mcp` |
-| `identity-server` | identityDb | M2M OpenIddict (client_credentials); scope + merchant OAuth istemci düzlemi | `specs/011-openiddict-migration` |
-| `Mail.Worker` | — | RabbitMQ `mail.delivery` → SMTP/Mailpit; retry→error queue; ClosedXML ek | — |
-| `Admin` | — | Razor BFF — 044'te tek iş yüzeyi hassas-veri sayfası (`/Merchants/Sensitive`); CRUD ekranları söküldü | — |
-| `gateway` | — | YARP reverse proxy; tek giriş | — |
+| `Payment.Api` | paymentDb | hosted ödeme akışı: `HostedPaymentSession` + `/hosted-payment` + secret-token'lı sağlayıcı callback + HMAC-imzalı store bildirimi + müşteri dönüş sayfası; kart-saklama yok; sağlayıcı entegrasyonu Phase-1 (bank adapter) | `specs/088-teardown-dead-services` |
+| `identity-server` | identityDb | iç M2M OpenIddict (client_credentials); scope → audience; sabit issuer `https://localhost:5101`. Store→gateway ödeme yetkisi AYRI otoritede (AgentPlatform platform IdP) | `specs/011-openiddict-migration` |
+| `gateway` | — | YARP reverse proxy; tek giriş (yalnız payment-route) | — |
 
-- **Event akışı:** Merchant `merchant.lifecycle` fanout (`MerchantCreated`/`MerchantStatusChanged`, statü
-  string taşır, enum sızmaz) → Identity.Server tüketir (OpenIddict istemci senkronu). `PaymentCompleted`/
-  `PaymentFailed` kontratları hazır, tüketici Order BC gelince bağlanır.
-- **Payment MerchantStatus:** event-fed statü referansı (aggregate DEĞİL); çekim öncesi Active kontrolü
-  (fail-closed — makine token'ı statü taşımaz, kapı gateway içinde).
+- **Event akışı:** `PaymentCompleted`/`PaymentFailed` kontratları (Shared) hazır, tüketici Order BC gelince
+  bağlanır. **088: merchant.lifecycle / merchant.commission / mail.delivery fanout'ları söküldü.**
 
 ## Projeye özel kurallar + tuzaklar
 
-- **iyzico wire = slice'ın İÇİNDE nested.** Paylaşılan SDK YOK (`Iyzico.Provider` söküldü). Her iyzico
-  wire request/response, kullanan slice'ta nested düz camelCase JSON POCO; yanıtlar
-  `Payment.Api.Utils.ProviderResourceV2`'den türer. Wire tipleri BC DIŞINA SIZMAZ; VO↔wire map anti-corruption.
-- **iyzico transport engine** `Payment.Api/Utils`'te tek kopya (5 dosya: RestHttpClientV2/ProviderResourceV2/
-  HashGeneratorV2/ProviderConstants/ProviderOptions); süreç taşımaz, 4 slice ortak — feature'a gömülemez.
+- **Banka wire = kullanan slice'ın İÇİNDE nested (anayasa İlke VII).** Paylaşılan banka SDK'sı ÜRETİLMEZ;
+  her banka BC-sahipli adapter arkasında, wire request/response slice'ta nested kalır, domain sınırını
+  GEÇMEZ; adapter wire'ı normalize domain cevabına çevirir (VO↔wire anti-corruption). *(Phase-1'de canlanır.)*
 - **Handler'da literal YASAK.** Handler metodunda Command/Query'den (kullanıcı) gelmeyen HİÇBİR değer literal
-  yazılmaz (locale/currency/itemType/endpoint/alias/prefix...) → `Options/IyzicoRequestOptions` POCO'sundan
-  (non-secret; transport secret'ı ayrı `IyzicoProviderSettings`).
-- **Merchant OAuth istemci düzlemi.** Merchant = OAuth istemcisi (`client_id=merchantId`,
-  `client_secret=MerchantKey`; MerchantKey yalnız `connect/token`'a gider). Token statü-kapılı (yalnız Active).
-  `MerchantScoped` (claim-route eşleşmesi, fail-closed) + `AdminPlaneOnly` (claim'li token giremez).
-- **Credential ele-alma politikası (087, ADR `adr-mcp-control-plane-no-secret-return`; store ile tutarlı).**
-  MerchantKey: **render YOK** (hiçbir HTML/sohbet) / **kayıt S2S** (store-başlatan, bootstrap key'li) /
-  **dönüş HMAC-callback** (onay+reissue → store callbackUrl, 041 aynası; onaysız/red teslim yok) /
-  **kullanım** server belleği + `connect/token` + iç `MerchantCreated`/`MerchantKeyReissued` event'leri /
-  **LLM yalnız opak MerchantId tutamacı** görür. MerchantKey ASLA log/trace/tool-dönüşü/query DTO'sunda.
-  Üç ayrı sır: `BootstrapRegistrationKey` ≠ `MerchantKey` ≠ `CallbackSecret` (`OnboardingCallbackOptions`).
+  yazılmaz (locale/currency/endpoint/prefix...) → non-secret `Options/` POCO'sundan; transport secret'ı
+  ayrı secret-store (user-secrets/env), asla non-secret config'le karışmaz (anayasa İlke VI).
+- **Hosted ödeme auth (088 GEÇİCİ).** `/hosted-payment` şu an GEÇİCİ `payment.write` JWT scope ile korunur,
+  tenant `MerchantId` gövdeden. **Nihai (Phase-1):** store→gateway = AgentPlatform platform IdP token (PG
+  relying party, PG scope); müşteri/callback = anonim per-session secret token (fail-closed, anayasa İlke V).
+- **Kontrol düzlemi + callback sır döndürmez (anayasa İlke VI).** `CallbackSecret` (store bildirim HMAC
+  anahtarı) secret-store'da; ham gövde imzalanır, store aynı ham body'yi doğrular. Sır log/trace/dönüş DTO'sunda görünmez.
 - **TUZAK (`ScopeClaimArrayHandler`):** scope claim JSON dizisidir; tek-string'te policy'ler sessizce 403
-  verir — dokunma. Identity.Server sabit issuer `https://localhost:5101` (ECom Identity 5001; A2A'da ikisi birlikte koşar).
+  verir — dokunma. Identity.Server sabit issuer `https://localhost:5101`.
+- **Wolverine handler keşfi ad-son-eki bazlı:** `*Handler`/`*Consumer` ile bitmeyen handler taramayla
+  BULUNMAZ → `opts.Discovery.IncludeType(...)` şart; "Handlers" (çoğul) sessizce keşfedilmez.
 
 ## Yapma listesi
 
-- **Sökülenleri geri getirme:** `Iyzico.Provider` paylaşılan SDK + V1 PKI zinciri; `Excel.Mcp` +
-  `document.generate` scope; CP.VPOS/BankRouter/Reference.Api (022 pivotu); `Payment.Agent`/
-  `Merchant.Agent` (A2A host'ları, 038/043) + Admin `AgentChat`/`RegisterRequests` sayfaları.
-  Gerekçe ilgili spec + memory'de.
-- **iyzico wire tipini paylaşılan lib'e çıkarma** — slice'ta nested kalır (ikinci canlı tüketici çıkana dek YAGNI).
-- **`IConfiguration`'dan doğrudan okuma** / handler'da literal (Options pattern + IyzicoRequestOptions).
-- **MCP'yi agent-dışı koddan** imperatif çağırma; servisler-arası MCP değil (messaging/HTTP).
-- **Tool description'ı standart-dışı yazma:** expose edilen her MCP tool description'ı [MCP Tool Description Standardı](../AgentPlatform/docs/mcp-tool-description-standard.md)'na uyar (eylem-önce, Türkçe tetikleyici ifade "'...' gibi istekler için", kısıt/PII sonda, prose prefix yok) ve `src/others/Shared/McpToolDescriptions.cs` const'ından referanslanır — inline `[Description("...")]` string bırakma (003).
-- **Wolverine event-handler'ı "Handlers" (çoğul) adlandırma** — sessizce keşfedilmez (bkz. conventions TUZAK).
+- **Sökülenleri geri getirme (088 + öncesi):** iyzico ödeme kanalı + transport engine; Merchant BC +
+  Commission BC + Mail.Worker + Admin BFF; `Iyzico.Provider` SDK; kart-vault/saved-card charge; CP.VPOS/
+  BankRouter/Reference.Api; Payment.Agent/Merchant.Agent (A2A); PG `/mcp` yüzeyi. Gerekçe spec + memory'de.
+- **Kart verisi tutma / PAN'ı PG'ye sokma** — anayasa İlke VI (PAN kalıcı olmaz, 3DS'te tarayıcıdan bankaya).
+- **`IConfiguration`'dan doğrudan okuma** / handler'da literal (Options pattern).
+- **PG'de MCP yüzeyi açma** (anayasa İlke V — ödeme akışı MCP'ye girmez; banka operasyon MCP'si ayrı repo).
+- **Banka wire tipini paylaşılan lib'e çıkarma** — slice'ta nested kalır (anti-corruption, YAGNI).

@@ -1,44 +1,44 @@
-using System.Security.Claims;
-using Common.Utils.Authorization;
 using Payment.Api.Domains.HostedPayments.Features.Commands;
 using Payment.Api.Options;
 
 namespace Payment.Api.Domains.HostedPayments;
 
 /// <summary>
-/// 041: hosted-CF ödeme yüzeyi uçları. Sürüm segmentsiz (dış store kontratı sabit yol bekler — D11).
-/// (1) POST /hosted-payment — store başlatma (X-Api-Key, merchant_id claim'den tenant). (2) POST
-/// /internal/payments/callback/{callbackToken} — iyzico dönüşü (C1 secret-token kapılı). (3) GET
-/// /payments/return/{pgPaymentRef} — müşteri dönüş sayfası.
+/// 041: hosted ödeme yüzeyi uçları. Sürüm segmentsiz (dış store kontratı sabit yol bekler — D11).
+/// (1) POST /hosted-payment — store başlatma. (2) POST /internal/payments/callback/{callbackToken} —
+/// sağlayıcı dönüşü (C1 secret-token kapılı). (3) GET /payments/return/{pgPaymentRef} — müşteri dönüş sayfası.
+/// <para><b>088 teardown:</b> (1) ucu GEÇİCİ olarak JWT payment.write scope ile korunur ve tenant
+/// MerchantId gövdeden okunur (X-Api-Key + merchant_id claim zinciri söküldü). TODO Phase-1: gerçek
+/// yetki = store→gateway AgentPlatform platform IdP + anonim per-session secret token (anayasa İlke V);
+/// payment.write placeholder, nihai yetki DEĞİL.</para>
 /// </summary>
 public static class HostedPaymentEndpointExtension
 {
     public static void AddHostedPaymentEndpointExtension(this WebApplication app)
     {
-        // (1) Store → PG: hosted ödeme başlat (X-Api-Key).
+        // (1) Store → PG: hosted ödeme başlat. 088: GEÇİCİ payment.write JWT scope; tenant MerchantId
+        // gövdeden (X-Api-Key tenant modeli söküldü). TODO Phase-1: platform IdP + anonim token (İlke V).
         app.MapPost("/hosted-payment", async (
-                [FromBody] HostedPaymentBody body, ClaimsPrincipal user, IMessageBus bus) =>
+                [FromBody] HostedPaymentBody body, IMessageBus bus) =>
             {
-                if (!TryMerchant(user, out var merchantId)) return Results.Unauthorized();
-
                 var result = await bus.InvokeAsync<FeatureObjectResultModel<InitiateHostedPayment.InitiateHostedPaymentResponse>>(
                     new InitiateHostedPayment.InitiateHostedPaymentCommand(
-                        merchantId, body.Amount, body.Currency, body.OrderRef, body.CallbackUrl));
+                        body.MerchantId, body.Amount, body.Currency, body.OrderRef, body.CallbackUrl));
                 return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result);
             })
             .WithName("InitiateHostedPayment")
             .WithTags("hosted-payment")
-            .RequireAuthorization(HostedPaymentPolicies.HostedPaymentApiKey);
+            .RequireAuthorization(AuthorizationScopes.PaymentWrite);
 
-        // (2) iyzico → PG: hosted form dönüşü (secret-token kapılı, kimliksiz). Form-body: token.
+        // (2) Sağlayıcı → PG: hosted form dönüşü (secret-token kapılı, kimliksiz). Form-body: token.
         app.MapPost("/internal/payments/callback/{callbackToken}", async (
                 string callbackToken, HttpRequest request, IMessageBus bus, HostedPaymentOptions options) =>
             {
                 var form = await request.ReadFormAsync();
-                var iyzicoToken = form["token"].ToString();
+                var providerToken = form["token"].ToString();
 
                 var result = await bus.InvokeAsync<FeatureObjectResultModel<CompleteHostedPayment.CompleteHostedPaymentResponse>>(
-                    new CompleteHostedPayment.CompleteHostedPaymentCommand(callbackToken, iyzicoToken));
+                    new CompleteHostedPayment.CompleteHostedPaymentCommand(callbackToken, providerToken));
 
                 // Bilinmeyen token / işlenemeyen dönüş → 404 (durum değişmez, store'a bildirim yok).
                 if (!result.IsSuccess || result.Data is null)
@@ -132,14 +132,7 @@ public static class HostedPaymentEndpointExtension
         """;
     }
 
-    // merchant_id claim → Guid (İlke V tenant). Claim yoksa/geçersizse fail-closed.
-    private static bool TryMerchant(ClaimsPrincipal user, out Guid merchantId)
-    {
-        merchantId = Guid.Empty;
-        var raw = user.FindFirst(MerchantScopeAuthorizationHandler.MerchantIdClaim)?.Value;
-        return !string.IsNullOrWhiteSpace(raw) && Guid.TryParse(raw, out merchantId);
-    }
-
-    // Store hosted ödeme başlatma gövdesi (contracts/pg-external.md §1).
-    public record HostedPaymentBody(decimal Amount, string Currency, string OrderRef, string CallbackUrl);
+    // Store hosted ödeme başlatma gövdesi (contracts/pg-external.md §1). 088: MerchantId gövdede
+    // (X-Api-Key tenant claim'i söküldü — TODO Phase-1 platform IdP tenant çözümü, İlke V).
+    public record HostedPaymentBody(Guid MerchantId, decimal Amount, string Currency, string OrderRef, string CallbackUrl);
 }

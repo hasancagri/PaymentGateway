@@ -20,13 +20,10 @@ var rabbit = builder.AddRabbitMQ("rabbitmq")
     .WithLifetime(ContainerLifetime.Persistent);
 
 var paymentDb = postgres.AddDatabase("paymentDb");
-var merchantDb = postgres.AddDatabase("merchantDb");
-var commissionDb = postgres.AddDatabase("commissionDb");
 var identityDb = postgres.AddDatabase("identityDb");
 
 // 011: OpenIddict IdP — sabit https://localhost:5101 (launchSettings https profili; issuer birebir).
-// BC API'leri token'ı JWKS ile doğrular; Admin/Agent client_credentials token'ı buradan alır.
-// 012: merchant.lifecycle fanout'unu tüketir (merchant → OpenIddict istemci senkronu).
+// BC API'leri token'ı JWKS ile doğrular; makine client_credentials token'ı buradan alır.
 var identityServer = builder.AddProject<Projects.Identity_Server>("identity-server", launchProfileName: "https")
     .WithReference(identityDb)
     .WithReference(rabbit)
@@ -41,57 +38,11 @@ var paymentApi = builder.AddProject<Projects.Payment_Api>("payment-api")
     .WaitFor(rabbit)
     .WaitFor(identityServer);
 
-// 013: Mailpit — dev SMTP catch-all (SMTP :1025, web UI :8025). Gerçek adres gerekmez; tüm
-// giden mail tek inbox'ta görünür. Mail.Worker buraya SMTP ile bağlanır (localhost:1025).
-var mailpit = builder.AddContainer("mailpit", "axllent/mailpit")
-    .WithEndpoint(port: 1025, targetPort: 1025, name: "smtp")
-    .WithHttpEndpoint(port: 8025, targetPort: 8025, name: "http")
-    .WithLifetime(ContainerLifetime.Persistent);
-
-// 016: Mail.Worker = düz mail projesi (MCP DEĞİL). mail.delivery fanout'unu RabbitMQ ile tüketip
-// SMTP (Mailpit) ile gönderir. Auth yok (HTTP yüzeyi yok); yalnız kuyruk consumer'ı.
-var mailWorker = builder.AddProject<Projects.Mail_Worker>("mail-worker")
-    .WithReference(rabbit)
-    .WaitFor(rabbit)
-    .WaitFor(mailpit);
-
-var merchantApi = builder.AddProject<Projects.Merchant_Api>("merchant-api")
-    .WithReference(merchantDb)
-    .WithReference(rabbit)
-    .WithReference(identityServer)
-    .WaitFor(merchantDb)
-    .WaitFor(rabbit)
-    .WaitFor(identityServer);
-
-var commissionApi = builder.AddProject<Projects.Commission_Api>("commission-api")
-    .WithReference(commissionDb)
-    .WithReference(rabbit)
-    .WithReference(identityServer)
-    .WaitFor(commissionDb)
-    .WaitFor(rabbit)
-    .WaitFor(identityServer);
-
-// 013: Identity aktivasyon sayfası Merchant.Api redeem'i senkron çağırır (sanksiyonlu). Service
-// discovery için referans (WaitFor YOK → merchant-api zaten identity'yi beklediğinden döngü olmaz).
-identityServer.WithReference(merchantApi);
-
-// Admin BFF (Razor Pages) — üç API'yi service discovery ile çağırır; 011: her istek
-// AdminTokenHandler ile makine token'ı taşır (admin-ui client'ı, Identity.Server'dan).
-var adminWeb = builder.AddProject<Projects.Admin>("admin-web")
-    .WithReference(merchantApi)
-    .WithReference(commissionApi)
-    .WithReference(paymentApi)
-    .WithReference(identityServer)
-    .WaitFor(merchantApi)
-    .WaitFor(commissionApi)
-    .WaitFor(paymentApi)
-    .WaitFor(identityServer);
-
-// Tüm deploy edilebilir servisleri (6) ghcr'a bağla — döngüyle. `aspire do push` image'lerini basıp
-// ghcr.io/hasancagri/paymentgateway/<servis>'e iter. Altyapı (postgres/rabbit/mailpit) public → girmez.
+// Yaşayan deploy edilebilir servisleri ghcr'a bağla. `aspire do push` image'lerini basıp
+// ghcr.io/hasancagri/paymentgateway/<servis>'e iter. Altyapı (postgres/rabbit) public → girmez.
 foreach (var svc in new[]
 {
-    identityServer, paymentApi, mailWorker, merchantApi, commissionApi, adminWeb
+    identityServer, paymentApi
 })
 {
     svc.WithContainerRegistry(ghcr);

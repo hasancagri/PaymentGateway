@@ -16,10 +16,7 @@ builder.Services.AddMarten(opts =>
             });
 
         // 076: StoredCard + Payment + CardSession şemaları SÖKÜLDÜ (kart-vault + charge kaldırıldı).
-        // X-Api-Key auth lookup — merchant API key hash'i (kiracı-içi tekil). KALIR (MerchantStatus).
-        opts.Schema.For<MerchantApiKeyReference>()
-            .Index(x => x.KeyHash, idx => idx.IsUnique = true);
-
+        // 088: MerchantApiKeyReference + MerchantStatusReference (X-Api-Key + statü referansı) SÖKÜLDÜ.
         // 041: hosted-CF ödeme girişimi. (MerchantId, OrderRef) tekil (FR-004 idempotent başlatma);
         // CallbackToken tekil (C1 — kimliksiz callback ucunun secret-token lookup'ı + beyan-edilen yetki).
         opts.Schema.For<Payment.Api.Domains.HostedPayments.HostedPaymentSession>()
@@ -47,24 +44,11 @@ builder.Host.UseWolverine(opts =>
         .ToRabbitExchange(RabbitMqConstants.PaymentCompleted.Exchange);
     opts.PublishMessage<Shared.IntegrationEvents.PaymentFailedEvent>()
         .ToRabbitExchange(RabbitMqConstants.PaymentFailed.Exchange);
-    // 033: kayıtlı kartla çekim tamamlandı — iyzico maliyeti taşır (komisyon tüketimi ileride).
-    opts.PublishMessage<Shared.IntegrationEvents.PaymentChargedEvent>()
-        .ToRabbitExchange(RabbitMqConstants.PaymentCompleted.Exchange);
-
-    // 038: merchant.lifecycle tüketimi — statü referansı (çekim statü kapısı). Message store yok →
-    // ProcessInline + RabbitMQ redelivery (Identity.Server deseni). MerchantApiConsumers
-    // aşağıda IncludeType ile açık kayıtlı (*Consumers taramayla keşfedilmez).
-    rabbit.DeclareExchange(RabbitMqConstants.MerchantLifecycle.Exchange,
-        e => { e.ExchangeType = ExchangeType.Fanout; });
-    rabbit.DeclareQueue(RabbitMqConstants.MerchantLifecycle.PaymentQueue);
-    rabbit.BindExchange(RabbitMqConstants.MerchantLifecycle.Exchange)
-        .ToQueue(RabbitMqConstants.MerchantLifecycle.PaymentQueue);
-    opts.ListenToRabbitQueue(RabbitMqConstants.MerchantLifecycle.PaymentQueue).ProcessInline();
+    // 088: PaymentChargedEvent publish'i + merchant.lifecycle tüketimi (statü referansı) SÖKÜLDÜ
+    // (kart-vault charge + Merchant BC öldü; statü kapısı Phase-1'e devredildi).
 
     opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(Assembly.GetExecutingAssembly());
-    // *Consumers son eki assembly taramasında keşfedilmez → açık kayıt şart (ECom deseni).
-    opts.Discovery.IncludeType(typeof(Payment.Api.MerchantApiConsumers));
 });
 
 builder.Services.AddApiVersioning(options =>
@@ -76,57 +60,17 @@ builder.Services.AddApiVersioning(options =>
 });
 
 // 011: JWT bearer (Identity.Server JWKS) + scope policy'leri; endpoint'ler policy'yi açıkça beyan eder.
+// 088: cards.write + payment.charge (kart-vault/charge) SÖKÜLDÜ; X-Api-Key + MerchantApiKey/
+// HostedPaymentApiKey merchant policy zinciri SÖKÜLDÜ (Merchant BC öldü). payment.* JWT scope kalır.
 builder.Services.AddAuthenticationAndAuthorizationExtension(
     builder.Configuration,
     AuthorizationScopes.PaymentRead,
-    AuthorizationScopes.PaymentWrite,
-    // 017: vault düzlemi — Active merchant token'ının kabul edildiği payment scope'u (capability).
-    AuthorizationScopes.CardsWrite,
-    // 033: çekim düzlemi — Active merchant charge capability.
-    AuthorizationScopes.PaymentCharge);
-
-// 039: yapısal çekim/retrieve X-Api-Key şeması — JWT'nin YANINA eklenir (additive). Header yoksa
-// NoResult → JWT şeması denenir. Merchant key SHA-256 → MerchantApiKeyReference lookup → merchant_id claim.
-builder.Services.AddAuthentication()
-    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
-        ApiKeyAuthenticationHandler.SchemeName, null);
-// Policy: ApiKey şeması + mevcut MerchantScopeRequirement (claim == route {merchantId}).
-builder.Services.AddAuthorizationBuilder()
-    .AddPolicy(AuthorizationPolicies.MerchantApiKey, policy =>
-    {
-        policy.AuthenticationSchemes.Add(ApiKeyAuthenticationHandler.SchemeName);
-        policy.RequireAuthenticatedUser();
-        policy.AddRequirements(new Common.Utils.Authorization.MerchantScopeRequirement());
-    })
-    // 041 (C1/D1): hosted ödeme başlatma ucu. X-Api-Key şeması + authenticated; route'ta {merchantId}
-    // YOK → tenant merchant_id claim'inden okunur (MerchantScopeRequirement KULLANILMAZ — route'suz
-    // fail-closed RET ederdi). Active statü kapısı slice içinde (charge yalnız Active, İlke V).
-    .AddPolicy(HostedPaymentPolicies.HostedPaymentApiKey, policy =>
-    {
-        policy.AuthenticationSchemes.Add(ApiKeyAuthenticationHandler.SchemeName);
-        policy.RequireAuthenticatedUser();
-    });
+    AuthorizationScopes.PaymentWrite);
 
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();
 
-// 032: iyzico sağlayıcı ayarları — Options pattern (BindConfiguration + Validate); sandbox key
-// user-secrets'tan. Handler'lar düz ProviderOptions inject eder (settings'ten map'lenmiş singleton).
-builder.Services.AddOptions<Payment.Api.Options.IyzicoProviderSettings>()
-    .BindConfiguration(nameof(Payment.Api.Options.IyzicoProviderSettings))
-    .ValidateDataAnnotations().ValidateOnStart();
-// iyzico transport ayarları (secret) → engine ProviderOptions singleton (IyzicoProviderSettings'ten map).
-builder.Services.AddSingleton<Payment.Api.Utils.ProviderOptions>(sp =>
-{
-    var s = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.IyzicoProviderSettings>>().Value;
-    return new Payment.Api.Utils.ProviderOptions { ApiKey = s.ApiKey, SecretKey = s.SecretKey, BaseUrl = s.BaseUrl };
-});
-// iyzico istek sabitleri (locale/conversationId) — Options pattern, düz POCO inject.
-builder.Services.AddOptions<Payment.Api.Options.IyzicoRequestOptions>()
-    .BindConfiguration(nameof(Payment.Api.Options.IyzicoRequestOptions))
-    .ValidateDataAnnotations().ValidateOnStart();
-builder.Services.AddSingleton<Payment.Api.Options.IyzicoRequestOptions>(sp =>
-    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payment.Api.Options.IyzicoRequestOptions>>().Value);
+// 088: eski ödeme sağlayıcısı transport Options'ları SÖKÜLDÜ (transport engine gitti).
 
 // 041: hosted-CF ödeme ayarları (CallbackSecret secret → user-secrets; diğerleri appsettings). Options
 // pattern (BindConfiguration + Validate); handler düz POCO inject eder.
@@ -150,7 +94,7 @@ var apiVersionSet = app.NewApiVersionSet()
     .ReportApiVersions()
     .Build();
 
-// 041: hosted-CF ödeme yüzeyi (store başlat + iyzico callback + müşteri dönüş sayfası). Sürüm segmentsiz
+// 041: hosted ödeme yüzeyi (store başlat + sağlayıcı callback + müşteri dönüş sayfası). Sürüm segmentsiz
 // (dış store kontratı sabit yol — D11). Charge statü kapısı slice içinde (Active-only, fail-closed).
 app.AddHostedPaymentEndpointExtension();
 
