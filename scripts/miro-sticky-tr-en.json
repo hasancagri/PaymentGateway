@@ -1,0 +1,21 @@
+{
+  "Müşteri": "Customer",
+  "Müşteri linke dokunur": "Customer taps link",
+  "Hosted sayfa güven bağlamı": "Hosted page trust context",
+  "Banka 3DS init": "Bank 3DS init",
+  "Banka risk kararı": "Bank risk decision",
+  "Banka": "Bank",
+  "Policy": "Policy",
+  "StartPayment": "StartPayment",
+  "CreatePaymentLink": "CreatePaymentLink",
+  "PaymentLinkCreated": "PaymentLinkCreated",
+  "PaymentLink": "PaymentLink",
+  "PaymentLinkOpened": "PaymentLinkOpened",
+  "ConfirmPayment": "ConfirmPayment",
+  "3DSCompleted": "3DSCompleted",
+  "Authorize": "Authorize",
+  "PaymentAuthorized": "PaymentAuthorized",
+  "PaymentDeclined": "PaymentDeclined",
+  "PaymentSucceeded": "PaymentSucceeded",
+  "OrderPaid": "OrderPaid"
+}
