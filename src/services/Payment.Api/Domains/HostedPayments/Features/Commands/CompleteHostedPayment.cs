@@ -1,22 +1,20 @@
-using Iyz = Payment.Api.Utils;
-using Payment.Api.Options;
-
 namespace Payment.Api.Domains.HostedPayments.Features.Commands;
 
 /// <summary>
-/// 041 US2/US3: iyzico hosted form dönüşünü işler. Uç kimliksiz değil — session per-session secret
-/// <c>CallbackToken</c> ile bulunur (C1; bilinmeyen → SESSION_NOT_FOUND). Sonuç iyzico'dan BAĞIMSIZ CF
-/// retrieve ile TEYİT edilir (kaynak-of-truth; sahte gövde düşer). Terminal → tek-yön (FR-008); zaten
-/// terminal ise retrieve atlanır, store-bildirim aynı sonuçla tekrar publish edilir (idempotent). Terminal
-/// geçişte store'a imzalı bildirim [Transactional] outbox ile publish (FR-006/FR-009).
+/// 041 US2/US3 (088 Phase-0 iskelet): hosted form dönüşünü işler. Uç kimliksiz değil — session per-session
+/// secret <c>CallbackToken</c> ile bulunur (C1; bilinmeyen → SESSION_NOT_FOUND). Zaten terminal ise
+/// store-bildirim aynı sonuçla tekrar publish edilir (idempotent, FR-008). Terminal geçişte store'a imzalı
+/// bildirim [Transactional] outbox ile publish.
+/// <para><b>088 teardown:</b> sağlayıcı form retrieve (sonuç teyidi) SÖKÜLDÜ. Terminal-republish + imzalı
+/// store-callback akışı korunur; sağlayıcıdan sonuç teyidi Phase-1'de banka adapter'ı (İlke VII) ile
+/// bağlanır (o ana dek non-terminal dönüş PROVIDER_UNAVAILABLE).</para>
 /// </summary>
 public static class CompleteHostedPayment
 {
-    private const string SuccessPaymentStatus = "SUCCESS";
     private const string StatusSuccess = "Success";
     private const string StatusFailed = "Failed";
 
-    public record CompleteHostedPaymentCommand(string CallbackToken, string IyzicoToken);
+    public record CompleteHostedPaymentCommand(string CallbackToken, string ProviderToken);
 
     public class CompleteHostedPaymentResponse
     {
@@ -24,31 +22,11 @@ public static class CompleteHostedPayment
         public string Status { get; set; } = string.Empty; // Success / Failed
     }
 
-    // --- iyzico Checkout Form retrieve wire (slice-sahipli; camelCase JSON) ---
-
-    public class RetrieveCheckoutFormRequest
-    {
-        public string Locale { get; set; } = string.Empty;
-        public string ConversationId { get; set; } = string.Empty;
-        public string Token { get; set; } = string.Empty;
-    }
-
-    public class RetrieveCheckoutFormResult : Iyz.ProviderResourceV2
-    {
-        public string PaymentStatus { get; set; } = string.Empty;
-        public string PaymentId { get; set; } = string.Empty;
-        public string Price { get; set; } = string.Empty;
-        public string PaidPrice { get; set; } = string.Empty;
-        public string Currency { get; set; } = string.Empty;
-        public string FraudStatus { get; set; } = string.Empty;
-    }
-
     [Transactional]
     public class CompleteHostedPaymentCommandHandler
     {
         public async Task<FeatureObjectResultModel<CompleteHostedPaymentResponse>> Handle(
             CompleteHostedPaymentCommand cmd, IDocumentSession session, IMessageBus bus,
-            Iyz.ProviderOptions providerOptions, IyzicoRequestOptions requestOptions,
             ILogger<CompleteHostedPaymentCommandHandler> logger, CancellationToken ct)
         {
             // C1 secret-token kapısı: session yalnız geçerli CallbackToken ile bulunur.
@@ -61,47 +39,18 @@ public static class CompleteHostedPayment
                 { Code = HostedPaymentResourceConstants.SESSION_NOT_FOUND });
             }
 
-            // Zaten terminal (FR-008): retrieve ATLA, store-bildirim aynı sonuçla tekrar publish (idempotent).
+            // Zaten terminal (FR-008): store-bildirim aynı sonuçla tekrar publish (idempotent).
             if (hostedSession.IsTerminal)
             {
                 await PublishStoreCallback(hostedSession, bus);
                 return Terminal(hostedSession);
             }
 
-            RetrieveCheckoutFormResult iyzicoResult;
-            try
-            {
-                var conversationId = hostedSession.Id.ToString("N");
-                var request = new RetrieveCheckoutFormRequest
-                {
-                    Locale = requestOptions.Locale,
-                    ConversationId = conversationId,
-                    Token = cmd.IyzicoToken
-                };
-                var uri = providerOptions.BaseUrl + requestOptions.CheckoutFormRetrievePath;
-                var headers = Iyz.ProviderResourceV2.GetHttpHeadersWithRequestBody(request, uri, providerOptions, conversationId);
-                iyzicoResult = await Iyz.RestHttpClientV2.Create().PostAsync<RetrieveCheckoutFormResult>(uri, headers, request);
-            }
-            catch
-            {
-                // Sağlayıcı erişilemez → session Pending kalır, dönüş yeniden denenebilir (edge case).
-                return FeatureObjectResultModel<CompleteHostedPaymentResponse>.Error(new MessageItem
-                { Code = HostedPaymentResourceConstants.PROVIDER_UNAVAILABLE });
-            }
-
-            var succeeded = iyzicoResult is not null &&
-                iyzicoResult.Status == requestOptions.SuccessStatus &&
-                string.Equals(iyzicoResult.PaymentStatus, SuccessPaymentStatus, StringComparison.OrdinalIgnoreCase);
-
-            var transition = succeeded
-                ? hostedSession.MarkSucceeded(iyzicoResult!.PaymentId)
-                : hostedSession.MarkFailed(iyzicoResult?.ErrorCode ?? iyzicoResult?.PaymentStatus ?? StatusFailed);
-            if (!transition.IsSuccess)
-                return FeatureObjectResultModel<CompleteHostedPaymentResponse>.Error(transition.Messages);
-            session.Update(hostedSession);
-
-            await PublishStoreCallback(hostedSession, bus); // FR-006 imzalı bildirim (outbox → DB commit'te gider)
-            return Terminal(hostedSession);
+            // TODO Phase-1: banka adapter sonuç teyidi (eski sağlayıcı form retrieve) — session'ı
+            //   MarkSucceeded/MarkFailed ile terminal'e taşır, sonra PublishStoreCallback. O ana dek
+            //   non-terminal dönüş teyit edilemez → PROVIDER_UNAVAILABLE (session Pending kalır, retry'lenebilir).
+            return FeatureObjectResultModel<CompleteHostedPaymentResponse>.Error(new MessageItem
+            { Code = HostedPaymentResourceConstants.PROVIDER_UNAVAILABLE });
         }
 
         private static async Task PublishStoreCallback(HostedPaymentSession s, IMessageBus bus)

@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using Identity.Server.EventHandlers;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -22,7 +21,6 @@ public static class TokenEndpoint
     private static async Task<IResult> HandleAsync(
         HttpContext context,
         IOpenIddictScopeManager scopeManager,
-        IOpenIddictApplicationManager applicationManager,
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager)
     {
@@ -36,14 +34,6 @@ public static class TokenEndpoint
                 TokenValidationParameters.DefaultAuthenticationType, Claims.Name, Claims.Role);
 
             identity.SetClaim(Claims.Subject, request.ClientId);
-
-            // 012 (D6): merchant istemcilerinde application Properties'teki merchant_id access token'a
-            // claim olarak girer; statik istemcilerde (admin-ui) property yok → claim yok.
-            var application = await applicationManager.FindByClientIdAsync(request.ClientId!)
-                ?? throw new InvalidOperationException("İstemci kaydı bulunamadı.");
-            var properties = await applicationManager.GetPropertiesAsync(application);
-            if (properties.TryGetValue(MerchantClientEventHandler.MerchantIdProperty, out var merchantId))
-                identity.SetClaim(MerchantClientEventHandler.MerchantIdProperty, merchantId.GetString());
 
             identity.SetScopes(request.GetScopes());
 

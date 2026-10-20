@@ -25,7 +25,7 @@ Anayasa "her BC'nin domain süreci belgelenir" der; **nasıl**'ı budur:
 - **Dosya:** her BC kökünde tek `FLOW.md` (ör. `src/services/Payment.Api/FLOW.md`). Kod-yakını → az bayatlar.
 - **IDE görünürlüğü:** bu repo'da servis klasörü DÜZ (`.csproj` doğrudan BC kökünde, ECommerce'teki gibi
   bir alt `<Bc>.Api/` katmanı YOK) → FLOW.md zaten Solution Explorer'da görünür, linked-file hilesi
-  gerekmez. Non-.NET/altyapı worker'lar (ör. `Mail.Worker`) için de aynı — dosya proje kökünde durur.
+  gerekmez. Non-.NET/altyapı worker servisleri için de aynı — dosya proje kökünde durur.
 - **Altitude:** domain-önce, ubiquitous dille — "hangi iş adımı, hangi sırayla, hangi olayı doğurur".
   Teknoloji/class **dökümü değil**; class adı yalnız satır sonunda `(Aggregate.Metot → Event)` **kenar-
   anchor** (koda atlama). Satır numarası YOK (bayatlar).
@@ -96,7 +96,7 @@ Domains/<Aggregate>/
   belgesi). Taşınan yalnız süreç-glue'su (handler + mesajı).
 - **Süreç güdümlü dosya/sınıf adı = kaynağın adı + `Consumers`.** Kaynak = event/komutu yayınlayan BC
   ya da worker. `Saga/`'da kaynak = sağayı yöneten orchestrator; kökte (Saga/Process dışı, doğrudan
-  servis kökünde) kaynak = yayıncı BC (ör. `MerchantApiConsumers.cs`). **Bir dosya = bir kaynak** —
+  servis kökünde) kaynak = yayıncı BC (ör. `<YayinciBc>Consumers.cs`). **Bir dosya = bir kaynak** —
   aynı serviste birden fazla BC'den event geliyorsa kaynak başına ayrı dosya; dosya adından "bu nereden
   geliyor" cevaplanır, içerik açmaya gerek kalmaz. `Process/` bu kuralın dışı (kaynak başka BC/worker
   değil, BC'nin KENDİ dayanıklı süreci).
@@ -164,7 +164,7 @@ Domains/<Aggregate>/
 - **MCP yalnız agent tüketir.** Agent olmayan kod (servis/UI) imperatif `CallToolAsync` süremez →
   messaging/HTTP. MCP tool YALNIZ `Features/Agents/Commands|Queries/<X>` slice'ını çağırır (ince sarmalayıcı).
 - **Kontrol-düzlemi sır döndürmez (ADR `adr-mcp-control-plane-no-secret-return`).** MCP/REST tool + query
-  dönüşleri credential/sır İÇERMEZ; LLM yalnız opak tutamaç görür. Sır (ör. merchant credential) insana
+  dönüşleri credential/sır İÇERMEZ; LLM yalnız opak tutamaç görür. Sır (ör. banka credential) insana
   render EDİLMEZ — yalnız makine-handoff: S2S kayıt (bootstrap-key'li) + HMAC-imzalı dayanıklı callback
   (publisher ham gövde imzalar, tüketici aynı ham body'yi doğrular). Sır ASLA log/trace/dönüş DTO'sunda.
   Register-bootstrap ≠ per-kaynak sır ≠ callback-secret (ayrı ömür, ayrı rotate).

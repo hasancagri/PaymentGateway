@@ -12,26 +12,6 @@ public static class RabbitMqConstants
         public const string Exchange = "payment.failed";
     }
 
-    public static class MerchantLifecycle
-    {
-        public const string Exchange = "merchant.lifecycle";
-        public const string IdentityQueue = "identity.merchant-sync";
-        // 038: Payment BC statü referansı tüketimi (çekim statü kapısı — fail-closed).
-        public const string PaymentQueue = "payment.merchant-status";
-    }
-
-    // 013: komisyon grid-hazır fanout. Commission.Api yayınlar; Merchant.Api durable queue ile tüketir
-    // (Active koşulu #2 — MerchantCommissionGridReady).
-    public static class MerchantCommission
-    {
-        public const string Exchange = "merchant.commission";
-        public const string MerchantQueue = "merchant.commission-ready";
-    }
-
-    // 016: deterministik mail teslim fanout. BC'ler yayınlar; Mail.Worker durable queue ile tüketir (SMTP).
-    public static class MailDelivery
-    {
-        public const string Exchange = "mail.delivery";
-        public const string WorkerQueue = "mail.delivery-send";
-    }
+    // 088 teardown: MerchantLifecycle / MerchantCommission / MailDelivery fanout'ları SÖKÜLDÜ
+    // (Merchant/Commission BC + mail worker öldü).
 }

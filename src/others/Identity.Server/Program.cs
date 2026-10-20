@@ -4,7 +4,6 @@ using Identity.Server.Options;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Shared;
 using Wolverine;
 using Wolverine.RabbitMQ;
 
@@ -88,41 +87,23 @@ builder.Services.AddSingleton<Identity.Server.Options.BootstrapAdmin>(sp =>
 // Açılışta idempotent client + scope seed.
 builder.Services.AddHostedService<SeedHostedService>();
 
-// 013: aktivasyon Razor sayfası + Merchant.Api redeem istemcisi (service discovery: merchant-api).
+// G3: insan login/authorize Razor sayfaları (/Account/Login).
 builder.Services.AddRazorPages();
-// Merchant.Api'ye doğrudan (sabit port 5202) — service discovery DNS'ine bağlı kalma (aktivasyon
-// sayfası tek senkron redeem çağrısı). Config'ten override edilebilir.
-builder.Services.AddHttpClient<Identity.Server.Activation.MerchantActivationClient>(client =>
-    client.BaseAddress = new Uri(builder.Configuration["MerchantApi:BaseUrl"] ?? "http://localhost:5202"));
 
-// Aktivasyon istemcisi için Identity adresi POCO (runtime doğrudan IConfiguration okuması yasak; CLAUDE.md).
-builder.Services.AddOptions<IdentityOption>().BindConfiguration(nameof(IdentityOption))
-    .ValidateDataAnnotations().ValidateOnStart();
-builder.Services.AddSingleton<IdentityOption>(sp => sp.GetRequiredService<IOptions<IdentityOption>>().Value);
-
-// 012: merchant.lifecycle fanout tüketimi — Merchant BC olayları OpenIddict istemci kaydına
-// izdüşürülür (MerchantClientEventHandler). Message store YOK (D1): durable inbox kullanılamaz;
-// kuyruk RabbitMQ tarafında durable, handler idempotent → inline işleme (ack handler bitince) yeterli.
+// Mesajlaşma altyapısı — 088 teardown: merchant.lifecycle tüketimi (Merchant BC) SÖKÜLDÜ. Wolverine
+// kabuğu + rabbit bağlantısı, PaymentCompleted/PaymentFailed tüketicisi geldiğinde hazır durur.
 builder.Host.UseWolverine(opts =>
 {
     if (builder.Environment.IsDevelopment())
         opts.Durability.Mode = DurabilityMode.Solo;
 
-    var rabbit = opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
+    opts.UseRabbitMq(builder.Configuration.GetConnectionString("rabbitmq")!)
         .AutoProvision();
-
-    rabbit.DeclareExchange(RabbitMqConstants.MerchantLifecycle.Exchange,
-        e => { e.ExchangeType = ExchangeType.Fanout; });
-    rabbit.DeclareQueue(RabbitMqConstants.MerchantLifecycle.IdentityQueue);
-    rabbit.BindExchange(RabbitMqConstants.MerchantLifecycle.Exchange)
-        .ToQueue(RabbitMqConstants.MerchantLifecycle.IdentityQueue);
-
-    opts.ListenToRabbitQueue(RabbitMqConstants.MerchantLifecycle.IdentityQueue).ProcessInline();
 
     opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
 
-    // Handler parametreleri (IOpenIddictApplicationManager, ILogger) scoped container'dan
-    // service-location ile çözülür; Wolverine 6 default'u bunu yasaklıyor — bilinçli izin (warn'lı).
+    // Handler parametreleri scoped container'dan service-location ile çözülür; Wolverine 6
+    // default'u bunu yasaklıyor — bilinçli izin (warn'lı).
     opts.ServiceLocationPolicy = JasperFx.CodeGeneration.Model.ServiceLocationPolicy.AllowedButWarn;
 });
 
@@ -145,7 +126,7 @@ app.MapAuthorizeEndpoint();
 // Tek uç: /connect/token (OpenIddict passthrough ile ASP.NET Core'da işlenir).
 app.MapTokenEndpoint();
 
-// 013: aktivasyon sayfası (/activation).
+// G3: insan login/authorize Razor sayfaları.
 app.MapRazorPages();
 
 app.Run();

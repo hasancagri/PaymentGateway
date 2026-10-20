@@ -13,13 +13,7 @@ public class HostedPaymentOptions
     [Required]
     public required string CallbackSecret { get; set; }
 
-    /// <summary>C1: iyzico'ya verilen callback URL'inin MUTLAK tabanı (ör.
-    /// "https://.../internal/payments/callback"). Runtime `+ "/" + session.CallbackToken` eklenir —
-    /// per-session tahmin-edilemez sır uca beyan-edilen yetkiyi taşır (İlke V).</summary>
-    [Required]
-    public required string IyzicoCallbackBaseUrl { get; set; }
-
-    /// <summary>Müşteri dönüş sayfasının mutlak tabanı (ör. "https://.../payments/return"); iyzico
+    /// <summary>Müşteri dönüş sayfasının mutlak tabanı (ör. "https://.../payments/return"); sağlayıcı
     /// dönüşü işlendikten sonra tarayıcı `{taban}/{pgPaymentRef}`'e yönlendirilir (FR-010).</summary>
     [Required]
     public required string ReturnPageBaseUrl { get; set; }

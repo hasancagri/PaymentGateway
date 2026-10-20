@@ -21,7 +21,7 @@ jobs:
       - run: dotnet test --no-build
 
   # ───────────── ÜRETİM: yalnız master merge'inde image bas + ghcr'a it ─────────────
-  # needs: build-test (kapı) · if: yalnız master push · aspire do push → 6 servis image → ghcr.
+  # needs: build-test (kapı) · if: yalnız master push · aspire do push → yaşayan servis image → ghcr.
   image:
     needs: build-test
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -45,14 +45,14 @@ jobs:
       - name: ghcr login
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # Dockerfile'sız SDK container build + ghcr'a it → ghcr.io/hasancagri/paymentgateway/<servis> (6 image).
+      # Dockerfile'sız SDK container build + ghcr'a it → ghcr.io/hasancagri/paymentgateway/<servis>.
       - name: Image bas + ghcr'a it
         run: aspire do push --apphost src/aspire/AppHost/AppHost.csproj --non-interactive
 
       # CD kararlı tag: aspire-tag'li image'ları :latest'e retag + push (deploy rollout bunu çeker).
       - name: latest tag retag + push
         run: |
-          for svc in identity-server payment-api merchant-api commission-api mail-worker admin-web; do
+          for svc in identity-server payment-api gateway; do
             repo="ghcr.io/hasancagri/paymentgateway/$svc"
             src=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "^${repo}:aspire-deploy-" | head -1)
             if [ -n "$src" ]; then docker tag "$src" "$repo:latest" && docker push "$repo:latest"; fi

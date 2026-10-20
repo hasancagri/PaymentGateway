@@ -4,9 +4,9 @@ using Payment.Api.Constants;
 namespace Payment.Api.Domains.HostedPayments;
 
 /// <summary>
-/// 041: Bir hosted-CF ödeme denemesi (iyzico Checkout Form). Kart verisi TAŞIMAZ (yalnız iyzico'da).
+/// 041: Bir hosted ödeme denemesi (sağlayıcı hosted form). Kart verisi TAŞIMAZ (yalnız sağlayıcıda).
 /// Yaşam döngüsü: Start → Pending → (MarkSucceeded | MarkFailed) terminal. Terminal tek-yön (başarılı →
-/// başarılı kalır, FR-008). CallbackToken = kimliksiz iyzico-callback ucunun beyan-edilen yetkisi (C1).
+/// başarılı kalır, FR-008). CallbackToken = kimliksiz sağlayıcı-callback ucunun beyan-edilen yetkisi (C1).
 /// </summary>
 public class HostedPaymentSession : AggregateRoot
 {
@@ -48,7 +48,7 @@ public class HostedPaymentSession : AggregateRoot
         });
     }
 
-    /// <summary>CF initialize başarısından sonra iyzico token'ını + hosted sayfa URL'ini bağlar (yalnız
+    /// <summary>Form initialize başarısından sonra sağlayıcı token'ını + hosted sayfa URL'ini bağlar (yalnız
     /// Pending iken). HostedUrl saklanır → idempotent tekrar-başlatmada aynen döner.</summary>
     public ResultDomain AttachCheckoutForm(string checkoutFormToken, string hostedUrl)
     {

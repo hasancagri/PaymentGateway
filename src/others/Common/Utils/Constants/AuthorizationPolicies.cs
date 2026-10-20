@@ -16,9 +16,5 @@ public static class AuthorizationPolicies
     /// </summary>
     public const string AdminPlaneOnly = "admin-plane-only";
 
-    /// <summary>
-    /// 039: yapısal çekim/retrieve — X-Api-Key şeması ile kimliklenir (JWT değil), sonra MerchantScoped
-    /// gibi merchant_id claim'i == route {merchantId} zorunlu. ECom Order.Api server-to-server yolu.
-    /// </summary>
-    public const string MerchantApiKey = "merchant-api-key";
+    // 088 teardown: MerchantApiKey (X-Api-Key tenant policy) SÖKÜLDÜ — Payment.Api X-Api-Key zinciri gitti.
 }

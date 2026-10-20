@@ -1,82 +1,51 @@
 # Identity.Server — Domain Süreci
 
-**BC ne yapar:** Sistemin tek kimlik sağlayıcısıdır (OpenIddict). İnsan akışı yok — yalnız
-`client_credentials` (M2M) token verir; verirken **istemci türüne göre** (statik sistem istemcisi
-vs. merchant istemcisi) claim + scope demeti belirler; downstream servisler yalnız scope/claim görür.
+**BC ne yapar:** Sistemin iç makine (M2M) kimlik sağlayıcısıdır (OpenIddict). `client_credentials` token
+verir; istenen scope'lardan audience üretir; downstream servisler yalnız scope/claim görür. Sabit issuer
+`https://localhost:5101` (anayasa İlke V makine düzlemi).
+
+> **088 Phase-0 durumu:** Merchant/Commission BC + Admin BFF söküldü → merchant yaşam-döngüsü tüketimi,
+> merchant istemci upsert'i ve aktivasyon sayfası KALDIRILDI. Geriye saf M2M token ucu + scope/audience
+> üretimi kaldı. Statik seed istemci kalmadı; ölü istemciler store'dan prune edilir.
 
 > Domain-önce anlatı (EventStorming altitude). Sağdaki `(…)` = koda atlama köprüsü, süreç değil.
 > Süreç değişince (yeni/silinen adım-policy) bu dosya güncellenir; mekanik rename'i guard yakalar.
 
 ## Süreç
 
-1. **Açılışta statik istemciler + API scope'ları idempotent seed edilir**              `(SeedHostedService`
-   (admin-ui, identity-activation, ecommerce-onboarding);                               ` .StartAsync)`
-   yalnız `Config`'teki sabit liste dokunulur. **Sökülen client'lar store'dan da
-   SİLİNİR** (044/047: `RetiredClientIds` — payment-agent + merchant-agent + external-admin-agent;
-   ölü ama yetkili kimlik bırakılmaz, fail-closed).
-2. **Merchant.Api bir merchant onaylandığında `MerchantCreated` yayınlar**              `(MerchantClientEventHandler`
-   (044: TEK kaynak başvuru onayı — `AdminApproveRegistration` MCP tool'u);              ` .Handle(MerchantCreated))`
-   tüketici bunu OpenIddict istemci kaydına idempotent upsert eder — `ClientId`=
-   `MerchantId`, `ClientSecret`=`MerchantKey`, statüye göre izin demeti.
-3. **Merchant.Api statü değiştirdiğinde `MerchantStatusChanged` yayınlanır**             `(MerchantClientEventHandler`
-   (044: kaynak MCP statü tool'ları — activate/deactivate/suspend); tüketici              ` .Handle(MerchantStatusChanged))`
-   KAYDI SİLMEZ/SECRET'I DEĞİŞTİRMEZ — yalnız izin demetini statüye göre yeniden
-   yazar (`PopulateAsync` ile mevcut secret hash'i taşınır).
-4. **Merchant/sistem istemcisi `/connect/token`'a `client_credentials` ile gelir.**     `(TokenEndpoint.HandleAsync)`
-   OpenIddict grant/secret/scope'u zaten doğrulamıştır — buraya yalnız geçerli istek düşer.
-5. **`sub` = `ClientId`; istemci merchant ise application `Properties`'teki**            `(TokenEndpoint.HandleAsync)`
-   `merchant_id` access token'a claim olarak eklenir (statik istemcilerde property
-   yok → claim yok — bu ayrım downstream'de admin-düzlemi/merchant-düzlemi ayrımını kurar).
-6. **İstenen scope'lardan `ListResourcesAsync` ile `aud` (audience) üretilir**           `(TokenEndpoint.HandleAsync)`
-   (`ScopeResources` haritası); servislerin `ValidateAudience`'ı bunu arar.
-7. **Access token üretilirken `scope` claim'i tek boşluk-ayrık string yerine**           `(ScopeClaimArrayHandler`
-   JSON dizisine çevrilir (RFC 9068 vs. servislerin `RequireClaim("scope", x)`             ` .HandleAsync)`
-   tek-tek arama beklentisi arasındaki uyumsuzluk — **TUZAK**, aşağıda ayrı madde).
-8. **Token 15 dakika ömürle imzalanıp döner** — self-contained JWT'de anlık iptal          `(Program.cs`
-   yok; askıya alınan/pasifleşen merchant en geç bu sürede düşer.                          ` SetAccessTokenLifetime)`
-9. *(Tarihsel/ölü yol — bkz. Sınır)* aktivasyon sayfası + `MerchantProvisioned` tüketicisi kodda
-   durur ama hiçbir yayıncı `MerchantProvisioned` üretmiyor; 013'ün Provisioning zinciri 023'te söküldü.
+1. **Açılışta API scope'ları idempotent seed edilir** (`payment.read` / `payment.write`); yalnız
+   `Config`'teki sabit scope listesine dokunulur `(SeedHostedService.StartAsync)`.
+2. **Ölü istemciler store'dan silinir.** Seed listesinden çıkarılan kimlikler (`RetiredClientIds` —
+   eski agent + admin-ui + aktivasyon + onboarding istemcileri) store'dan kalıcı silinir; ölü ama yetkili
+   kimlik bırakılmaz (fail-closed).
+3. **Bootstrap admin (opsiyonel) idempotent seed edilir** — yalnız config doluysa VE kullanıcı yoksa
+   oluşturulur (`BootstrapAdmin`); insan login yolu (`/Account/Login`) RBAC zemini için durur.
+4. **İstemci `/connect/token`'a `client_credentials` ile gelir.** OpenIddict grant/secret/scope'u zaten
+   doğrulamıştır — buraya yalnız geçerli istek düşer `(TokenEndpoint.HandleAsync)`.
+5. **`sub` = `ClientId`; istenen scope'lar token'a yazılır** `(TokenEndpoint.HandleAsync)`.
+6. **İstenen scope'lardan `ListResourcesAsync` ile `aud` (audience) üretilir** (`ScopeResources` haritası);
+   servislerin `ValidateAudience`'ı bunu arar `(TokenEndpoint.HandleAsync)`.
+7. **Access token üretilirken `scope` claim'i JSON dizisine çevrilir** — servislerin `RequireClaim("scope", x)`
+   tek-tek arama beklentisiyle uyum için (TUZAK, aşağıda) `(ScopeClaimArrayHandler.HandleAsync)`.
+8. **Token 15 dakika ömürle imzalanıp döner** — self-contained JWT'de anlık iptal yok `(Program.cs
+   SetAccessTokenLifetime)`.
 
 ## Domain kuralları (süreci yöneten değişmezler)
 
-- **İki istemci düzlemi, tek token ucu.** Statik sistem istemcileri (admin-ui, identity-activation,
-  ecommerce-onboarding) `Config`'te sabit seed edilir ve
-  `merchant_id` claim'i TAŞIMAZ; merchant istemcileri (`ClientId`=`MerchantId`) yalnız Merchant.Api
-  event'leriyle çalışma anında yaratılır/güncellenir (`MerchantClientEventHandler`) ve claim taşır.
-  Downstream `AdminPlaneOnlyRequirement`/`MerchantScopeRequirement` bu claim'in varlığına göre ayrışır.
-- **Rol = statü + scope demeti, kayıt/secret'tan bağımsız.** `MerchantStatusChanged` yalnız
-  `Permissions` kümesini yeniden yazar (`AddMerchantPermissions`); `ClientId`/`ClientSecret` hash'i
-  DEĞİŞMEZ (`PopulateAsync` taşır). Bugünkü tek statü ayrımı: **Active** → tam demet (`merchant.read`,
-  `merchant.write`, `cards.write`, `payment.charge`); **Active olmayan** (Passive/Suspended) →
-  `GrantsToken` false, `Permissions` boşalır → token isteği `unauthorized_client` ile reddedilir.
-- **`payment.write` hiçbir statüde merchant'a verilmez** (yalnız `admin-ui` gibi statik
-  istemcilerin scope'unda; ölü `payment-agent` seed'i 044'te silindi) — merchant kendi
-  çekim-dışı ödeme yazma yetkisine sahip olamaz.
-- **Scope → audience eşlemesi merkezi.** `Config.ScopeResources` her API scope'unu tek bir
-  kaynağın (`payment.api`/`merchant.api`/`commission.api`) audience'ına bağlar; yeni scope eklenince
-  buraya + ilgili istemcinin `Scopes` listesine eklenir (`SeedHostedService` idempotent upsert eder).
-- **`merchant.admin` capability scope (043/044).** Merchant.Api'nin admin MCP tool'larını
-  tool-bazlı korur (`cards.write`/`payment.charge` deseni); YALNIZ `admin-ui` `Scopes` listesinde
-  (dış admin MCP kimliği 047'de AgentPlatform IdP'ye taşındı) — `ecommerce-onboarding`
-  (submit_registration'ı çağıran sistem istemcisi) bu scope'u ALMAZ, admin/sistem ayrımının temeli budur.
-  Commission yazma tool'ları için ayrı admin scope üretilmedi — mevcut `commission.write`
-  yeterli ayrım (044 R4: onu taşıyan tek canlı istemci admin düzlemi).
-- **TUZAK (`ScopeClaimArrayHandler`).** `context.TokenType` URN'dir (`TokenTypeIdentifiers.AccessToken`),
-  kısa hint (`TokenTypeHints`) DEĞİL; hint'le kıyaslarsan handler no-op kalır → scope tek string
-  kalır → servislerin `RequireClaim("scope", x)` tek-tek arayışı sessizce 403 üretir (029'da canlı
-  yaşanan tuzak). Yalnız ACCESS TOKEN'a dokunur, diğer token türleri etkilenmez.
-- **Event tüketimi idempotent, message store yok.** `MerchantCreated`/`MerchantStatusChanged` inline
-  işlenir (`ProcessInline`); aynı olay N kez teslim edilse OpenIddict istemci kaydı aynı sonuca gelir
-  (create-or-update deseni) — durable inbox yerine bu idempotency tek güvence.
+- **Yalnız makine düzlemi (client_credentials).** İnsan OAuth akışı yok; `/Account/Login` sayfası durur
+  ama token ucu yalnız M2M verir. (Store→gateway ödeme yetkisi AYRI otoritede — AgentPlatform platform
+  IdP; bu sunucu değil, anayasa İlke V.)
+- **Scope → audience eşlemesi merkezi.** `ScopeResources` her API scope'unu bir kaynağın audience'ına
+  bağlar; yeni scope buraya + ilgili istemcinin scope listesine eklenir (`SeedHostedService` idempotent upsert).
+- **Ölü kimlik fail-closed silinir.** `RetiredClientIds`'teki her id açılışta store'dan silinir — seed
+  create/update'li olduğundan liste-dışı kalmak yetmez (kayıt durursa token almaya devam ederdi).
+- **TUZAK (`ScopeClaimArrayHandler`).** `scope` claim'i JSON dizisidir; tek-string bırakılırsa servislerin
+  `RequireClaim("scope", x)` arayışı sessizce 403 üretir. Yalnız ACCESS TOKEN'a dokunur (029'da canlı
+  yaşanan tuzak) — dokunma.
 
 ## Sınır (bu BC'nin dokunmadığı)
 
-Merchant/ödeme/komisyon iş mantığı yok — yalnız kimlik doğrulama + token'a claim/scope basma. Kendi
-kullanıcı deposu (`ApplicationUser`/Identity) kurulu ama **hiç kullanıcı seed edilmiyor, insan login
-akışı yok** (yalnız client_credentials). `Activation/MerchantActivationClient.cs` +
-`Pages/Activation/Index.cshtml.cs` + `MerchantProvisioned` tüketicisi (`MerchantClientEventHandler
-.Handle(MerchantProvisioned)`) kodda duruyor ama **013'ün Provisioning/aktivasyon-bileti zinciri 023
-ile söküldü** (`MerchantStatus` artık yalnız Active/Passive/Suspended — Provisioning değeri yok, hiçbir
-yayıncı `MerchantProvisioned` üretmiyor, `Merchant.Api`'de `/api/v1/merchants/activation/redeem` ucu
-yok) — bu yol fiilen ölü, yeniden canlanırsa ayrı spec bekliyor (bkz. `specs/023-merchant-submerchant-model/spec.md`
-Assumptions). Merchant istemci kaydını SİLMEZ (yalnız izin demetini boşaltır) — kalıcı silme yok.
+Ödeme/merchant/komisyon iş mantığı yok — yalnız kimlik doğrulama + token'a scope/audience basma. Kendi
+kullanıcı deposu (`ApplicationUser` / Identity) kurulu; şirket-içi tek SSO'ya evrilmesi ayrı tasarım
+oturumuna bırakıldı (constitution deferred TODO). 088 ile merchant yaşam-döngüsü tüketimi, merchant istemci
+senkronu ve aktivasyon sayfası söküldü — bu yollar fiilen yok.
