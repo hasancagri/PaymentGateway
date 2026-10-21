@@ -1,0 +1,7 @@
+[
+  { "Bin": "411111", "IssuerBankCode": "MAVIBANK", "Scheme": "Visa", "CardType": "credit" },
+  { "Bin": "454360", "IssuerBankCode": "SARIBANK", "Scheme": "Visa", "CardType": "credit" },
+  { "Bin": "400000", "IssuerBankCode": "MAVIBANK", "Scheme": "Visa", "CardType": "credit" },
+  { "Bin": "979200", "IssuerBankCode": "SARIBANK", "Scheme": "Troy", "CardType": "debit" },
+  { "Bin": "520000", "IssuerBankCode": "TURUNCUBANK", "Scheme": "Mastercard", "CardType": "credit" }
+]

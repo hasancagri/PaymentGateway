@@ -42,6 +42,14 @@ adapter'ı ile otorize edilir, sonuç store'a imzalı webhook'la bildirilir.
 17. 🟪 **Policy** — kesin onay SOHBETE döner: müşteri Claude'a dönüp "ödemem geçti mi?" dediğinde agent
     PG'nin **durum-sorgu ucuna** bakar (tarayıcıya değil), webhook-teyitli "onaylandı" der → **gerçek kapanış** _(planned)_
 
+## Ödeme modeli (3DS / NonSecure) — banka dilimine, karar verildi
+
+- 🟪 Policy — hosted sayfada ödeme-modeli seçimi: "3DS ile öde" opsiyon; **seçilmezse varsayılan 3DS**
+  (güvenli; liability issuer'a; NonSecure opt-in). Seçen = **kart sahibi/müşteri** (hosted sayfada). _(planned, banka dilimi)_
+- 🟨 PaymentLink/Attempt alanı: `paymentModel ∈ {NonSecure, 3DSecure}` _(planned, banka dilimi)_
+- 🟥 Hotspot (closed: varsayılan 3DS) — NonSecure default liability shift yok + TR'de kısıtlı olabilir → varsayılan 3DS seçildi.
+- **089 DIŞI:** ödeme-modeli seçimi + icra banka dilimine ait (simülatör gerekir); 089'da "Öde" = PROVIDER_UNAVAILABLE stub.
+
 ## Red / belirsizlik (Ders 16 taksonomisi)
 
 - 🟪 **Normalize red taksonomisi** — adapter ResponseMapper banka kodunu çevirir (İLKE VII anti-corruption):
