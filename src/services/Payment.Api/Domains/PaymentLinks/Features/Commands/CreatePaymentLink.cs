@@ -1,4 +1,3 @@
-using Payment.Api.Options;
 using System.Security.Cryptography;
 using Payment.Api.Domains.PaymentLinks;
 

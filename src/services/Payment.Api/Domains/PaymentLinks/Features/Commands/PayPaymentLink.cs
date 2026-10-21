@@ -1,4 +1,3 @@
-using Payment.Api.Options;
 using Payment.Api.Domains.BinCards;
 using Payment.Api.Domains.PaymentLinks;
 using Payment.Api.Domains.PaymentLinks.BankCharge;

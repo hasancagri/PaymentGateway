@@ -1,4 +1,3 @@
-using Payment.Api.Options;
 using Payment.Api.Domains.PaymentLinks.BankCharge;
 
 namespace Payment.Api.Domains.PaymentLinks.Features.Commands;

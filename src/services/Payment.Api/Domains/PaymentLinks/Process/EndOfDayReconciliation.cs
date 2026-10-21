@@ -1,4 +1,3 @@
-using Payment.Api.Options;
 namespace Payment.Api.Domains.PaymentLinks.Process;
 
 /// <summary>
