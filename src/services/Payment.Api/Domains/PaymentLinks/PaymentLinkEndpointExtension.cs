@@ -24,7 +24,7 @@ public static class PaymentLinkEndpointExtension
             })
             .WithName("CreatePaymentLink")
             .WithTags("payment-links")
-            .RequireAuthorization(AuthorizationScopes.PaymentWrite);
+            .RequireAuthorization(AuthorizationPolicies.StoreApiKey);
 
         // (2) Müşteri → PG: linki aç + güven bağlamı (kart formundan ÖNCE). Anonim, gizli token kapılı.
         app.MapGet("/payment-links/{openToken}", async (
@@ -105,7 +105,7 @@ public static class PaymentLinkEndpointExtension
             })
             .WithName("CancelPaymentLink")
             .WithTags("payment-links")
-            .RequireAuthorization(AuthorizationScopes.PaymentWrite);
+            .RequireAuthorization(AuthorizationPolicies.StoreApiKey);
 
         // (5) Store → PG: iptal (Void, gün sonu öncesi). Bankaya VoidAsync. payment.write.
         app.MapPost("/payment-links/{pgPaymentRef}/void", async (string pgPaymentRef, IMessageBus bus) =>
@@ -115,7 +115,7 @@ public static class PaymentLinkEndpointExtension
                 var code = result.Messages?.FirstOrDefault()?.Code;
                 return code == PaymentLinkResourceConstants.LINK_NOT_FOUND ? Results.NotFound() : Results.BadRequest(result);
             })
-            .WithTags("payment-links").RequireAuthorization(AuthorizationScopes.PaymentWrite);
+            .WithTags("payment-links").RequireAuthorization(AuthorizationPolicies.StoreApiKey);
 
         // (6) Store → PG: iade (Refund, gün sonu sonrası, kısmi). Bankaya RefundAsync. payment.write.
         app.MapPost("/payment-links/{pgPaymentRef}/refund", async (string pgPaymentRef, [FromBody] RefundBody body, IMessageBus bus) =>
@@ -125,7 +125,7 @@ public static class PaymentLinkEndpointExtension
                 var code = result.Messages?.FirstOrDefault()?.Code;
                 return code == PaymentLinkResourceConstants.LINK_NOT_FOUND ? Results.NotFound() : Results.BadRequest(result);
             })
-            .WithTags("payment-links").RequireAuthorization(AuthorizationScopes.PaymentWrite);
+            .WithTags("payment-links").RequireAuthorization(AuthorizationPolicies.StoreApiKey);
 
         // (7) Store → PG: durum sorgu (banka otorite; in-doubt sonrası kesin cevap). payment.read.
         app.MapGet("/payment-links/{pgPaymentRef}/status", async (string pgPaymentRef, IMessageBus bus) =>
@@ -134,7 +134,7 @@ public static class PaymentLinkEndpointExtension
                     new QueryPaymentStatus.Query(pgPaymentRef));
                 return result.IsSuccess ? Results.Ok(result.Data) : Results.NotFound();
             })
-            .WithTags("payment-links").RequireAuthorization(AuthorizationScopes.PaymentRead);
+            .WithTags("payment-links").RequireAuthorization(AuthorizationPolicies.StoreApiKey);
 
         // (8) Ops → PG: gün-sonu mutabakatı tetikle (günlük cron çağırır). Mesaj Wolverine outbox'ında dayanıklı
         // → gerçek iş Process handler'da (banka operasyon-API pull + PG Paid karşılaştırma). GEÇİCİ payment.write.
@@ -143,7 +143,7 @@ public static class PaymentLinkEndpointExtension
                 await bus.PublishAsync(new Process.EndOfDayReconciliation.Run(DateTime.UtcNow));
                 return Results.Accepted();
             })
-            .WithTags("payment-links").RequireAuthorization(AuthorizationScopes.PaymentWrite);
+            .WithTags("payment-links").RequireAuthorization(AuthorizationPolicies.StoreApiKey);
     }
 
     // Store ödeme linki üretme gövdesi (contracts/pg-payment-link.md §1). MerchantId gövdede (GEÇİCİ — İlke V).

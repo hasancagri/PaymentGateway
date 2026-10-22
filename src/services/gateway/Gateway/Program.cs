@@ -9,24 +9,14 @@ builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
     .AddServiceDiscoveryDestinationResolver();
 
-
-builder.Services.AddAuthenticationAndAuthorizationExtension(builder.Configuration);
-
-// YARP route'lari iki policy adi istiyor (appsettings.Development.json -> AuthorizationPolicy):
-//   ClientCredential = uygulama token'i (catalog/file), Password = kullanici token'i (basket/order/...).
-// Simdilik ikisi de yalnizca gecerli (authenticated) bir token sart kosuyor; grant-tipine gore
-// ayristirma ertelenmis auth isine ait (bkz. dummy/deferred auth modeli).
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("ClientCredential", policy => policy.RequireAuthenticatedUser());
-    options.AddPolicy("Password", policy => policy.RequireAuthenticatedUser());
-});
-
+// Kimlik birleşimi (2026-10-22): PG kendi IdP'sini bıraktı → Gateway JWT auth + policy'leri SÖKÜLDÜ.
+// Gateway salt pass-through proxy; auth enforcement downstream'de (Payment.Api = API key). X-Api-Key
+// header'ı YARP tarafından olduğu gibi iletilir. (Gateway bugün AppHost/k8s'te wire DEĞİL — dormant.)
+// NOT: appsettings ReverseProxy route'larındaki AuthorizationPolicy referansları dormant; Gateway
+// canlıya alınırsa route-policy temizliği + downstream key iletimi ayrı ele alınır.
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 app.MapReverseProxy();
 app.MapGet("/", () => "YARP (Gateway)");
-app.UseAuthentication();
-app.UseAuthorization();
 await app.RunAsync();

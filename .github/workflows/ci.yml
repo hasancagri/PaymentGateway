@@ -62,7 +62,7 @@ jobs:
       # CD kararlı tag: aspire-tag'li image'ları :latest'e retag + push (deploy rollout bunu çeker).
       - name: latest tag retag + push
         run: |
-          for svc in identity-server payment-api gateway; do
+          for svc in payment-api gateway; do
             repo="ghcr.io/hasancagri/paymentgateway/$svc"
             src=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "^${repo}:aspire-deploy-" | head -1)
             if [ -n "$src" ]; then docker tag "$src" "$repo:latest" && docker push "$repo:latest"; fi

@@ -78,13 +78,11 @@ builder.Services.AddApiVersioning(options =>
     options.ApiVersionReader = new UrlSegmentApiVersionReader();
 });
 
-// 011: JWT bearer (Identity.Server JWKS) + scope policy'leri; endpoint'ler policy'yi açıkça beyan eder.
-// 088: cards.write + payment.charge (kart-vault/charge) SÖKÜLDÜ; X-Api-Key + MerchantApiKey/
-// HostedPaymentApiKey merchant policy zinciri SÖKÜLDÜ (Merchant BC öldü). payment.* JWT scope kalır.
-builder.Services.AddAuthenticationAndAuthorizationExtension(
-    builder.Configuration,
-    AuthorizationScopes.PaymentRead,
-    AuthorizationScopes.PaymentWrite);
+// Kimlik birleşimi (2026-10-22): PG kendi OpenIddict IdP'sini BIRAKTI. EC→PG dış çağrı = paylaşılan
+// API key (X-Api-Key, secret-store) → hafif ApiKeyAuthenticationHandler ("store-api-key" policy).
+// Müşteri yüzeyi anonim (İlke V), banka ShopCode/UserPass (protokol rayı). Gelecek operatör/MCP/ops JWT
+// yüzeyi için AgentPlatform IdP seam'i Common'da (AddPlatformMcpAuthentication/PlatformIdentityOption).
+builder.Services.AddStoreApiKeyAuthentication(builder.Configuration);
 
 builder.Services.AddGlobalExceptionHandler();
 builder.Services.AddAllDependencies();

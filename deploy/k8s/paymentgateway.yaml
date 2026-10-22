@@ -1,6 +1,6 @@
-# PaymentGateway k8s — ns pg + Postgres(2 DB) + RabbitMQ + yaşayan servisler (identity-server, payment-api).
-# ÖĞRENME/DEV: ephemeral PG, Identity.Server issuer https://localhost:5101 HARDCODED (http:8080 dinler,
-# boot geçer), PaymentLink/Auth = placeholder (gerçek ödeme/auth ingress+TLS+gerçek sır ister).
+# PaymentGateway k8s — ns pg + Postgres(1 DB) + RabbitMQ + payment-api (tek yaşayan servis).
+# ÖĞRENME/DEV: ephemeral PG. Kimlik birleşimi: PG kendi IdP'sini BIRAKTI (EC→PG = API key); identity-server
+# SÖKÜLDÜ. PaymentLink/key = placeholder (gerçek canlı: ingress+TLS+gerçek sır ister).
 # Bir-kerelik: ghcr-pull (kopyalandı) + DEPLOY_SSH_KEY (kuruldu) + GHCR_PAT repo secret (kullanıcı).
 ---
 apiVersion: v1
@@ -13,7 +13,6 @@ metadata: { name: postgres-init, namespace: pg }
 data:
   init.sql: |
     CREATE DATABASE "paymentDb";
-    CREATE DATABASE "identityDb";
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -62,31 +61,6 @@ spec:
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: identity-server, namespace: pg }
-spec:
-  replicas: 1
-  selector: { matchLabels: { app: identity-server } }
-  template:
-    metadata: { labels: { app: identity-server } }
-    spec:
-      imagePullSecrets: [ { name: ghcr-pull } ]
-      containers:
-        - name: identity-server
-          image: ghcr.io/hasancagri/paymentgateway/identity-server:latest
-          imagePullPolicy: Always
-          ports: [ { containerPort: 8080 } ]
-          env:
-            - { name: ASPNETCORE_URLS, value: "http://+:8080" }
-            - { name: "ConnectionStrings__identityDb", value: "Host=postgres;Port=5432;Username=postgres;Password=PgwPg2026;Database=identityDb" }
-            - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
----
-apiVersion: v1
-kind: Service
-metadata: { name: identity-server, namespace: pg }
-spec: { selector: { app: identity-server }, ports: [ { port: 8080, targetPort: 8080 } ] }
----
-apiVersion: apps/v1
-kind: Deployment
 metadata: { name: payment-api, namespace: pg }
 spec:
   replicas: 1
@@ -104,9 +78,9 @@ spec:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
             - { name: "ConnectionStrings__paymentDb", value: "Host=postgres;Port=5432;Username=postgres;Password=PgwPg2026;Database=paymentDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            - { name: "IdentityOption__Address", value: "http://identity-server:8080" }
-            - { name: "IdentityOption__Issuer", value: "https://localhost:5101" }
-            - { name: "IdentityOption__Audience", value: "payment.api" }
+            # Kimlik birleşimi: PG IdP söküldü. EC→PG = API key (StoreApiKeyOptions.ExpectedKey required/
+            # ValidateOnStart → placeholder; gerçek canlı: secret-store). IdentityOption__* kaldırıldı.
+            - { name: "StoreApiKeyOptions__ExpectedKey", value: "dummy-store-api-key" }
             # 088/089/090: HostedPaymentOptions SÖKÜLDÜ → PaymentLinkOptions + StoreCallbackOptions (required,
             # ValidateOnStart). LinkBaseUrl/TrustPageTitle/TrustPageIntro + CallbackUrl/CallbackSecret zorunlu →
             # eksikse pod crashloop. Değerler placeholder (gerçek canlı: ingress/TLS + gerçek sır). PosAccount/

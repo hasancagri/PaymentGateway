@@ -20,32 +20,18 @@ var rabbit = builder.AddRabbitMQ("rabbitmq")
     .WithLifetime(ContainerLifetime.Persistent);
 
 var paymentDb = postgres.AddDatabase("paymentDb");
-var identityDb = postgres.AddDatabase("identityDb");
 
-// 011: OpenIddict IdP — sabit https://localhost:5101 (launchSettings https profili; issuer birebir).
-// BC API'leri token'ı JWKS ile doğrular; makine client_credentials token'ı buradan alır.
-var identityServer = builder.AddProject<Projects.Identity_Server>("identity-server", launchProfileName: "https")
-    .WithReference(identityDb)
-    .WithReference(rabbit)
-    .WaitFor(identityDb)
-    .WaitFor(rabbit);
-
+// Kimlik birleşimi (2026-10-22): PG kendi OpenIddict IdP'sini BIRAKTI. EC→PG = paylaşılan API key;
+// gelecek operatör/MCP/ops JWT yüzeyi için AgentPlatform IdP (PlatformIdentityOption seam). identity-server
+// resource + identityDb SÖKÜLDÜ — PG artık tek başına (dev-time IdP bağımlılığı yok).
 var paymentApi = builder.AddProject<Projects.Payment_Api>("payment-api")
     .WithReference(paymentDb)
     .WithReference(rabbit)
-    .WithReference(identityServer)
     .WaitFor(paymentDb)
-    .WaitFor(rabbit)
-    .WaitFor(identityServer);
+    .WaitFor(rabbit);
 
-// Yaşayan deploy edilebilir servisleri ghcr'a bağla. `aspire do push` image'lerini basıp
-// ghcr.io/hasancagri/paymentgateway/<servis>'e iter. Altyapı (postgres/rabbit) public → girmez.
-foreach (var svc in new[]
-{
-    identityServer, paymentApi
-})
-{
-    svc.WithContainerRegistry(ghcr);
-}
+// Yaşayan deploy edilebilir servisi ghcr'a bağla. `aspire do push` image'ini basıp
+// ghcr.io/hasancagri/paymentgateway/payment-api'ye iter. Altyapı (postgres/rabbit) public → girmez.
+paymentApi.WithContainerRegistry(ghcr);
 
 builder.Build().Run();
