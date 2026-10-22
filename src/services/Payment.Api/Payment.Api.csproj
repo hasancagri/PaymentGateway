@@ -23,6 +23,12 @@
     </ItemGroup>
 
     <ItemGroup>
+      <!-- 090: BinCard statik seed (startup'ta BinCardSeeder embedded resource olarak okur). -->
+      <Content Remove="Domains/BinCards/bin-seed.json" />
+      <EmbeddedResource Include="Domains/BinCards/bin-seed.json" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\..\aspire\ServiceDefaults\ServiceDefaults.csproj" />
       <ProjectReference Include="..\..\others\Common\Common.csproj" />
       <ProjectReference Include="..\..\others\Shared\Shared.csproj" />

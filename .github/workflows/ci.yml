@@ -8,6 +8,16 @@ on:
   pull_request:
 
 jobs:
+  # ───────────── GUARD: repo invariant'ları (spec yolları + FLOW.md anchor'ları) ─────────────
+  # check-claude-spec-links: CLAUDE.md specs/NNN-* yolları var mı. check-flow-links: FLOW.md anchor
+  # tip adları kodda hâlâ mevcut mu (İLKE VII/IX drift). bash ile çağrılır → executable bit gerekmez.
+  guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/check-claude-spec-links.sh
+      - run: bash scripts/check-flow-links.sh
+
   # ───────────── KAPI: her PR + her master push'ta derle + test ─────────────
   # Platform.Auth bağımlılığı YOK (kendi Identity.Server'ı) → ek feed/auth gerekmez, düz nuget.org.
   build-test:
@@ -23,7 +33,7 @@ jobs:
   # ───────────── ÜRETİM: yalnız master merge'inde image bas + ghcr'a it ─────────────
   # needs: build-test (kapı) · if: yalnız master push · aspire do push → yaşayan servis image → ghcr.
   image:
-    needs: build-test
+    needs: [build-test, guards]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
@@ -52,7 +62,7 @@ jobs:
       # CD kararlı tag: aspire-tag'li image'ları :latest'e retag + push (deploy rollout bunu çeker).
       - name: latest tag retag + push
         run: |
-          for svc in identity-server payment-api gateway; do
+          for svc in payment-api gateway; do
             repo="ghcr.io/hasancagri/paymentgateway/$svc"
             src=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "^${repo}:aspire-deploy-" | head -1)
             if [ -n "$src" ]; then docker tag "$src" "$repo:latest" && docker push "$repo:latest"; fi

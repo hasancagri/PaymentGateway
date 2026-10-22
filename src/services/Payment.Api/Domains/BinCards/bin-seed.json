@@ -1,0 +1,2372 @@
+[
+  {
+    "Bin": "223380",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "374421",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "374422",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "374423",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "374424",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "374425",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "374426",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "374427",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "374428",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "375622",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "375623",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "375624",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "375625",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "375626",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "375627",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "375628",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "375629",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "375631",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "377137",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "377140",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "377142",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "377143",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "377596",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "377597",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "377598",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "377599",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "378332",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "378485",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "379369",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "379370",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "379371",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "American Express",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "400000",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "401071",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "401622",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "401738",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "403280",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "403666",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "403998",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "404308",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "404809",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "405051",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "405090",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "406281",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "406456",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "406665",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "406666",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "409021",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "409022",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "409219",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "410141",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "411111",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "413382",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "413836",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "414291",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "414391",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "414392",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "416508",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "416509",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "416510",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "416512",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "416513",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "418342",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "418343",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "418344",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "418345",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "420342",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "420343",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "420344",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "420556",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "420557",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "423400",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423401",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423402",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423403",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423404",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423405",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423406",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423407",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423408",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423409",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423410",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423411",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423412",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423413",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423414",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423415",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423416",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423417",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423418",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423419",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423422",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423423",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423424",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423425",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "423430",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "423431",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "423432",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "423433",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "423434",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "423435",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "423436",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "423437",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "423455",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "426886",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "426887",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "426888",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "427314",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "427315",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "428220",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "428221",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "432154",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "432951",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "432952",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "432953",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "432954",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "434728",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "434742",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "434839",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "435446",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "438331",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "441075",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "441076",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "441077",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "442106",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "446212",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "448472",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "450634",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "450803",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "450927",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "454314",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "454318",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "454358",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "454359",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "454360",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "455359",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "455360",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "456507",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "460925",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "462274",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "467293",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "467295",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "473130",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "473956",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "473957",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "473998",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "474123",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "474138",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "474151",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "474215",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "474301",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "474302",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "474308",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "474340",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "474500",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "474508",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "474528",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "476625",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "476626",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "477959",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "479610",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "479612",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "479620",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "479660",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "479661",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "479662",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "479682",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "479794",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "479795",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "482489",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "482490",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "482491",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "483602",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "486567",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "487074",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "487075",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "489375",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "489455",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "489477",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "489478",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "489479",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "490175",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "490983",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "491205",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "491206",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "492128",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "492129",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "492130",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "492131",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "492186",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "492187",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "492193",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "493845",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "494314",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "499956",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "499958",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Visa",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "510054",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "510152",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "514915",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "516657",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "516888",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "516943",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "516961",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "517040",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "517041",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "517042",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "517048",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "517049",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "520000",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "520068",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "520097",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "520653",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "520922",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "520940",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "520988",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "521081",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "521400",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "521824",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "521825",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "522204",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "523034",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "524433",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "524659",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "525382",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "525864",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "526955",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "528653",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "528939",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "528956",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "533169",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "533253",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "533803",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "533913",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "534261",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "534653",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "535279",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "535429",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "535435",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "535488",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "535493",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "535514",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "535601",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "535602",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "536836",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "536837",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "537224",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "537226",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "537227",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "537475",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "537518",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "537548",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "537567",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "537829",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "537833",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "538121",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "538124",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "538139",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "538196",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "540036",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "540037",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "540061",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "540062",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "540063",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "540118",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "540122",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "540129",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "540667",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "540668",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "540669",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "540709",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "541440",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "541762",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "541865",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "542030",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "542111",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "542117",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "542836",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "543187",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "543198",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "543394",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "543709",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "543738",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "543745",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "543771",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "543867",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "544078",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "544294",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "544568",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "544569",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "544638",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "544716",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "545102",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "545103",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "545254",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "545442",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "545469",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "545560",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "545583",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "545771",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "545783",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "545915",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "545976",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "546014",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "546039",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "547187",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "547198",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "547302",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "547466",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "547968",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "548237",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "548334",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "548615",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "548705",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "548935",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "548975",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "549203",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "549211",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "549219",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "549624",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "549997",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "552095",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "552096",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "552427",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "552645",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "552659",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "553058",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "553130",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "554253",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "554254",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "554422",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "554536",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "554796",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "554960",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "555366",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "555371",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "557023",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "557824",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "557830",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "557945",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "558399",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "558502",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "558699",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "559289",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "559542",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "559860",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "559907",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "559917",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Mastercard",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "561056",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "588691",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "588992",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "589117",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "589283",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "589318",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "600208",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "601881",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "602676",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "602678",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "602908",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "602970",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "602981",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "603098",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "603125",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "603344",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Local Brand",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "603480",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "603492",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "603614",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "603649",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "603650",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "603797",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "605036",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "622403",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "China Union Pay",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "636689",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "637074",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "639004",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "642011",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "642012",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "657366",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Troy",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "657998",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Troy",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "670606",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "671187",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "676166",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "676255",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "676283",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "676391",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Cirrus",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "676651",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "676827",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "677690",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "724365",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Maestro",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "979200",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Troy",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "979204",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Troy",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "979205",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Troy",
+    "CardType": "credit"
+  },
+  {
+    "Bin": "979215",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Troy",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "979233",
+    "IssuerBankCode": "SARIBANK",
+    "Scheme": "Troy",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "979236",
+    "IssuerBankCode": "MAVIBANK",
+    "Scheme": "Troy",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "979241",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Troy",
+    "CardType": "debit"
+  },
+  {
+    "Bin": "979263",
+    "IssuerBankCode": "TURUNCUBANK",
+    "Scheme": "Troy",
+    "CardType": "credit"
+  }
+]

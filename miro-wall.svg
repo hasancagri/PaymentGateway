@@ -1,0 +1,68 @@
+<svg>
+<text x="0" y="70" font-size="67" font-weight="bold" fill="#1a1a1a" font-family="noto_sans">EventStorming Wall - PG Pay-by-Link</text>
+<text x="0" y="120" font-size="22" fill="#595959" font-family="noto_sans">Payment BC - Act 1 - 17 steps - 23 stickies - 10 hotspots - source: docs/eventstorming/payment-pay-by-link.md (read-only, generated)</text>
+<rect x="0" y="160" width="170" height="44" rx="6" fill="#c6dcff" stroke="none" data-content="Command" data-text-color="#1a1a1a" data-font-size="14" />
+<rect x="190" y="160" width="170" height="44" rx="6" fill="#f8d3af" stroke="none" data-content="Event" data-text-color="#1a1a1a" data-font-size="14" />
+<rect x="380" y="160" width="170" height="44" rx="6" fill="#dedaff" stroke="none" data-content="Policy" data-text-color="#1a1a1a" data-font-size="14" />
+<rect x="570" y="160" width="170" height="44" rx="6" fill="#fff6b6" stroke="none" data-content="Aggregate" data-text-color="#1a1a1a" data-font-size="14" />
+<rect x="760" y="160" width="170" height="44" rx="6" fill="#adf0c7" stroke="none" data-content="Read model" data-text-color="#1a1a1a" data-font-size="14" />
+<rect x="950" y="160" width="170" height="44" rx="6" fill="#ffc6c6" stroke="none" data-content="External system" data-text-color="#1a1a1a" data-font-size="14" />
+<rect x="1140" y="160" width="170" height="44" rx="6" fill="#ff6464" stroke="none" data-content="Hotspot" data-text-color="#1a1a1a" data-font-size="14" />
+<rect x="1330" y="160" width="170" height="44" rx="6" fill="#fffbed" stroke="none" data-content="Actor" data-text-color="#1a1a1a" data-font-size="14" />
+<g transform="translate(0,230)" data-frame="Pay-by-Link Flow (Act 1)">
+<rect data-type="frame" x="0" y="0" width="8770" height="520" fill="#f7f7f7" />
+<rect data-type="sticky" x="48" y="48" width="199" height="228" data-color="light_yellow" data-content="Customer" />
+<textArea x="48" y="292" width="380" font-size="14" fill="#595959">1. Claude Desktop&#x27;ta store&#x27;un agent&#x27;ıyla konuşur; güvendiği bağlam = bu sohbet.</textArea>
+<rect data-type="sticky" x="528" y="48" width="199" height="228" data-color="blue" data-content="StartPayment" />
+<textArea x="528" y="292" width="380" font-size="14" fill="#595959">2. ödeme anı gelince agent tetikler  Store  PG</textArea>
+<rect data-type="sticky" x="1008" y="48" width="199" height="228" data-color="blue" data-content="CreatePaymentLink" />
+<rect data-type="sticky" x="1231" y="48" width="199" height="228" data-color="orange" data-content="PaymentLinkCreated" />
+<textArea x="1008" y="292" width="422" font-size="14" fill="#595959">3. store/agent PG&#x27;den link ister (tutar + orderRef + dönüş adresi); PG tek-kullanımlık TTL&#x27;li link üretir</textArea>
+<rect data-type="sticky" x="1530" y="48" width="199" height="228" data-color="yellow" data-content="PaymentLink" />
+<textArea x="1530" y="292" width="380" font-size="14" fill="#595959">4. linkin ömrü: Pending → Opened → (Attempt&#x27;lar) → terminal; tek-kullanım + TTL değişmezleri; çok-denemeli oturum (altında PaymentAttempt&#x27;lar)</textArea>
+<rect data-type="sticky" x="2010" y="48" width="199" height="228" data-color="violet" data-content="Policy" />
+<textArea x="2010" y="292" width="380" font-size="14" fill="#595959">5. agent linki SOHBETTE sunar (&quot;işte güvenli ödeme bağlantın, 1.250 TL / ORD-7731&quot;); müşteri soğuk kanaldan değil başlattığı konuşmadan görür</textArea>
+<rect data-type="sticky" x="2490" y="48" width="199" height="228" data-color="light_yellow" data-content="Customer taps link" />
+<rect data-type="sticky" x="2713" y="48" width="199" height="228" data-color="orange" data-content="PaymentLinkOpened" />
+<textArea x="2490" y="292" width="422" font-size="14" fill="#595959">6. session Pending → Opened (açıldı ≠ ödendi)</textArea>
+<rect data-type="sticky" x="3012" y="48" width="199" height="228" data-color="violet" data-content="Policy" />
+<textArea x="3012" y="292" width="380" font-size="14" fill="#595959">7. link müşteriyi sohbetten ÇIKARIR; tarayıcıda PG hosted ödeme sayfası açılır; kart YALNIZ burada girilir; agent/LLM/sohbet kartı ASLA görmez (İLKE VI)</textArea>
+<rect data-type="sticky" x="3492" y="48" width="199" height="228" data-color="green" data-content="Hosted page trust context" />
+<textArea x="3492" y="292" width="380" font-size="14" fill="#595959">8. kart formundan ÖNCE: mağaza adı + sipariş özeti + tutar + son geçerlilik; müşteri kendi siparişini tanır</textArea>
+<rect data-type="sticky" x="3972" y="48" width="199" height="228" data-color="blue" data-content="ConfirmPayment" />
+<rect data-type="sticky" x="4195" y="48" width="199" height="228" data-color="light_pink" data-content="Bank 3DS init" />
+<textArea x="3972" y="292" width="422" font-size="14" fill="#595959">9. PG kartı bankaya gönderir (PAN tarayıcıdan bankaya, PG saklamaz; SAQ A-EP, İLKE VI)</textArea>
+<rect data-type="sticky" x="4494" y="48" width="199" height="228" data-color="light_pink" data-content="Bank risk decision" />
+<textArea x="4494" y="292" width="380" font-size="14" fill="#595959">10. banka riske göre ya ayrı ACS ekranı/OTP ister (challenge) ya hiç sormaz (frictionless); sonuç ikisinde de PG callback&#x27;ine döner</textArea>
+<rect data-type="sticky" x="4974" y="48" width="199" height="228" data-color="violet" data-content="Policy" />
+<textArea x="4974" y="292" width="380" font-size="14" fill="#595959">11. challenge&#x27;da tarayıcı bankanın ACS sayfasına yönlenir; OTP orada; PG o ekranı görmez, kısa süre sahneden çıkar, callback bekler</textArea>
+<rect data-type="sticky" x="5454" y="48" width="199" height="228" data-color="orange" data-content="3DSCompleted" />
+<textArea x="5454" y="292" width="380" font-size="14" fill="#595959">12. banka PG callback&#x27;ine POST eder; PG dönüş hash&#x27;ini doğrular (sahte gövde düşer). Kimlik doğrulandı ≠ para onaylandı</textArea>
+<rect data-type="sticky" x="5934" y="48" width="199" height="228" data-color="blue" data-content="Authorize" />
+<rect data-type="sticky" x="6157" y="48" width="199" height="228" data-color="light_pink" data-content="Bank" />
+<rect data-type="sticky" x="6380" y="48" width="199" height="228" data-color="orange" data-content="PaymentAuthorized" />
+<rect data-type="sticky" x="6603" y="48" width="199" height="228" data-color="orange" data-content="PaymentDeclined" />
+<textArea x="5934" y="292" width="868" font-size="14" fill="#595959">13. çekim AYRI adım; authentication(3DS) ile authorization burada ayrışır</textArea>
+<rect data-type="sticky" x="6902" y="48" width="199" height="228" data-color="orange" data-content="&lt;b&gt;PaymentSucceeded&lt;/b&gt;" />
+<textArea x="6902" y="292" width="380" font-size="14" fill="#595959">14. ilk başarılı attempt link&#x27;i terminalize eder (tek-yön)</textArea>
+<rect data-type="sticky" x="7382" y="48" width="199" height="228" data-color="violet" data-content="Policy" />
+<textArea x="7382" y="292" width="380" font-size="14" fill="#595959">15. terminal geçişte PG İKİ kanal tetikler: (a) müşteriye tarayıcı success sayfası (kanıt DEĞİL, yalnız UX), (b) store&#x27;a HMAC-imzalı webhook (durable outbox retry — otorite)</textArea>
+<rect data-type="sticky" x="7862" y="48" width="199" height="228" data-color="orange" data-content="OrderPaid" />
+<textArea x="7862" y="292" width="380" font-size="14" fill="#595959">16. store sipariş &quot;ödendi&quot;ye döner; agent/müşteriyi haberdar eder</textArea>
+<rect data-type="sticky" x="8342" y="48" width="199" height="228" data-color="violet" data-content="Policy" />
+<textArea x="8342" y="292" width="380" font-size="14" fill="#595959">17. kesin onay SOHBETE döner: müşteri Claude&#x27;a dönüp &quot;ödemem geçti mi?&quot; dediğinde agent PG&#x27;nin durum-sorgu ucuna bakar (tarayıcıya değil), webhook-teyitli &quot;onaylandı&quot; der → gerçek kapanış</textArea>
+</g>
+<g transform="translate(0,910)" data-frame="Open Hotspots">
+<rect data-type="frame" x="0" y="0" width="1434" height="600" fill="#fff0f0" />
+<rect data-type="sticky" x="48" y="48" width="199" height="228" data-color="red" data-content="Link güveni / phishing" />
+<rect data-type="sticky" x="271" y="48" width="199" height="228" data-color="red" data-content="link nereden geldi?" />
+<rect data-type="sticky" x="494" y="48" width="199" height="228" data-color="red" data-content="3DS belirsiz dönüş" />
+<rect data-type="sticky" x="717" y="48" width="199" height="228" data-color="red" data-content="auth ≠ authorization" />
+<rect data-type="sticky" x="940" y="48" width="199" height="228" data-color="red" data-content="&quot;banka OK / site FAIL&quot;" />
+<rect data-type="sticky" x="1163" y="48" width="199" height="228" data-color="red" data-content="sohbete dönüş + agent farkındalığı (YARIŞ)" />
+<rect data-type="sticky" x="48" y="300" width="199" height="228" data-color="red" data-content="TTL yarışı" />
+<rect data-type="sticky" x="271" y="300" width="199" height="228" data-color="red" data-content="çift &quot;Öde&quot; / çift start_payment / çift webhook" />
+<rect data-type="sticky" x="494" y="300" width="199" height="228" data-color="red" data-content="PG store-kontratı transport" />
+<rect data-type="sticky" x="717" y="300" width="199" height="228" data-color="red" data-content="ledger sınırı" />
+</g>
+</svg>

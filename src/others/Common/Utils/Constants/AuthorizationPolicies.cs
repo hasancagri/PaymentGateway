@@ -17,4 +17,11 @@ public static class AuthorizationPolicies
     public const string AdminPlaneOnly = "admin-plane-only";
 
     // 088 teardown: MerchantApiKey (X-Api-Key tenant policy) SÖKÜLDÜ — Payment.Api X-Api-Key zinciri gitti.
+
+    /// <summary>
+    /// EC→PG dış çağrı sınırı: paylaşılan API key (X-Api-Key) ile korunur. OpenIddict/JWT DEĞİL — basit
+    /// paylaşılan-sır (secret-store). Store başlatma/iptal/iade/durum uçları bu policy'yi beyan eder.
+    /// Müşteri (anonim) + banka (ShopCode) yüzeyleri bunun DIŞINDA (İlke V/protokol rayı).
+    /// </summary>
+    public const string StoreApiKey = "store-api-key";
 }
