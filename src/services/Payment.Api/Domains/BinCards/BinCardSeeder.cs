@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace Payment.Api.Domains.BinCards;
 
 /// <summary>

@@ -1,9 +1,7 @@
 global using Asp.Versioning;
-global using Asp.Versioning.Builder;
 global using Common;
 global using Common.Domains;
 global using Common.Results;
-global using Common.Results.BaseClasses;
 global using Common.Utils.Constants;
 global using Payment.Api.Constants;
 global using Marten;
@@ -22,15 +20,12 @@ global using Weasel.Core;
 global using Wolverine;
 global using Wolverine.Attributes;
 global using Wolverine.Marten;
-// --- hoisted (sade using'ler dosyalardan taşındı) ---
 global using Common.Dependencies;
 global using Common.Exceptions;
 global using Common.Extensions;
-global using Marten.Pagination;
-global using Marten.Schema;
-global using ModelContextProtocol.Server;
 global using Shared.Utils.Constants;
 global using Shared;
-global using System.ComponentModel;
 global using Wolverine.RabbitMQ;
 global using System.Globalization;
+global using Payment.Api.Domains.BinCards;
+

@@ -19,7 +19,8 @@ public sealed class BankChargeRouter
     private readonly PosAccountOptions _posAccounts;
     private readonly BankRoutingOptions _routing;
 
-    public BankChargeRouter(IEnumerable<IBankPaymentAdapter> adapters, PosAccountOptions posAccounts, BankRoutingOptions routing)
+    public BankChargeRouter(IEnumerable<IBankPaymentAdapter> adapters, PosAccountOptions posAccounts,
+        BankRoutingOptions routing)
     {
         _adapters = adapters.ToList();
         _posAccounts = posAccounts;
@@ -45,9 +46,9 @@ public sealed class BankChargeRouter
             var outcome = result.Data;
             attempts.Add(new RoutedAttempt(candidate.BankCode, outcome));
 
-            if (outcome.IsApproved) break;                                    // onay → dur
-            if (outcome.DeclineClass is DeclineClass.IssuerDecline            // aynı issuer boşuna
-                or DeclineClass.FraudDecline) break;                          // fraud asla retry
+            if (outcome.IsApproved) break; // onay → dur
+            if (outcome.DeclineClass is DeclineClass.IssuerDecline // aynı issuer boşuna
+                or DeclineClass.FraudDecline) break; // fraud asla retry
             // TechnicalFailure / ConfigError → sıradaki adaya geç (failover)
         }
 
@@ -59,11 +60,13 @@ public sealed class BankChargeRouter
     public IBankPaymentAdapter? SelectThreeDAdapter()
     {
         foreach (var acc in _posAccounts.Accounts
-                     .OrderBy(a => a.CostPriority).ThenBy(a => FallbackOrder(a.BankCode)).ThenBy(a => a.BankCode, StringComparer.Ordinal))
+                     .OrderBy(a => a.CostPriority).ThenBy(a => FallbackOrder(a.BankCode))
+                     .ThenBy(a => a.BankCode, StringComparer.Ordinal))
         {
             var adapter = _adapters.FirstOrDefault(a => a.BankCode == acc.BankCode);
             if (adapter is IThreeDCapableAdapter) return adapter;
         }
+
         return null;
     }
 
@@ -76,11 +79,11 @@ public sealed class BankChargeRouter
         var candidates = new List<RoutingCandidate>();
         foreach (var acc in _posAccounts.Accounts)
         {
-            if (!acc.SupportsNonSecure) continue;                              // yetenek eleme: işlem desteği
-            if (_adapters.All(a => a.BankCode != acc.BankCode)) continue;      // canlı adapter yoksa aday olamaz
+            if (!acc.SupportsNonSecure) continue; // yetenek eleme: işlem desteği
+            if (_adapters.All(a => a.BankCode != acc.BankCode)) continue; // canlı adapter yoksa aday olamaz
             if (cardType is not null &&
                 !acc.SupportedCardTypes.Contains(cardType, StringComparer.OrdinalIgnoreCase))
-                continue;                                                      // yetenek eleme: kart tipi
+                continue; // yetenek eleme: kart tipi
 
             var isOnUs = issuer is not null &&
                          string.Equals(acc.BankCode, issuer.IssuerBankCode, StringComparison.Ordinal);
