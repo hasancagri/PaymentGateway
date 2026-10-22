@@ -42,14 +42,18 @@ scripts/check-flow-links.sh                                # FLOW.md domain-sür
 ## BC haritası
 
 Her BC = kendi DB'si + şeması. Origin sütunu = BC'yi tanımlayan spec'in tam yolu (guard'lı).
-Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel`/`Identity.Server`),
+Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel`),
 `src/aspire`. Aspire yalnız yaşayan servisleri ayağa kaldırır.
 
 | Servis | DB | Ne yapar | Origin spec |
 |---|---|---|---|
 | `Payment.Api` | paymentDb | hosted ödeme akışı: `HostedPaymentSession` + `/hosted-payment` + secret-token'lı sağlayıcı callback + HMAC-imzalı store bildirimi + müşteri dönüş sayfası; kart-saklama yok; sağlayıcı entegrasyonu Phase-1 (bank adapter) | `specs/088-teardown-dead-services` |
-| `identity-server` | identityDb | iç M2M OpenIddict (client_credentials); scope → audience; sabit issuer `https://localhost:5101`. Store→gateway ödeme yetkisi AYRI otoritede (AgentPlatform platform IdP) | `specs/011-openiddict-migration` |
-| `gateway` | — | YARP reverse proxy; tek giriş (yalnız payment-route) | — |
+| `gateway` | — | YARP reverse proxy; tek giriş (yalnız payment-route); salt pass-through (auth downstream). Bugün AppHost/k8s'te wire DEĞİL (dormant) | — |
+
+> **Kimlik (2026-10-22 birleşim):** PG kendi OpenIddict IdP'sini (`Identity.Server`) BIRAKTI. Tek OAuth
+> otoritesi = **AgentPlatform IdP**. EC→PG dış çağrı = **paylaşılan API key** (X-Api-Key, secret-store);
+> müşteri/callback anonim per-session token (İlke V); banka ShopCode/UserPass. AgentPlatform IdP, PG'de
+> gelecek operatör/MCP/ops JWT yüzeyi için seam (`PlatformIdentityOption`).
 
 - **Event akışı:** `PaymentCompleted`/`PaymentFailed` kontratları (Shared) hazır, tüketici Order BC gelince
   bağlanır. **088: merchant.lifecycle / merchant.commission / mail.delivery fanout'ları söküldü.**
@@ -62,9 +66,11 @@ Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel
 - **Handler'da literal YASAK.** Handler metodunda Command/Query'den (kullanıcı) gelmeyen HİÇBİR değer literal
   yazılmaz (locale/currency/endpoint/prefix...) → non-secret `Options/` POCO'sundan; transport secret'ı
   ayrı secret-store (user-secrets/env), asla non-secret config'le karışmaz (anayasa İlke VI).
-- **Hosted ödeme auth (088 GEÇİCİ).** `/hosted-payment` şu an GEÇİCİ `payment.write` JWT scope ile korunur,
-  tenant `MerchantId` gövdeden. **Nihai (Phase-1):** store→gateway = AgentPlatform platform IdP token (PG
-  relying party, PG scope); müşteri/callback = anonim per-session secret token (fail-closed, anayasa İlke V).
+- **PaymentLink auth (2026-10-22 kimlik birleşimi).** Store uçları (`POST /payment-links` + cancel/void/
+  refund/status/reconcile) = **paylaşılan API key** (`X-Api-Key`, `StoreApiKeyOptions.ExpectedKey` secret-store;
+  `ApiKeyAuthenticationHandler` sabit-zamanlı karşılaştırma, "store-api-key" policy). PG kendi IdP'sini
+  BIRAKTI (OpenIddict/localhost:5101 söküldü). Müşteri uçları (`/pay`, açılış, `/3d*`) anonim per-session
+  secret token (İlke V). Banka ShopCode/UserPass (protokol rayı). Operatör/MCP/ops JWT = AgentPlatform IdP seam.
 - **Kontrol düzlemi + callback sır döndürmez (anayasa İlke VI).** `CallbackSecret` (store bildirim HMAC
   anahtarı) secret-store'da; ham gövde imzalanır, store aynı ham body'yi doğrular. Sır log/trace/dönüş DTO'sunda görünmez.
 - **TUZAK (`ScopeClaimArrayHandler`):** scope claim JSON dizisidir; tek-string'te policy'ler sessizce 403
