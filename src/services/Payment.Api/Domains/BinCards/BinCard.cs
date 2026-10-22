@@ -7,6 +7,10 @@ namespace Payment.Api.Domains.BinCards;
 /// </summary>
 public class BinCard
 {
+    /// <summary>En uzun olası BIN id uzunluğu (IIN standardı 6→8). PAN prefix lookup bunu AŞMAZ → tam PAN
+    /// asla sorgu key'i olmaz (İlke VI, PAN log/trace'e düşmez). Canlı feed daha uzun BIN getirirse artır.</summary>
+    public const int MaxBinLength = 8;
+
     // Marten kimliği (Program.cs'te Identity(x => x.Bin) ile yapılandırılır).
     public string Bin { get; set; } = string.Empty;
     public string IssuerBankCode { get; set; } = string.Empty;

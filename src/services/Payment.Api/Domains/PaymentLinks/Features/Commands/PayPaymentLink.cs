@@ -1,6 +1,3 @@
-using Payment.Api.Domains.BinCards;
-using Payment.Api.Domains.PaymentLinks;
-using Payment.Api.Domains.PaymentLinks.BankCharge;
 
 namespace Payment.Api.Domains.PaymentLinks.Features.Commands;
 
@@ -50,7 +47,16 @@ public static class PayPaymentLink
 
             // Çekim isteği (kart transient — saklanmaz/loglanmaz, İlke VI).
             var request = new BankChargeRequest(cmd.Card, link.Amount, link.Currency, link.OrderRef, link.Id);
-            var binCards = await session.Query<BinCard>().ToListAsync(ct);
+            // BIN çözümü için TÜM tabloyu çekme (hot path + canlı feed'de binlerce kayıt). PAN'ın prefix'leri
+            // = aday BIN id'leri (Bin = Marten PK) → yalnız onları key'le yükle (PK lookup, full-scan değil).
+            // Prefix MaxBinLength'te kesilir → tam PAN asla sorgu key'i olmaz (İlke VI). ResolveByPan en uzun eşleşeni seçer.
+            // TODO (geçici): BIN salt-okur küçük referans → her ödemede DB yerine CACHE (bellek/dağıtık,
+            // startup/feed'de doldur) daha doğru. Şimdilik PK lookup yeterli; cache sonraki iyileştirme.
+            var pan = cmd.Card.Pan;
+            var binPrefixes = Enumerable.Range(1, Math.Min(pan.Length, BinCard.MaxBinLength))
+                .Select(len => pan[..len])
+                .ToArray();
+            var binCards = await session.LoadManyAsync<BinCard>(ct, binPrefixes);
 
             var attempts = await router.RouteAsync(request, binCards, ct);
 
@@ -68,7 +74,7 @@ public static class PayPaymentLink
             }
             session.Store(link);
 
-            var deciding = attempts[^1];
+            var deciding = attempts.Last(); // router sözleşmesi: son deneme = karar veren
 
             // Onay → Paid + tamamlandı olayı + store imzalı webhook (terminal sonuç).
             if (deciding.Outcome.IsApproved)
