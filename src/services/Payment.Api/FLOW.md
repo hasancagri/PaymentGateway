@@ -2,7 +2,9 @@
 
 **BC ne yapar:** Store (merchant sitesi) için **pay-by-link** akışını yürütür — bir sipariş için tek-kullanımlık
 TTL'li ödeme linki üretir, müşteri linki açınca kart bilgisine hiç dokunmadan **güven bağlamını** (mağaza +
-sipariş + tutar + son geçerlilik) gösterir, linkin yaşam döngüsünü (açılış, süre dolumu, iptal) yönetir.
+sipariş + tutar + son geçerlilik) gösterir, linkin yaşam döngüsünü (açılış, süre dolumu, iptal) yönetir. Ayrıca
+store'un **aktivasyon (onboarding) döngüsünü** yürütür: store bankalarda kendi merchant hesabını açar, ilk banka
+onayında canlı satışa geçer (091 — ikinci domain süreci, aşağıda ayrı bölüm).
 
 > **090 durum:** linkin doğuşu + müşteri açılışı/güven bağlamı + yaşam döngüsü (089) üstüne **NonSecure banka
 > çekimi** bağlandı: müşteri kart girer, BIN'den issuer çözülür, router 3 simüle banka arasında aday sıralar
@@ -100,6 +102,56 @@ sipariş + tutar + son geçerlilik) gösterir, linkin yaşam döngüsünü (aç�
 - **Sonuç bildirimi sır döndürmez (İlke VI).** Store webhook'u ham gövde üzerinden HMAC-imzalanır; `CallbackSecret`
   yalnız secret-store'da, log/trace/gövde/dönüş DTO'sunda görünmez.
 - **Yalnız TRY (FR-004, alan kısıtı).** Başka para birimiyle üretim reddedilir.
+
+## Store Onboarding / Aktivasyon Süreci (091)
+
+> Ayrı domain süreci (pay-by-link'ten bağımsız): super-admin bir store'u internet satışına açar. Banka = adapter
+> arkası dış sistem; banka çalışan-onayı ayrı repo (BankSimulator + AgentPlatform MCP), bu BC'nin DIŞI.
+
+1. **EC store aktivasyonunu başlatır.** `POST /store-onboarding` (store-api-key) — MerchantId + correlation +
+   mağaza adı taşıyan komut `(CreateStoreOnboarding.CreateStoreOnboardingCommandHandler)`. Aktif-tekil: aynı
+   store için aktif süreç varsa idempotent döner (`DUPLICATE_ONBOARDING` yarış-kapısı partial-unique).
+2. **Süreç doğar (Draft) + gizli token'lar.** Tahmin-edilemez `OpenToken` (form açılışı) + `CallbackToken`
+   (banka→PG webhook kapısı) + TTL üretilir `(StoreOnboarding.Create)`. Yanıt: opak `PgStoreRef` + form linki
+   (credential/sır İÇERMEZ, İlke VI).
+3. **Store hosted formu açar.** `GET /store-onboarding/{openToken}` — bilinmeyen/expired/Draft-değil → fail-closed
+   404 `(OpenOnboardingForm.OpenOnboardingFormCommandHandler)`; geçerliyse TEK sabit form render edilir (banka
+   başına ayrı ekran YOK).
+4. **Store çekirdek profilini gönderir + bankalara fan-out.** `POST /store-onboarding/{openToken}/submit` —
+   ünvan/vergi no/IBAN/MCC/URL/yetkili doğrulanır `(StoreProfile.Create)`; geçersizse `INVALID_PROFILE`, bankalara
+   İLETİLMEZ. Geçerliyse her yapılandırılmış bankaya PARALEL ayrı referral `(IBankOnboardingAdapter)`
+   `(SimulatorBankOnboardingAdapter)`; banka-özel eksik alan → o banka submit-öncesi reddedilir (B kararı),
+   diğerleri Referred. Per-banka başvuru kaydı `(StoreOnboarding.SubmitProfile)`; store `Submitted`.
+5. **Banka async inceler → sonucu PG'ye webhook'lar.** Banka çalışanı (ayrı repo) onaylar/reddeder; sonuç
+   `POST /internal/onboarding/callback/{callbackToken}`'a imzalı gelir — CallbackToken kapısı + X-Signature HMAC
+   doğrulanır (eşleşmezse `CALLBACK_REJECTED`, fail-closed) `(ReceiveBankOnboardingOutcome.Handler)`. Banka ham
+   gövdesi normalize edilir `(SimulatorBankOnboardingAdapter.NormalizeCallback)`.
+6. **Onay → credential güvenli saklanır + ilk onayda store Live.** Approved'da banka credential'ı at-rest şifreli
+   saklanır (opak `CredentialRef`; sır aggregate'e/dönüşe girmez, İlke VI) `(EncryptedBankCredentialStore)`; başvuru
+   Approved `(StoreOnboarding.RecordBankOutcome)`. İLK onayda store `Live` (çift-aktivasyon no-op). İlk aktivasyonda
+   store'a HMAC-imzalı "Live" webhook (credential'sız) `(OnboardingResultDelivery.Deliver)`.
+7. **Red + yeniden başvuru.** Red callback o bankayı `Rejected`+sebep yapar (diğerleri + Live etkilenmez);
+   super-admin `POST /store-onboarding/{pgStoreRef}/banks/{bankCode}/resubmit` ile tekrar başvurur
+   `(ResubmitBankApplication)` `(StoreOnboarding.Resubmit)`.
+8. **Kaçan sonuç mutabakatı (watchdog).** Submit her Referred banka için zamanlanmış `Check` yayınlar; dayanıklı
+   süreç bankanın güncel başvuru durumunu sorar — Approved/Rejected uygula, hâlâ "inceleniyor" → erken terminal YOK,
+   sınırlı yeniden dene `(OnboardingReconciliation)` `(ReconcileDecision)`.
+9. **Durum sorgu.** `GET /store-onboarding/{pgStoreRef}/status` (store-api-key) — genel durum + per-banka durum/red
+   sebebi; credential/sır/iç token YOK `(QueryOnboardingStatus)`.
+
+### Onboarding domain kuralları
+
+- **İlk onayda Live (FR-009).** İlk banka `Approved` → store `Live` (tek-yön); sonraki onaylar Live tutar, çift
+   aktivasyon tetiklemez; aynı banka tekrar onayı idempotent no-op.
+- **Per-banka izolasyon (FR-011).** Bir bankanın red/onayı ötekini + store Live'lığını (≥1 Approved varsa)
+   ETKİLEMEZ. Red başvuruları silinmez (denetim).
+- **Live-gate (FR-010).** Store `Live` değilse ödeme linki üretilmez (`STORE_NOT_LIVE`) `(CreatePaymentLink)` —
+   aktivasyon gerçek charge'ın önkoşuludur (aynı BC içi cross-aggregate okuma).
+- **Runtime credential at-rest şifreli (İlke VI, anayasa v3.1.0).** Banka credential'ı yalnız imzalı webhook
+   gövdesinde akar; at-rest AES-GCM şifreli saklanır (DEK secret-store), aggregate yalnız opak `CredentialRef`
+   tutar; plaintext hiçbir sorgu/dönüş/log/trace'te materyalize olmaz.
+- **Banka otorite.** Onay kararı + credential bankaya aittir; PG yalnız sonucu yansıtır. Belirsiz/sürüyor sonuç
+   terminal sayılmaz (reconcile bekler).
 
 ## Sınır (bu BC'nin dokunmadığı)
 

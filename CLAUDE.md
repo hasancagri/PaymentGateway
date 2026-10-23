@@ -47,7 +47,7 @@ Servisler `src/services/*`; destek `src/others` (`Common`/`Shared`/`SharedKernel
 
 | Servis | DB | Ne yapar | Origin spec |
 |---|---|---|---|
-| `Payment.Api` | paymentDb | hosted ödeme akışı: `HostedPaymentSession` + `/hosted-payment` + secret-token'lı sağlayıcı callback + HMAC-imzalı store bildirimi + müşteri dönüş sayfası; kart-saklama yok; sağlayıcı entegrasyonu Phase-1 (bank adapter) | `specs/088-teardown-dead-services` |
+| `Payment.Api` | paymentDb | hosted ödeme akışı: `HostedPaymentSession` + `/hosted-payment` + secret-token'lı sağlayıcı callback + HMAC-imzalı store bildirimi + müşteri dönüş sayfası; kart-saklama yok; sağlayıcı entegrasyonu Phase-1 (bank adapter). **091: store aktivasyon/onboarding (`StoreOnboarding` aggregate — bankalara fan-out başvuru + imzalı callback + ilk onayda Live + at-rest şifreli credential)** | `specs/088-teardown-dead-services` · `specs/091-merchant-lifecycle-activation` |
 | `gateway` | — | YARP reverse proxy; tek giriş (yalnız payment-route); salt pass-through (auth downstream). Bugün AppHost/k8s'te wire DEĞİL (dormant) | — |
 
 > **Kimlik (2026-10-22 birleşim):** PG kendi OpenIddict IdP'sini (`Identity.Server`) BIRAKTI. Tek OAuth

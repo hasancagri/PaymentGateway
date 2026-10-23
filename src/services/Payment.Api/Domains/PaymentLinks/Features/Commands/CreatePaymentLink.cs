@@ -29,6 +29,15 @@ public static class CreatePaymentLink
         {
             var now = DateTime.UtcNow;
 
+            // 091 (FR-010): store Live değilse ödeme linki üretilmez. Aktivasyon (en az bir banka onayı) şarttır
+            // — aynı BC içi cross-aggregate okuma. Live olmayan store gerçek charge açamaz (STORE_NOT_LIVE).
+            var live = await session.Query<Payment.Api.Domains.StoreOnboarding.StoreOnboarding>()
+                .Where(x => x.MerchantId == cmd.MerchantId && x.Status == OnboardingStatus.Live)
+                .AnyAsync(ct);
+            if (!live)
+                return FeatureObjectResultModel<CreatePaymentLinkResponse>.Error(new MessageItem
+                { Code = StoreOnboardingResourceConstants.STORE_NOT_LIVE });
+
             // Aktif-tekil (FR-003, research D1): aynı (MerchantId, OrderRef) için AKTİF link'i yükle.
             var existing = await session.Query<PaymentLink>()
                 .Where(x => x.MerchantId == cmd.MerchantId && x.OrderRef == cmd.OrderRef &&
