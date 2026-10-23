@@ -5,5 +5,6 @@ global using Payment.Api.Domains.PaymentLinks;
 global using Payment.Api.Domains.PaymentLinks.ValueObjects;
 global using Payment.Api.Domains.PaymentLinks.BankCharge;
 global using Payment.Api.Domains.BinCards;
+global using Payment.Api.Domains.AcquirerRates;
 global using Payment.Api.Options;
 global using Xunit;

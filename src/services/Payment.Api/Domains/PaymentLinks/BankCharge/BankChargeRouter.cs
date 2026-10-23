@@ -3,15 +3,14 @@ using Payment.Api.Domains.BinCards;
 namespace Payment.Api.Domains.PaymentLinks.BankCharge;
 
 /// <summary>
-/// 090 (FR-005/FR-006/FR-016, İlke VII): banka çekim yönlendirici domain-service'i. "Öde" senkron kullanıcı-
-/// tetikli → Process/Saga DEĞİL. İki aşama: (1) aday kur — BIN'den issuer çöz, yetenek ele (kart tipi/işlem),
-/// sırala: on-us (issuer == acquirer) önce, sonra CostPriority (bilinmeyen BIN → on-us atla, fail-open);
-/// (2) sırayla dene — Approved/IssuerDecline/FraudDecline → DUR, TechnicalFailure/ConfigError → sıradaki aday.
-/// Her denenen banka bir sonuç kaydı döndürür (handler PaymentLink.RecordAttempt'e besler).
-/// <para><b>Çift-çekim seam (belgeli, ARTIK CANLI):</b> 3 banka canlı → TechnicalFailure'da failover FİİLEN
-/// koşar; 1. banka çekmiş olabilir, durum-sorgu YOK → çift-çekim penceresi açık. Simülatörde bakiye YOK →
-/// şu an zararsız. GERÇEK banka öncesi durum-sorgu ZORUNLU (sonraki versiyon). Health/circuit =
-/// BankRoutingOptions seam (TODO).</para>
+/// 090/092/093 (İlke VII): banka çekim yönlendirici domain-service'i. "Öde" senkron kullanıcı-tetikli →
+/// Process/Saga DEĞİL. Aday seçimi (saf hesap): BIN'den kart ailesi (issuer/şema/tip) çöz, yetenek ele
+/// (kart tipi/işlem), her aday için **efektif maliyet = öngörü oranı(şema,tip,taksit) × tutar** hesapla,
+/// **en düşük maliyetten** sırala (on-us yalnız eşit maliyette tiebreaker — 092). En avantajlı banka TAKSİT
+/// SAYISINA göre değişir (093). <b>Failover YOK (093 kararı):</b> yalnız o taksitin en-avantajlı (gösterilen)
+/// acquirer'ı denenir — reddederse işlem başarısız (gösterilen banka = çekilen banka; müşteri tekrar dener).
+/// Oran matrisi `BankCommissionRate` read-model'inden (banka otorite, PG öngörü). In-doubt kurtarma (AYNI
+/// OrderId durum-sorgu) adapter/Process'te korunur — o failover değil, aynı bankanın çekimini doğrulamadır.
 /// </summary>
 public sealed class BankChargeRouter
 {
@@ -27,40 +26,37 @@ public sealed class BankChargeRouter
         _routing = routing;
     }
 
-    /// <summary>Aday listesini sırayla dener (failover). Dönen liste: denenen her bankanın sonucu (son eleman =
-    /// karar veren). Aday yoksa boş liste (handler PROVIDER_UNAVAILABLE'a çevirir).</summary>
+    /// <summary>Seçilen taksit için en-avantajlı (gösterilen) acquirer'ı dener. Dönen liste 0 (aday yok →
+    /// handler PROVIDER_UNAVAILABLE) ya da 1 deneme (gösterilen banka sonucu). FAILOVER YOK — sıradaki bankaya
+    /// geçilmez (093: gösterilen = çekilen).</summary>
     public async Task<IReadOnlyList<RoutedAttempt>> RouteAsync(
-        BankChargeRequest request, IReadOnlyList<BinCard> binCards, CancellationToken ct)
+        BankChargeRequest request, IReadOnlyList<BinCard> binCards,
+        IReadOnlyList<BankCommissionRate> rates, CancellationToken ct)
     {
-        var candidates = SelectCandidates(request.Card.Pan, binCards);
+        var candidates = SelectCandidates(request.Card.Pan, binCards, request.Amount, request.InstallmentCount, rates);
         var attempts = new List<RoutedAttempt>();
 
-        foreach (var candidate in candidates)
-        {
-            var adapter = _adapters.FirstOrDefault(a => a.BankCode == candidate.BankCode);
-            if (adapter is null) continue;
+        // 093: bağlı-acquirer — yalnız o taksitin en avantajlı (müşteriye gösterilen) bankası denenir.
+        var bound = candidates.FirstOrDefault();
+        if (bound is null) return attempts;
 
-            var result = await adapter.ChargeAsync(request, ct);
-            if (!result.IsSuccess || result.Data is null) continue; // yönlendirilemez hata → sıradaki aday
+        var adapter = _adapters.FirstOrDefault(a => a.BankCode == bound.BankCode);
+        if (adapter is null) return attempts;
 
-            var outcome = result.Data;
-            attempts.Add(new RoutedAttempt(candidate.BankCode, outcome));
+        var result = await adapter.ChargeAsync(request, ct);
+        if (result.IsSuccess && result.Data is not null)
+            attempts.Add(new RoutedAttempt(bound.BankCode, result.Data));
 
-            if (outcome.IsApproved) break; // onay → dur
-            if (outcome.DeclineClass is DeclineClass.IssuerDecline // aynı issuer boşuna
-                or DeclineClass.FraudDecline) break; // fraud asla retry
-            // TechnicalFailure / ConfigError → sıradaki adaya geç (failover)
-        }
-
-        return attempts;
+        return attempts; // red (Issuer/Fraud/Technical/Config) → tek deneme döner; handler başarısız verir (failover yok)
     }
 
-    /// <summary>3DS banka seçimi — PAN YOK (kart tarayıcıdan bankaya, İlke VI) → BIN/on-us routing yapılamaz.
-    /// Maliyet sırasında ilk 3D-yetenekli canlı adapter (on-us optimizasyonu NonSecure'a özel). Yoksa null.</summary>
+    /// <summary>3DS banka seçimi — PAN YOK (kart tarayıcıdan bankaya, İlke VI) → BIN/aile/oran routing yapılamaz.
+    /// Kararlı fallback sırasında ilk 3D-yetenekli canlı adapter. Yoksa null. (Maliyet-sıra seam — taksit/aile
+    /// quote'u NonSecure'a özel; 3DS maliyet-önceliği sonraki iş.)</summary>
     public IBankPaymentAdapter? SelectThreeDAdapter()
     {
         foreach (var acc in _posAccounts.Accounts
-                     .OrderBy(a => a.CostPriority).ThenBy(a => FallbackOrder(a.BankCode))
+                     .OrderBy(a => FallbackOrder(a.BankCode))
                      .ThenBy(a => a.BankCode, StringComparer.Ordinal))
         {
             var adapter = _adapters.FirstOrDefault(a => a.BankCode == acc.BankCode);
@@ -70,10 +66,16 @@ public sealed class BankChargeRouter
         return null;
     }
 
-    /// <summary>Aşama 1 — aday kur (saf hesap, domain-TDD). Yetenek eleme → on-us + maliyet sıralaması.</summary>
-    public IReadOnlyList<RoutingCandidate> SelectCandidates(string pan, IReadOnlyList<BinCard> binCards)
+    /// <summary>Aday kur (saf hesap, domain-TDD). Yetenek eleme → efektif maliyet = oran(şema,tip,taksit) × tutar
+    /// → en düşük maliyetten sırala; on-us yalnız eşit maliyette tiebreaker (092). Bilinmeyen BIN → aile null,
+    /// on-us yok, oran=DefaultCommissionRate (fail-open). Oran dokümanı hiç yoksa aday en sona (düşmez). İlk eleman
+    /// = o taksitin en avantajlı (gösterilecek + çekilecek) bankası. Quote da bunu kullanır (tutarlılık).</summary>
+    public IReadOnlyList<RoutingCandidate> SelectCandidates(
+        string pan, IReadOnlyList<BinCard> binCards, decimal amount, int installment,
+        IReadOnlyList<BankCommissionRate> rates)
     {
         var issuer = BinCard.ResolveByPan(binCards, pan);
+        var scheme = issuer?.Scheme;
         var cardType = issuer?.CardType;
 
         var candidates = new List<RoutingCandidate>();
@@ -87,13 +89,18 @@ public sealed class BankChargeRouter
 
             var isOnUs = issuer is not null &&
                          string.Equals(acc.BankCode, issuer.IssuerBankCode, StringComparison.Ordinal);
-            candidates.Add(new RoutingCandidate(acc.BankCode, isOnUs, acc.CostPriority));
+
+            // Öngörü oran (banka otorite, PG kopyası — İlke VII). Oran dokümanı hiç yok → en sona (güvenli, düşmez).
+            var rateDoc = rates.FirstOrDefault(r => r.BankCode == acc.BankCode);
+            var rate = rateDoc?.RateFor(scheme, cardType, installment);
+            var effectiveCost = rate is { } r ? r * amount : decimal.MaxValue;
+            candidates.Add(new RoutingCandidate(acc.BankCode, isOnUs, effectiveCost, rate ?? 0m));
         }
 
-        // Sıralama: on-us önce → CostPriority artan → kararlı fallback (OrderedBankCodes indeksi) → banka kodu.
+        // Sıralama: EFEKTİF MALİYET artan → (eşitlikte) on-us önce → kararlı fallback → banka kodu.
         return candidates
-            .OrderByDescending(c => c.IsOnUs)
-            .ThenBy(c => c.CostPriority)
+            .OrderBy(c => c.EffectiveCost)
+            .ThenByDescending(c => c.IsOnUs)
             .ThenBy(c => FallbackOrder(c.BankCode))
             .ThenBy(c => c.BankCode, StringComparer.Ordinal)
             .ToList();
@@ -106,8 +113,9 @@ public sealed class BankChargeRouter
     }
 }
 
-// Router aday sıralama çıktısı (saf hesap). on-us önce, sonra maliyet.
-public sealed record RoutingCandidate(string BankCode, bool IsOnUs, int CostPriority);
+// Router aday sıralama çıktısı (saf hesap). EffectiveCost = oran×tutar (sıralama); EffectiveRate = o taksit/aile
+// öngörü oranı (quote FinalAmount = tutar×(1+oran) için). on-us yalnız eşit maliyette tiebreaker.
+public sealed record RoutingCandidate(string BankCode, bool IsOnUs, decimal EffectiveCost, decimal EffectiveRate);
 
 // Bir bankaya yapılan denemenin sonucu (handler PaymentLink.RecordAttempt'e besler).
 public sealed record RoutedAttempt(string BankCode, BankChargeOutcome Outcome);

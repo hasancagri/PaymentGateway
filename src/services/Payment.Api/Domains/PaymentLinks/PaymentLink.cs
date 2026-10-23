@@ -20,6 +20,12 @@ public class PaymentLink : AggregateRoot
     public Guid MerchantId { get; private set; }
     public string OrderRef { get; private set; } = string.Empty;
     public decimal Amount { get; private set; }
+
+    // 093: seçilen taksit + taksitli toplam (vade farklı). Peşin varsayılan (1 / FinalAmount=Amount);
+    // müşteri taksit seçince Pay anında ApplyInstallment ile set edilir. Çekim + store bildirim FinalAmount üzerinden.
+    public int InstallmentCount { get; private set; } = 1;
+    public decimal FinalAmount { get; private set; }
+
     public string Currency { get; private set; } = string.Empty;
     public string ReturnUrl { get; private set; } = string.Empty;
     public string StoreName { get; private set; } = string.Empty;
@@ -64,7 +70,9 @@ public class PaymentLink : AggregateRoot
             OrderSummary = orderSummary,
             OpenToken = openToken,
             Status = PaymentLinkStatus.Pending,
-            PaymentModel = PaymentModel.NonSecure
+            PaymentModel = PaymentModel.NonSecure,
+            InstallmentCount = 1,
+            FinalAmount = amount // peşin başlangıç; taksit seçilince ApplyInstallment günceller (093)
         };
 
         if (expiresAt <= link.CreatedTime)
@@ -115,6 +123,22 @@ public class PaymentLink : AggregateRoot
     /// Pending + now &lt;= ExpiresAt + grace → Ok. Grace penceresi aşıldı → lazy Expired + LINK_EXPIRED. Terminal
     /// → ilgili red. Çekim sağlayıcı entegrasyonu sonraki dilim; bu dilimde çağıran stub döner (FR-010).</summary>
     public ResultDomain IsPayable(DateTime now, TimeSpan grace) => PayableGuard(now, grace);
+
+    /// <summary>093: Müşterinin seçtiği taksit planını işler (Pay anında, handler sunucuda hesaplayıp verir):
+    /// taksit sayısı + taksitli toplam (vade farklı, FinalAmount). Ödenebilirlik guard'ı (terminal/expired → red);
+    /// taksit &gt;= 1 ve FinalAmount &gt; 0. Çekim + store bildirimi FinalAmount üzerinden gider.</summary>
+    public ResultDomain ApplyInstallment(int installmentCount, decimal finalAmount, DateTime now, TimeSpan grace)
+    {
+        var guard = PayableGuard(now, grace);
+        if (!guard.IsSuccess) return guard;
+        if (installmentCount < 1 || finalAmount <= 0)
+            return ResultDomain.Error(new MessageItem { Code = PaymentLinkResourceConstants.INVALID_REQUEST });
+
+        InstallmentCount = installmentCount;
+        FinalAmount = finalAmount;
+        UpdatedTime = now;
+        return ResultDomain.Ok();
+    }
 
     /// <summary>090 (FR-001/FR-002/FR-003): Bir banka çekim denemesini kaydeder. Önce ödenebilirlik guard'ı
     /// (terminal/iptal/süre+grace — Paid link ikinci çekim YAPAMAZ = çift-çekim guard, FR-002). Guard geçerse

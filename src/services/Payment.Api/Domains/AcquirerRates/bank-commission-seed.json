@@ -1,0 +1,50 @@
+[
+  {
+    "BankCode": "MAVIBANK",
+    "DefaultCommissionRate": 0.0299,
+    "Rates": [
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 1, "Rate": 0.0179 },
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 2, "Rate": 0.0189 },
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 3, "Rate": 0.0259 },
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 6, "Rate": 0.0329 },
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 9, "Rate": 0.0399 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 1, "Rate": 0.0179 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 2, "Rate": 0.0189 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 3, "Rate": 0.0259 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 6, "Rate": 0.0329 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 9, "Rate": 0.0399 }
+    ]
+  },
+  {
+    "BankCode": "SARIBANK",
+    "DefaultCommissionRate": 0.0309,
+    "Rates": [
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 1, "Rate": 0.0219 },
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 2, "Rate": 0.0199 },
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 3, "Rate": 0.0229 },
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 6, "Rate": 0.0349 },
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 9, "Rate": 0.0389 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 1, "Rate": 0.0219 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 2, "Rate": 0.0199 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 3, "Rate": 0.0229 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 6, "Rate": 0.0349 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 9, "Rate": 0.0389 }
+    ]
+  },
+  {
+    "BankCode": "TURUNCUBANK",
+    "DefaultCommissionRate": 0.0319,
+    "Rates": [
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 1, "Rate": 0.0269 },
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 2, "Rate": 0.0279 },
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 3, "Rate": 0.0289 },
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 6, "Rate": 0.0299 },
+      { "Scheme": "Visa", "CardType": "credit", "Installment": 9, "Rate": 0.0349 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 1, "Rate": 0.0269 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 2, "Rate": 0.0279 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 3, "Rate": 0.0289 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 6, "Rate": 0.0299 },
+      { "Scheme": "Mastercard", "CardType": "credit", "Installment": 9, "Rate": 0.0349 }
+    ]
+  }
+]

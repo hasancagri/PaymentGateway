@@ -43,4 +43,9 @@ public class InterVposBankProfile
     /// <summary>Banka operasyon-API (mutabakat) abonelik anahtarı — SIR (secret-store). Ödeme yüzünden AYRI
     /// yüz (`/api/*` JSON, SubscriptionKey header). Gün-sonu mutabakat pull'u kullanır; boşsa banka atlanır.</summary>
     public string SubscriptionKey { get; set; } = string.Empty;
+
+    /// <summary>091: banka→PG onboarding sonuç webhook'u (ReceiveBankOnboardingOutcome) imza doğrulama anahtarı
+    /// — SIR (secret-store). Banka ham gövdeyi bu anahtarla HMAC imzalar; PG aynı anahtarla doğrular (FR-007,
+    /// İlke VI). Boşsa o bankanın callback'i reddedilir (fail-closed).</summary>
+    public string InboundCallbackSecret { get; set; } = string.Empty;
 }

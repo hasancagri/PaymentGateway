@@ -319,4 +319,43 @@ public class PaymentLinkTests
         Assert.Equal("REF-X", o.ProviderRef);
         Assert.Null(o.AuthCode);
     }
+
+    // --- Taksit (093) ---
+
+    [Fact]
+    public void Create_Pesin_FinalAmountAmountEsit()
+    {
+        var link = Pending(100m);
+        Assert.Equal(1, link.InstallmentCount);
+        Assert.Equal(100m, link.FinalAmount); // peşin başlangıç
+    }
+
+    [Fact]
+    public void ApplyInstallment_TaksitliToplam_Set()
+    {
+        var link = Pending(100m);
+        var r = link.ApplyInstallment(3, 109.50m, DateTime.UtcNow, Grace);
+
+        Assert.True(r.IsSuccess);
+        Assert.Equal(3, link.InstallmentCount);
+        Assert.Equal(109.50m, link.FinalAmount); // vade farklı toplam
+    }
+
+    [Fact]
+    public void ApplyInstallment_GecersizTutar_Reddedilir()
+    {
+        var link = Pending(100m);
+        var r = link.ApplyInstallment(3, 0m, DateTime.UtcNow, Grace);
+        Assert.False(r.IsSuccess);
+        Assert.Equal(PaymentLinkResourceConstants.INVALID_REQUEST, r.Messages!.First().Code);
+    }
+
+    [Fact]
+    public void ApplyInstallment_TerminalLink_Reddedilir()
+    {
+        var link = Pending(100m);
+        link.Cancel(); // terminal
+        var r = link.ApplyInstallment(3, 109.50m, DateTime.UtcNow, Grace);
+        Assert.False(r.IsSuccess); // PayableGuard → TERMINAL_VIOLATION
+    }
 }

@@ -28,7 +28,10 @@ var paymentApi = builder.AddProject<Projects.Payment_Api>("payment-api")
     .WithReference(paymentDb)
     .WithReference(rabbit)
     .WaitFor(paymentDb)
-    .WaitFor(rabbit);
+    .WaitFor(rabbit)
+    // Sabit public port 5201 (launchSettings + EC PgPaymentLinkOptions.BaseUrl ile aynı) — proxy portu her
+    // başlatmada kaymaz, EC→PG çağrısı + link/callback tabanı sabit kalır. (50747 geçici gözlem artığıydı.)
+    .WithEndpoint("http", e => e.Port = 5201);
 
 // Yaşayan deploy edilebilir servisi ghcr'a bağla. `aspire do push` image'ini basıp
 // ghcr.io/hasancagri/paymentgateway/payment-api'ye iter. Altyapı (postgres/rabbit) public → girmez.

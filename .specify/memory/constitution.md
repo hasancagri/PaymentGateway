@@ -1,6 +1,41 @@
 <!--
 SYNC IMPACT REPORT
 ==================
+Version change: 3.0.0 → 3.1.0
+Bump rationale: MINOR — İlke VI'ya rehberlik genişlemesi (091 analiz D1): runtime-teslim sırlar
+  (statik secret-store'a konamayan, çalışma anında bankadan gelen per-store credential) için açık
+  kural eklendi — at-rest AES şifreli + DEK secret-store'da + domain yalnız opak CredentialRef. İlke
+  kaldırma/yeniden tanım YOK (backward-compatible), yalnız daha önce öngörülmeyen durum netleşti.
+Modified principles:
+  - VI. Kart Verisi ve Sır Minimizasyonu: yeni madde "Runtime-teslim sırlar at-rest şifreli" eklendi.
+
+----- (önceki amendment) -----
+Version change: 2.0.0 → 3.0.0
+Bump rationale: MAJOR — İlke V kimlik otoritesi geriye-dönük uyumsuz yeniden tanımı (2026-10-22 kimlik
+  birleşimi, kod `f4c0189`/`6623f42`):
+  (1) PG kendi OpenIddict IdP'si (`Identity.Server`, issuer localhost:5101) SÖKÜLDÜ → iç M2M düzlemi
+      (011) "OpenIddict merkezi Identity servisi" otoritesi KALDIRILDI.
+  (2) Tek OAuth otoritesi = AgentPlatform IdP (JWT yüzeyleri JWKS ile doğrular).
+  (3) Store → gateway (S2S) yetkisi "platform IdP bearer token" → "paylaşılan API key (X-Api-Key,
+      store-api-key policy)" olarak YENİDEN TANIMLANDI (OAuth değil, data-plane key).
+
+Modified principles:
+  - V. Merkezi Kimlik ve Açık Yetki: iç M2M OpenIddict otoritesi kaldırıldı; AgentPlatform tek OAuth
+    otoritesi; store→gateway = X-Api-Key; anonim müşteri/callback token korundu; PG MCP yok korundu.
+
+Modified sections:
+  - Teknoloji ve Alan Kısıtları: EF Core "ör. Identity" örneği güncellendi (Identity.Server sökülü).
+
+Deferred TODO durumu:
+  - TODO(SSO_CONSOLIDATION): İLERLEDİ — PG IdP söküldü, AgentPlatform tek otorite oldu. Kalan: EC
+    Identity + AgentPlatform IdP tam konsolidasyonu (hâlâ açık, ayrı tasarım).
+  - TODO(STORE_CONTRACT): store→gateway transport + webhook imza şeması 089/090/091'de somutlaştı
+    (X-Api-Key + HMAC-SHA256 ham-gövde imza); kapanmaya yakın.
+
+Templates/commands: Bağımlı şablonlar anayasayı çalışma anında okur; senkron gerektiren tutarsızlık
+  yok. CLAUDE.md zaten güncel (2026-10-22 kimlik birleşimi işlendi).
+
+----- (önceki amendment) -----
 Version change: 1.6.0 → 2.0.0
 Bump rationale: MAJOR — banka-adaptör pivotu (2026-10-19 kilitlendi). Geriye dönük uyumsuz
   kaldırmalar + domain yeniden tanımı:
@@ -127,24 +162,28 @@ akışının exception'lara bağlanmasını önler.
 
 Kimlik doğrulama merkezîdir ve hiçbir korunması gereken uç açıkta bırakılMAZ.
 
-- Makine (M2M) düzlemi KARARLIDIR (011): kimlik, OpenIddict tabanlı merkezi Identity servisi
-  (`Identity.Server`, sabit issuer `https://localhost:5101`) tarafından verilir; servisler bu
-  otoriteye göre (JWKS üzerinden, paylaşılan DB olmadan) kimlik doğrular. client_credentials +
-  scope-tabanlı policy; kural GET → `<bc>.read`, durum değiştiren → `<bc>.write`; access token'da
+- **Tek OAuth otoritesi = AgentPlatform IdP.** PG kendi IdP'sini (eski OpenIddict `Identity.Server`,
+  issuer `https://localhost:5101`) çalıştırMAZ — 2026-10-22 kimlik birleşiminde söküldü. JWT ile
+  korunan her PG yüzeyi, AgentPlatform IdP'ye göre (JWKS üzerinden, paylaşılan DB olmadan) doğrular;
+  scope-tabanlı policy kuralı GET → `<bc>.read`, durum değiştiren → `<bc>.write`; access token'da
   scope claim'i JSON dizisidir.
 - Durum değiştiren veya hassas veri döndüren her endpoint ve mesaj handler'ı, erişim için gereken
   yetkiyi AÇIKÇA beyan etmek ZORUNDADIR; "varsayılan açık" uç bırakılMAZ.
-- **Store → gateway (S2S)**: store'un ödeme başlatma çağrısı (pay-by-link) platform IdP'si
-  (AgentPlatform) tarafından verilen token ile doğrulanır; PG, bu token'ı PG-özel scope ile
-  yetkilendiren bir relying party'dir. İç makine düzlemi (Identity.Server) ile ayrı otoritedir.
-- **Müşteri ve banka-callback yüzeyleri anonimdir** ama fail-closed korunur: hosted ödeme sayfası
-  ve banka/store callback uçları, tahmin edilemez **per-session secret token** ile kapılıdır
-  (kimlik yok, sır URL/path'te taşınır, eşleşmezse reddedilir).
+- **Store → gateway (S2S) = paylaşılan API key.** Store'un PG'ye dış çağrısı (pay-by-link başlatma,
+  store onboarding, iptal/iade/durum) `X-Api-Key` ile doğrulanır: secret-store'daki beklenen anahtarla
+  sabit-zamanlı karşılaştırma ("store-api-key" policy). Bu bir OAuth token'ı DEĞİLDİR; AgentPlatform
+  IdP bu data-plane çağrısında yer almaz (ayrı otorite).
+- **Müşteri ve banka-callback yüzeyleri anonimdir** ama fail-closed korunur: hosted sayfa ve
+  banka/store callback uçları, tahmin edilemez **per-session secret token** ile kapılıdır (kimlik yok,
+  sır URL/path'te taşınır, eşleşmezse reddedilir). Banka protokol rayı (ShopCode/UserPass) ayrıdır.
 - **PG bir MCP yüzeyi expose etMEZ.** Agent/kontrol-düzlemi yüzeyi PG'de yaşamaz (banka operasyon
-  MCP'si ayrı simülatör repo'sundadır). Ödeme akışı hiçbir koşulda MCP'ye girmez.
+  MCP'si ayrı simülatör repo'sunda, AgentPlatform gateway'inde birleşir). Ödeme/onboarding akışı
+  hiçbir koşulda MCP'ye girmez. AgentPlatform IdP, PG'de yalnız gelecek operatör/ops JWT yüzeyi için
+  bir seam'dir (bugün aktif PG JWT tüketicisi yok).
 
-Gerekçe: Ödeme sistemi için yetki, sonradan eklenen değil baştan tasarlanan bir kısıttır;
-her yüzey (makine, store-S2S, anonim-müşteri) kendi otoritesiyle ve açıkça korunur.
+Gerekçe: Ödeme sistemi için yetki, sonradan eklenen değil baştan tasarlanan bir kısıttır; her yüzey
+(AgentPlatform-JWT, store-S2S API key, anonim-müşteri/callback token) kendi otoritesiyle ve açıkça
+korunur. Tek IdP otoritesi (AgentPlatform) kimlik parçalanmasını önler.
 
 ### VI. Kart Verisi ve Sır Minimizasyonu (NON-NEGOTIABLE)
 
@@ -158,6 +197,12 @@ PG, taşımak zorunda olmadığı hiçbir kart verisini veya sırrı tutmaz.
 - **Sırlar yalnız sır-store'da**: banka credential'ları (SecretKey vb.) ve callback imza sırları
   yapılandırma/secret-store'da (user-secrets/env) tutulur; non-secret config'ten (Options POCO)
   ayrıdır. Bir sır ASLA log/trace/tool-dönüşü/query DTO'sunda görünmez.
+- **Runtime-teslim sırlar at-rest şifreli tutulur**: Statik config'e konamayan, çalışma anında teslim
+  edilen sırlar (ör. onboarding sonucu bankadan gelen per-store banka credential'ı) düz metin
+  saklanMAZ; **at-rest şifreli** (AES) kalıcılaştırılır ve şifre anahtarı (DEK) secret-store'da tutulur.
+  Ciphertext bir sır değildir (DEK olmadan kullanılamaz); plaintext yalnız kullanım anında (ör. çekim)
+  bellekte çözülür, hiçbir sorgu/dönüş/log/trace'te materyalize olmaz. Domain modeli yalnız opak referans
+  (CredentialRef) taşır, sırrı değil.
 - **Kontrol düzlemi sır döndürmez**: REST/tool dönüşleri credential İÇERMEZ. Makine-handoff gerekirse
   yalnız S2S kayıt (bootstrap-key) + HMAC-imzalı dayanıklı callback ile yapılır; sır insana render
   EDİLMEZ.
@@ -229,7 +274,8 @@ geri yükleyebilmesi, domain'in teknolojinin ardında kaybolmaması gerekir.
   string enjeksiyonu ile bulur. Tek servisi izole çalıştırmak desteklenen bir yol değildir.
 - **Kalıcılık (karma):** Marten (Postgres). Ödeme/işlem defteri (ör. `PaymentTransaction`)
   **event stream** olarak tutulur (Wolverine `[AggregateHandler]`); hesap/config/BIN gibi referans
-  veri **düz doküman**dır. EF Core yalnız izole altyapı servislerinde (ör. Identity) kullanılır.
+  veri **düz doküman**dır. EF Core yalnız izole altyapı servislerinde kullanılabilir (bugün PG'de
+  böyle bir servis YOK — `Identity.Server` 2026-10-22'de söküldü, bkz. İlke V).
 - **Mesajlaşma:** Wolverine — süreç-içi command/query bus'ı ve RabbitMQ üstünden fanout
   integration mesajlaşması. Deterministik mesaj `[Transactional]` outbox ile gider (publish yalnız
   DB commit'te). Handler keşfi ad-son-eki bazlıdır (`*Handler`/`*Consumer`); bulunamıyorsa
@@ -268,4 +314,4 @@ geri yükleyebilmesi, domain'in teknolojinin ardında kaybolmaması gerekir.
 - Ertelenen kararlar (TODO) Sync Impact Report'ta takip edilir ve karar netleştiğinde
   amendment ile kapatılır.
 
-**Version**: 2.0.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-10-20
+**Version**: 3.1.0 | **Ratified**: 2026-07-29 | **Last Amended**: 2026-10-23

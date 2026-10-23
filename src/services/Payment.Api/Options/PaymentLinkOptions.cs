@@ -27,4 +27,10 @@ public class PaymentLinkOptions
     /// <summary>Güven bağlamı sayfası giriş ibaresi (kart formundan önce, FR-006).</summary>
     [Required]
     public required string TrustPageIntro { get; set; }
+
+    /// <summary>093: Müşteriye sunulacak taksit seçenekleri (1 = peşin). Quote her biri için en avantajlı
+    /// banka + taksitli tutarı hesaplar. Handler'da literal yazılmaz → buradan (CLAUDE.md).</summary>
+    [Required]
+    [MinLength(1)]
+    public int[] InstallmentCounts { get; set; } = { 1, 2, 3, 6, 9 };
 }

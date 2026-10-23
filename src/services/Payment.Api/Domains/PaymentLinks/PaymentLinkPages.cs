@@ -49,6 +49,12 @@ internal static class PaymentLinkPages
             button:hover{background:#374151}
             button:disabled{background:#9ca3af;cursor:default}
             .msg{margin-top:16px;font-size:14px;color:#dc2626;text-align:center;display:none}
+            .installments{margin-top:16px;display:grid;gap:8px}
+            .installments .opt{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;
+              border:1px solid #d1d5db;border-radius:8px;font-size:14px;cursor:pointer}
+            .installments .opt.sel{border-color:#111827;background:#f9fafb}
+            .installments .bank{color:#6b7280;font-size:12px}
+            .installments .tot{font-weight:600}
           </style>
         </head>
         <body>
@@ -60,7 +66,7 @@ internal static class PaymentLinkPages
             <div class="row amount"><span class="k">Tutar</span><span class="v">{{amount}}</span></div>
             <div class="row"><span class="k">Son geçerlilik</span><span class="v">{{expires}}</span></div>
             <div class="form">
-              <div><label for="cardNumber">Kart Numarası</label><input id="cardNumber" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000"></div>
+              <div><label for="cardNumber">Kart Numarası</label><input id="cardNumber" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" oninput="loadInstallments()"></div>
               <div><label for="holderName">Kart Üzerindeki İsim</label><input id="holderName" autocomplete="cc-name" placeholder="AD SOYAD"></div>
               <div class="grid3">
                 <div><label for="expiryMonth">Ay</label><input id="expiryMonth" inputmode="numeric" autocomplete="cc-exp-month" placeholder="AA"></div>
@@ -68,6 +74,7 @@ internal static class PaymentLinkPages
                 <div><label for="cvv">CVV</label><input id="cvv" inputmode="numeric" autocomplete="cc-csc" placeholder="123"></div>
               </div>
             </div>
+            <div class="installments" id="installments"></div>
             <button id="payBtn" onclick="pay()">Öde</button>
             <div class="msg" id="msg"></div>
           </div>
@@ -79,11 +86,45 @@ internal static class PaymentLinkPages
                       PAYMENT_LINK_EXPIRED:'Ödeme linkinin süresi doldu.',
                       PAYMENT_LINK_CANCELLED:'Bu ödeme linki iptal edildi.' };
             function val(id){ return document.getElementById(id).value.trim(); }
+            // 093: seçilen taksit (1 = peşin). BIN girilince taksit seçenekleri (her biri en-avantajlı banka + tutar) yüklenir.
+            var selectedInstallment=1;
+            async function loadInstallments(){
+              var box=document.getElementById('installments');
+              var digits=val('cardNumber').replace(/\s+/g,'');
+              if(digits.length<6){ box.innerHTML=''; selectedInstallment=1; return; }
+              var bin=digits.slice(0,6);
+              try{
+                var r=await fetch(window.location.pathname + '/installments?bin=' + encodeURIComponent(bin));
+                if(!r.ok){ box.innerHTML=''; return; }
+                var d=await r.json(); renderInstallments((d&&d.options)||[]);
+              }catch(e){ box.innerHTML=''; }
+            }
+            function renderInstallments(opts){
+              var box=document.getElementById('installments');
+              if(!opts.length){ box.innerHTML=''; return; }
+              box.innerHTML='';
+              opts.forEach(function(o,i){
+                var row=document.createElement('div'); row.className='opt'+(i===0?' sel':'');
+                var label=o.installment===1?'Tek Çekim':(o.installment+' Taksit');
+                // Acquirer banka GÖSTERİLMEZ (gerçek-hayat UX; routing gizli iç karar). Yalnız taksit + tutar.
+                row.innerHTML='<span><input type="radio" name="inst" value="'+o.installment+'"'+(i===0?' checked':'')+'> '+
+                  label+'</span>'+
+                  '<span class="tot">'+o.totalAmount.toFixed(2)+' TL'+(o.installment>1?' · aylık '+o.monthlyAmount.toFixed(2):'')+'</span>';
+                row.onclick=function(){ row.querySelector('input').checked=true; select(o.installment); };
+                row.querySelector('input').onchange=function(){ select(o.installment); };
+                box.appendChild(row);
+              });
+              selectedInstallment=opts[0].installment;
+            }
+            function select(n){ selectedInstallment=n;
+              document.querySelectorAll('#installments .opt').forEach(function(el){
+                el.classList.toggle('sel', el.querySelector('input').checked); }); }
             async function pay(){
               var b=document.getElementById('payBtn'), m=document.getElementById('msg');
               b.disabled=true; b.textContent='İşleniyor...'; m.style.display='none';
               var payload={ cardNumber:val('cardNumber').replace(/\s+/g,''), holderName:val('holderName'),
-                            expiryMonth:val('expiryMonth'), expiryYear:val('expiryYear'), cvv:val('cvv') };
+                            expiryMonth:val('expiryMonth'), expiryYear:val('expiryYear'), cvv:val('cvv'),
+                            installmentCount:selectedInstallment };
               try{
                 var r=await fetch(window.location.pathname + '/pay',
                   {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});

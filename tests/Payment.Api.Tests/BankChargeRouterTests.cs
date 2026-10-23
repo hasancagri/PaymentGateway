@@ -1,11 +1,10 @@
 namespace Payment.Api.Tests;
 
-// 090 (İlke VIII Domain-TDD): BankChargeRouter — 2-aşama aday seçimi (yetenek eleme + on-us + maliyet) +
-// sıralı failover kararı (Technical/Config → sıradaki; Issuer/Fraud/Approved → dur). Fake adapter double'ları
-// ile saf karar (DB/host yok).
+// 092/093 (İlke VIII Domain-TDD): BankChargeRouter — kart-ailesi + per-taksit EFEKTİF MALİYET aday seçimi
+// (en düşük oran önce; on-us yalnız eşit maliyette tiebreaker); FAILOVER YOK (yalnız gösterilen/en-avantajlı
+// acquirer denenir). Fake adapter double'ları ile saf karar (DB/host yok).
 public class BankChargeRouterTests
 {
-    // --- Fake adapter ---
     private sealed class FakeAdapter : IBankPaymentAdapter
     {
         private readonly BankChargeOutcome _outcome;
@@ -32,159 +31,136 @@ public class BankChargeRouterTests
     {
         Accounts =
         {
-            new PosAccountProfile { BankCode = "SIM-BANK-1", SupportedCardTypes = new[] { "credit", "debit" }, SupportsNonSecure = true, CostPriority = 10 },
-            new PosAccountProfile { BankCode = "SIM-BANK-2", SupportedCardTypes = new[] { "credit", "debit" }, SupportsNonSecure = true, CostPriority = 20 },
-            new PosAccountProfile { BankCode = "SIM-BANK-3", SupportedCardTypes = new[] { "credit" }, SupportsNonSecure = true, CostPriority = 30 }
+            new PosAccountProfile { BankCode = "SIM-BANK-1", SupportedCardTypes = new[] { "credit", "debit" }, SupportsNonSecure = true },
+            new PosAccountProfile { BankCode = "SIM-BANK-2", SupportedCardTypes = new[] { "credit", "debit" }, SupportsNonSecure = true },
+            new PosAccountProfile { BankCode = "SIM-BANK-3", SupportedCardTypes = new[] { "credit" }, SupportsNonSecure = true }
         }
     };
 
     private static BankRoutingOptions Routing() => new() { OrderedBankCodes = { "SIM-BANK-1", "SIM-BANK-2", "SIM-BANK-3" } };
 
-    private static BankChargeRequest Request(string pan)
-        => new(new CardData(pan, "AD SOYAD", "12", "30", "123"), 100m, "TRY", "ORD-1", Guid.NewGuid());
+    private static CommissionRateRow Row(int inst, decimal rate)
+        => new() { Scheme = "Visa", CardType = "credit", Installment = inst, Rate = rate };
+
+    // inst2: BANK-1 en ucuz (0.01); inst3: BANK-1 & BANK-2 eşit (0.02, on-us tiebreaker); inst6: BANK-3 en ucuz (0.02).
+    private static List<BankCommissionRate> Rates() => new()
+    {
+        new() { BankCode = "SIM-BANK-1", DefaultCommissionRate = 0.03m, Rates = { Row(2, 0.01m), Row(3, 0.02m), Row(6, 0.05m) } },
+        new() { BankCode = "SIM-BANK-2", DefaultCommissionRate = 0.03m, Rates = { Row(2, 0.02m), Row(3, 0.02m), Row(6, 0.04m) } },
+        new() { BankCode = "SIM-BANK-3", DefaultCommissionRate = 0.03m, Rates = { Row(2, 0.03m), Row(6, 0.02m) } }
+    };
+
+    // issuer = SIM-BANK-1 (on-us), Visa credit.
+    private static IReadOnlyList<BinCard> VisaCreditBins() => new List<BinCard>
+    {
+        new() { Bin = "411111", IssuerBankCode = "SIM-BANK-1", Scheme = "Visa", CardType = "credit" }
+    };
+    private const string VisaPan = "4111110000000000";
+
+    private static BankChargeRequest Request(string pan, int installment)
+        => new(new CardData(pan, "AD SOYAD", "12", "30", "123"), 100m, "TRY", "ORD-1", Guid.NewGuid(), installment);
 
     private static readonly IReadOnlyList<BinCard> NoBins = new List<BinCard>();
 
-    // --- Failover kararı (T022 + T032) ---
+    private static BankChargeRouter Router(params FakeAdapter[] adapters) => new(adapters, PosAll(), Routing());
+    private static BankChargeRouter AllApproved() => Router(
+        new FakeAdapter("SIM-BANK-1", Approved()), new FakeAdapter("SIM-BANK-2", Approved()), new FakeAdapter("SIM-BANK-3", Approved()));
+
+    // --- US1: per-taksit en düşük maliyet + kart ailesi ---
 
     [Fact]
-    public async Task Route_IssuerDecline_DururSiradakiCagrilmaz()
+    public void Select_PerTaksit_EnAvantajliBankaDegisir()
     {
-        var bank2 = new FakeAdapter("SIM-BANK-2", Approved());
-        var router = new BankChargeRouter(
-            new[] { new FakeAdapter("SIM-BANK-1", Decline(DeclineClass.IssuerDecline, "51")), bank2 },
-            PosAll(), Routing());
+        var c2 = AllApproved().SelectCandidates(VisaPan, VisaCreditBins(), 100m, 2, Rates());
+        var c6 = AllApproved().SelectCandidates(VisaPan, VisaCreditBins(), 100m, 6, Rates());
 
-        var attempts = await router.RouteAsync(Request("9999000000000000"), NoBins, CancellationToken.None);
-
-        Assert.Single(attempts);
-        Assert.Equal("SIM-BANK-1", attempts[0].BankCode);
-        Assert.Equal(0, bank2.Calls); // failover YOK (aynı issuer)
+        Assert.Equal("SIM-BANK-1", c2[0].BankCode); // 2 takside en ucuz (0.01)
+        Assert.Equal("SIM-BANK-3", c6[0].BankCode); // 6 takside en ucuz (0.02) — on-us SIM-BANK-1'i (0.05) geçer
     }
 
     [Fact]
-    public async Task Route_FraudDecline_DururSiradakiCagrilmaz()
+    public void Select_OnUs_YalnizEsitMaliyetteTiebreaker()
     {
-        var bank2 = new FakeAdapter("SIM-BANK-2", Approved());
-        var router = new BankChargeRouter(
-            new[] { new FakeAdapter("SIM-BANK-1", Decline(DeclineClass.FraudDecline, "59")), bank2 },
-            PosAll(), Routing());
-
-        var attempts = await router.RouteAsync(Request("9999000000000000"), NoBins, CancellationToken.None);
-
-        Assert.Single(attempts);
-        Assert.Equal(0, bank2.Calls);
+        // inst3: BANK-1(on-us) ve BANK-2 eşit 0.02 → on-us önce.
+        var c = AllApproved().SelectCandidates(VisaPan, VisaCreditBins(), 100m, 3, Rates());
+        Assert.Equal("SIM-BANK-1", c[0].BankCode);
+        Assert.True(c[0].IsOnUs);
     }
 
     [Fact]
-    public async Task Route_TechnicalFailure_SiradakiBankayaGecer()
+    public void Select_OnUsPahali_UcuzOnce()
     {
-        var bank2 = new FakeAdapter("SIM-BANK-2", Approved());
-        var router = new BankChargeRouter(
-            new[] { new FakeAdapter("SIM-BANK-1", Decline(DeclineClass.TechnicalFailure, "96")), bank2 },
-            PosAll(), Routing());
-
-        var attempts = await router.RouteAsync(Request("9999000000000000"), NoBins, CancellationToken.None);
-
-        Assert.Equal(2, attempts.Count);
-        Assert.True(attempts[^1].Outcome.IsApproved);
-        Assert.Equal("SIM-BANK-2", attempts[^1].BankCode);
-        Assert.Equal(1, bank2.Calls);
+        // inst6: on-us BANK-1 pahalı (0.05) → ucuz BANK-3 (0.02) önce (otomatik on-us önceliği YOK).
+        var c = AllApproved().SelectCandidates(VisaPan, VisaCreditBins(), 100m, 6, Rates());
+        Assert.Equal("SIM-BANK-3", c[0].BankCode);
+        Assert.False(c[0].IsOnUs);
     }
 
     [Fact]
-    public async Task Route_ConfigError_SiradakiBankayaGecer()
+    public void Select_YetenekEleme_DebitBankaElenur()
     {
-        var router = new BankChargeRouter(
-            new[]
-            {
-                new FakeAdapter("SIM-BANK-1", Decline(DeclineClass.ConfigError, "CFG")),
-                new FakeAdapter("SIM-BANK-2", Approved())
-            },
-            PosAll(), Routing());
-
-        var attempts = await router.RouteAsync(Request("9999000000000000"), NoBins, CancellationToken.None);
-
-        Assert.Equal(2, attempts.Count);
-        Assert.True(attempts[^1].Outcome.IsApproved);
+        var debitBins = new List<BinCard> { new() { Bin = "411111", IssuerBankCode = "SIM-BANK-1", Scheme = "Visa", CardType = "debit" } };
+        var c = AllApproved().SelectCandidates(VisaPan, debitBins, 100m, 2, Rates());
+        Assert.DoesNotContain(c, x => x.BankCode == "SIM-BANK-3"); // SIM-BANK-3 yalnız credit
     }
 
     [Fact]
-    public async Task Route_HepsiTechnical_SonTechnicalDoner()
+    public void Select_BilinmeyenBin_DefaultRate_FailOpen()
     {
-        var router = new BankChargeRouter(
-            new[]
-            {
-                new FakeAdapter("SIM-BANK-1", Decline(DeclineClass.TechnicalFailure, "96")),
-                new FakeAdapter("SIM-BANK-2", Decline(DeclineClass.TechnicalFailure, "96")),
-                new FakeAdapter("SIM-BANK-3", Decline(DeclineClass.TechnicalFailure, "96"))
-            },
-            PosAll(), Routing());
-
-        var attempts = await router.RouteAsync(Request("9999000000000000"), NoBins, CancellationToken.None);
-
-        Assert.Equal(3, attempts.Count);
-        Assert.False(attempts[^1].Outcome.IsApproved);
-        Assert.Equal(DeclineClass.TechnicalFailure, attempts[^1].Outcome.DeclineClass);
+        // BIN yok → aile null → RateFor DefaultCommissionRate (hepsi 0.03 eşit) → on-us yok, kararlı fallback sırası.
+        var c = AllApproved().SelectCandidates("9999000000000000", NoBins, 100m, 2, Rates());
+        Assert.Equal(3, c.Count);
+        Assert.All(c, x => Assert.False(x.IsOnUs));
+        Assert.Equal("SIM-BANK-1", c[0].BankCode); // eşit maliyet → OrderedBankCodes fallback
     }
 
     [Fact]
-    public async Task Route_IlkApproved_KalanCagrilmaz()
+    public void Select_OranDokumaniYok_BankaDusmezSonaGider()
     {
-        var bank2 = new FakeAdapter("SIM-BANK-2", Approved());
-        var router = new BankChargeRouter(
-            new[] { new FakeAdapter("SIM-BANK-1", Approved()), bank2 },
-            PosAll(), Routing());
-
-        var attempts = await router.RouteAsync(Request("9999000000000000"), NoBins, CancellationToken.None);
-
-        Assert.Single(attempts);
-        Assert.Equal(0, bank2.Calls);
-    }
-
-    // --- Aday seçimi (T026): yetenek eleme + on-us + maliyet + bilinmeyen BIN fail-open ---
-
-    private static BankChargeRouter CandidateRouter() => new(
-        new[]
+        var ratesMissing = new List<BankCommissionRate>
         {
-            new FakeAdapter("SIM-BANK-1", Approved()),
-            new FakeAdapter("SIM-BANK-2", Approved()),
-            new FakeAdapter("SIM-BANK-3", Approved())
-        },
-        PosAll(), Routing());
+            new() { BankCode = "SIM-BANK-1", DefaultCommissionRate = 0.03m, Rates = { Row(2, 0.02m) } }
+            // SIM-BANK-2 / SIM-BANK-3 için doküman YOK → en sona, ama adaylıktan düşmez.
+        };
+        var c = AllApproved().SelectCandidates(VisaPan, VisaCreditBins(), 100m, 2, ratesMissing);
+        Assert.Equal(3, c.Count);                 // hiçbiri düşmedi
+        Assert.Equal("SIM-BANK-1", c[0].BankCode); // oranı olan en ucuz
+    }
+
+    // --- US2: RouteAsync — failover YOK (yalnız en-avantajlı acquirer denenir) ---
 
     [Fact]
-    public void Select_OnUs_IssuerBankasiOne()
+    public async Task Route_IlkApproved_TekDeneme()
     {
-        var bins = new List<BinCard> { new() { Bin = "454360", IssuerBankCode = "SIM-BANK-2", Scheme = "Visa", CardType = "credit" } };
-        var candidates = CandidateRouter().SelectCandidates("4543600000000000", bins);
-
-        Assert.Equal("SIM-BANK-2", candidates[0].BankCode); // on-us (maliyeti yüksek olsa da öne)
-        Assert.True(candidates[0].IsOnUs);
-        Assert.Equal("SIM-BANK-1", candidates[1].BankCode);  // sonra maliyet sırası (10 < 30)
-        Assert.Equal("SIM-BANK-3", candidates[2].BankCode);
+        var router = Router(new FakeAdapter("SIM-BANK-1", Approved()), new FakeAdapter("SIM-BANK-2", Approved()), new FakeAdapter("SIM-BANK-3", Approved()));
+        var attempts = await router.RouteAsync(Request(VisaPan, 2), VisaCreditBins(), Rates(), CancellationToken.None);
+        Assert.Single(attempts);
+        Assert.Equal("SIM-BANK-1", attempts[0].BankCode); // inst2 en ucuz
+        Assert.True(attempts[0].Outcome.IsApproved);
     }
 
     [Fact]
-    public void Select_YetenekEleme_DesteklemeyenBankaElenur()
+    public async Task Route_EnUcuzRed_FailoverYok_SiradakiCagrilmaz()
     {
-        // Debit kart → SIM-BANK-3 (yalnız credit) aday listesinden çıkar.
-        var bins = new List<BinCard> { new() { Bin = "979200", IssuerBankCode = "SIM-BANK-1", Scheme = "Troy", CardType = "debit" } };
-        var candidates = CandidateRouter().SelectCandidates("9792000000000000", bins);
+        var bank2 = new FakeAdapter("SIM-BANK-2", Approved());
+        var bank3 = new FakeAdapter("SIM-BANK-3", Approved());
+        var router = Router(new FakeAdapter("SIM-BANK-1", Decline(DeclineClass.TechnicalFailure, "96")), bank2, bank3);
 
-        Assert.DoesNotContain(candidates, c => c.BankCode == "SIM-BANK-3");
-        Assert.Equal("SIM-BANK-1", candidates[0].BankCode); // on-us (debit destekler)
+        var attempts = await router.RouteAsync(Request(VisaPan, 2), VisaCreditBins(), Rates(), CancellationToken.None);
+
+        Assert.Single(attempts); // yalnız en-avantajlı (SIM-BANK-1) denendi
+        Assert.Equal("SIM-BANK-1", attempts[0].BankCode);
+        Assert.False(attempts[0].Outcome.IsApproved);
+        Assert.Equal(0, bank2.Calls); // FAILOVER YOK — sıradaki banka ÇAĞRILMAZ
+        Assert.Equal(0, bank3.Calls);
     }
 
     [Fact]
-    public void Select_BilinmeyenBin_FailOpenMaliyetSirasi()
+    public async Task Route_AdayYok_BosListe()
     {
-        var candidates = CandidateRouter().SelectCandidates("9999000000000000", NoBins);
-
-        Assert.Equal(3, candidates.Count);                    // kart tipi bilinmiyor → yetenek eleme atlanır
-        Assert.All(candidates, c => Assert.False(c.IsOnUs));  // on-us yok
-        Assert.Equal("SIM-BANK-1", candidates[0].BankCode);   // maliyet sırası (10,20,30)
-        Assert.Equal("SIM-BANK-2", candidates[1].BankCode);
-        Assert.Equal("SIM-BANK-3", candidates[2].BankCode);
+        // Hiç canlı adapter yok → aday yok → boş (handler PROVIDER_UNAVAILABLE).
+        var router = new BankChargeRouter(Array.Empty<IBankPaymentAdapter>(), PosAll(), Routing());
+        var attempts = await router.RouteAsync(Request(VisaPan, 2), VisaCreditBins(), Rates(), CancellationToken.None);
+        Assert.Empty(attempts);
     }
 }
