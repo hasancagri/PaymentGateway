@@ -7,18 +7,12 @@ apiVersion: v1
 kind: Namespace
 metadata: { name: pg }
 ---
-# Uygulama sırları (İlke VI). DEV-placeholder değerler; GERÇEK canlıda bu Secret repo'dan DEĞİL, operatör
-# `kubectl create secret generic pg-secrets ...` ile dışarıdan uygulanır (güçlü değerler, commit edilmez).
-# CredentialEncryptionOptions.Key = Base64 32 byte (AES-256); kaybolursa saklı credential'lar çözülemez.
-apiVersion: v1
-kind: Secret
-metadata: { name: pg-secrets, namespace: pg }
-type: Opaque
-stringData:
-  store-api-key: "CHANGE-ME-store-api-key"
-  store-callback-secret: "CHANGE-ME-store-callback-secret"
-  onboarding-callback-secret: "CHANGE-ME-onboarding-secret"
-  credential-encryption-key: "QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVowMTIzNDU="
+# Sır `pg-secrets` MANIFEST'TE DEĞİL — operatör out-of-band uygular (güçlü değerler, commit edilmez, CD apply
+# ETMEZ → gerçek sır ezilmez). İçerik: store-api-key (EC ile ORTAK), store-callback-secret + onboarding-callback-secret
+# (EC ile ORTAK HMAC), credential-encryption-key (Base64 32 byte AES-256, KAYBOLURSA saklı credential çözülemez).
+#   kubectl -n pg create secret generic pg-secrets \
+#     --from-literal=store-api-key=... --from-literal=store-callback-secret=... \
+#     --from-literal=onboarding-callback-secret=... --from-literal=credential-encryption-key=<base64-32>
 ---
 apiVersion: v1
 kind: ConfigMap
