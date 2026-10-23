@@ -26,6 +26,9 @@
       <!-- 090: BinCard statik seed (startup'ta BinCardSeeder embedded resource olarak okur). -->
       <Content Remove="Domains/BinCards/bin-seed.json" />
       <EmbeddedResource Include="Domains/BinCards/bin-seed.json" />
+      <!-- 092: BankCommissionRate başlangıç öngörü seed'i (BankCommissionRateSeeder embedded okur). -->
+      <Content Remove="Domains/AcquirerRates/bank-commission-seed.json" />
+      <EmbeddedResource Include="Domains/AcquirerRates/bank-commission-seed.json" />
     </ItemGroup>
 
     <ItemGroup>

@@ -32,30 +32,37 @@ onayında canlı satışa geçer (091 — ikinci domain süreci, aşağıda ayr�
    hiçbir linki açmaz (fail-closed, 404) `(OpenPaymentLink.OpenPaymentLinkCommandHandler)`. Geçerli token +
    süresi geçmemiş → link Pending'den Opened'a geçer, kart formundan ÖNCE güven bağlamı render edilir
    `(PaymentLink.Open)`. Süresi geçmişse lazy Expired → açılmaz.
-5. **Müşteri kartı girer ve "Öde"ye basar.** `POST /payment-links/{openToken}/pay` — kart gövdede taşınır
-   (yalnız çekime, SAKLANMAZ — İlke VI). Ödenebilirlik guard'ı (aktif + TTL+grace içinde) değerlendirilir
-   `(PaymentLink.IsPayable)` `(PayPaymentLink.PayPaymentLinkCommandHandler)`.
-6. **Banka seçimi + çekim + failover.** Kart BIN'inden issuer/şema/kart-tipi çözülür `(BinCard)`; router iki
-   aşamada aday sıralar — yetenek eleme + on-us (issuer == acquirer) + maliyet — ve sırayla dener: Approved/
-   IssuerDecline/FraudDecline → DUR, TechnicalFailure/ConfigError → sıradaki uygun bankaya canlı geçiş
-   `(BankChargeRouter)`; banka adapter'ı kartı gerçek InterVpos teline (`;;`) POST eder ve cevabı normalize
-   onay/4-sınıf-red sonucuna çevirir `(InterVposBankAdapter)` `(InterVposResponseMapper)`. Denenen her banka
-   link altına bir deneme kaydı olur `(PaymentLink.RecordAttempt)`.
-7. **Terminal sonuç + store bildirimi.** Onayda link `Paid` terminale geçer; `PaymentCompletedEvent` yayınlanır
-   ve store'a HMAC-imzalı dayanıklı webhook gider `(StoreResultDelivery.Deliver)`. Issuer/Fraud reddinde link
-   `Opened` kalır (başka kartla tekrar denenebilir), `CHARGE_DECLINED` + `PaymentFailedEvent` + webhook. Tüm
-   uygun bankalar teknik hata verirse `PROVIDER_UNAVAILABLE` döner (link Opened, olay/webhook YOK — geçici).
-   Durum değişikliği + olay + webhook aynı `[Transactional]` outbox'ta atomiktir.
-8. **Link ölümü — iptal.** `POST /payment-links/{pgPaymentRef}/cancel` — store aktif (Pending/Opened) linki
+5. **Müşteri kartın ilk hanelerini girer → taksit seçenekleri (093).** Kart no yazılınca (ilk 6) `GET
+   /payment-links/{openToken}/installments?bin=` çağrılır; kart ailesi (issuer/şema/tip) çözülür `(BinCard)`
+   ve yapılandırılmış her taksit için en-avantajlı (en düşük efektif komisyonlu) banka sunucuda seçilir;
+   müşteriye **yalnız taksit + taksitli toplam + aylık tutar** gösterilir — acquirer banka GÖSTERİLMEZ (gerçek-
+   hayat UX, routing gizli) `(QuoteInstallments.QuoteInstallmentsHandler)`. Seçilen banka taksite göre değişir;
+   değeri fiyata yansır (her taksitin toplamı o taksitin en-ucuz bankasına göre).
+6. **Müşteri taksit seçip "Öde"ye basar.** `POST /payment-links/{openToken}/pay` (kart + `installmentCount`) —
+   kart gövdede taşınır (yalnız çekime, SAKLANMAZ — İlke VI). Ödenebilirlik guard'ı `(PaymentLink.IsPayable)`;
+   seçilen taksitin acquirer'ı + taksitli toplam SUNUCUDA yeniden hesaplanır (client'a güvenilmez), plan işlenir
+   `(PaymentLink.ApplyInstallment)` `(PayPaymentLink.PayPaymentLinkCommandHandler)`.
+7. **Banka seçimi + çekim (per-taksit, FAILOVER YOK).** Router seçilen taksit için kart-ailesi öngörü oranından
+   efektif maliyeti hesaplar, en-avantajlı (gösterilen) bankayı seçer `(BankChargeRouter.SelectCandidates)` —
+   on-us yalnız eşit maliyette tiebreaker. **Yalnız o banka denenir** (gösterilen = çekilen); reddederse işlem
+   başarısız, sıradaki bankaya GEÇİLMEZ `(BankChargeRouter.RouteAsync)`. Adapter kartı InterVpos teline (`;;`,
+   `InstallmentCount` dahil) POST eder, cevabı normalize eder `(InterVposBankAdapter)` `(InterVposResponseMapper)`.
+   Deneme link altına kaydedilir `(PaymentLink.RecordAttempt)`.
+8. **Terminal sonuç + store bildirimi.** Onayda link `Paid` terminale geçer; `PaymentCompletedEvent` yayınlanır
+   ve store'a HMAC-imzalı dayanıklı webhook gider (tutar = taksitli toplam FinalAmount) `(StoreResultDelivery.Deliver)`.
+   Issuer/Fraud reddinde link `Opened` kalır (başka kartla/taksitle tekrar denenebilir), `CHARGE_DECLINED` +
+   `PaymentFailedEvent` + webhook. Gösterilen banka teknik/config hata verirse `PROVIDER_UNAVAILABLE` (link Opened,
+   olay/webhook YOK — geçici; failover yok, müşteri tekrar dener). Durum + olay + webhook aynı `[Transactional]` outbox'ta atomik.
+9. **Link ölümü — iptal.** `POST /payment-links/{pgPaymentRef}/cancel` — store aktif (Pending/Opened) linki
    Cancelled terminale taşır `(PaymentLink.Cancel)`; terminal link'e iptal `TERMINAL_VIOLATION`
    `(CancelPaymentLink.CancelPaymentLinkCommandHandler)`.
-9. **Link ölümü — süre dolumu (lazy).** Süresi geçen link, bir sonraki erişimde (açma/ödeme) Expired kabul
+10. **Link ölümü — süre dolumu (lazy).** Süresi geçen link, bir sonraki erişimde (açma/ödeme) Expired kabul
    edilir `(PaymentLink.Expire)`; proaktif watchdog YOK.
-10. **İptal / iade / durum (çekim-sonrası).** Store onaylı çekimi geri alır: gün-sonu öncesi `/void`
+11. **İptal / iade / durum (çekim-sonrası).** Store onaylı çekimi geri alır: gün-sonu öncesi `/void`
     `(VoidPaymentLink)` → bankaya `VoidAsync`; sonrası `/refund` (kısmi) `(RefundPaymentLink)` → `RefundAsync`;
     sonuç denetim kaydı `(PaymentLink.RecordReversal)` + store webhook. `/status` `(QueryPaymentStatus)` →
     bankaya `QueryStatusAsync` (otorite). Referans = çekimdeki `BankOrderId` (orgOrderId; attempt'te saklanır).
-11. **3D Secure ödeme (NonSecure'a alternatif).** Müşteri "3D ile öde" der `GET /payment-links/{openToken}/3d`:
+12. **3D Secure ödeme (NonSecure'a alternatif).** Müşteri "3D ile öde" der `GET /payment-links/{openToken}/3d`:
     link açılır, PG banka 3D gateway'ine gidecek İMZALI formu üretir (PAN YOK — kart alanlarını tarayıcı ekler,
     doğrudan bankaya POST eder; PG sunucusu kartı GÖRMEZ, İlke VI) `(Initiate3DPayment.Handler)`
     `(InterVposBankAdapter.Build3DForm)`. Banka seçimi PAN'sız (maliyet sırası, ilk 3D-yetenekli banka)
@@ -63,7 +70,7 @@ onayında canlı satışa geçer (091 — ikinci domain süreci, aşağıda ayr�
     auto-POST eder; PG callback HASH'ini doğrular (sahte/değişmiş → fail-closed), 3DStatus=1 ise 3DModel
     tamamlama (`Complete3DAsync`, SecureType=NonSecure+MD) ile asıl çekimi tetikler, link'i terminalize eder +
     store webhook + müşteriyi ReturnUrl'e yönlendirir `(Complete3DPayment.Handler)`.
-12. **Gün-sonu mutabakat (pull, PG'nin kendi dayanıklı süreci).** Günlük cron `POST /internal/reconcile` ile
+13. **Gün-sonu mutabakat (pull, PG'nin kendi dayanıklı süreci).** Günlük cron `POST /internal/reconcile` ile
     tetiklenir; dayanıklı mesaj devreye girer `(EndOfDayReconciliation.RunHandler)`. Her banka için operasyon
     yüzünden (ödeme yüzünden AYRI: `/api/*` JSON + SubscriptionKey) KAPALI batch özeti çekilir
     `(BankOperationsClient)` ve PG'nin Paid link görünümüyle (banka başına adet + brüt) karşılaştırılır
@@ -76,14 +83,17 @@ onayında canlı satışa geçer (091 — ikinci domain süreci, aşağıda ayr�
 - **Tek-kullanım + TTL + çift-çekim guard (FR-002/FR-005).** "Tüketim" yalnız başarılı ödeme (`Paid`); `Paid`
   link ikinci çekim YAPAMAZ (`RecordAttempt` → `TERMINAL_VIOLATION`). Henüz ödenmemiş (Pending/Opened) link
   süre/iptal sınırına dek tekrar açılıp ödenebilir. `ExpiresAt` aşımı açma/ödeme kapatır.
-- **Failover taksonomisi (FR-005).** Red normalize 4 sınıfa düşer {IssuerDecline, TechnicalFailure,
-  ConfigError, FraudDecline}; yalnız Technical/Config sıradaki bankaya geçer, Issuer/Fraud durur (aynı issuer
-  boşuna; fraud asla retry). Tümü technical → `PROVIDER_UNAVAILABLE` (link Opened, geçici). **Çift-çekim
-  penceresi:** failover canlı + durum-sorgu YOK → 1. banka çekmiş olabilir; simülatörde bakiye yok (zararsız),
-  gerçek banka öncesi durum-sorgu ZORUNLU (sonraki dilim).
-- **Akıllı routing (FR-016).** Aday = yetenek eleme (kart tipi/işlem) → on-us (kart issuer'ı == acquirer
-  bankası) önce → maliyet sırası. Acquirer öngörü verisi config'te (banka otorite, PG kopyası); bilinmeyen
-  BIN on-us'u atlar (fail-open).
+- **Per-taksit maliyet routing + FAILOVER YOK (093).** Aday = yetenek eleme (kart tipi/işlem) → her aday için
+  **efektif maliyet = kart-ailesi öngörü oranı(şema,tip,taksit) × tutar** → en düşük maliyet önce; on-us yalnız
+  EŞİT maliyette tiebreaker. En avantajlı banka taksit sayısına göre DEĞİŞİR (093). **Yalnız o taksitin gösterilen
+  (en-avantajlı) bankası denenir** — reddederse (Issuer/Fraud/Technical/Config farkı yalnız red mesajı) işlem
+  başarısız, SIRADAKİ BANKAYA GEÇİLMEZ (gösterilen = çekilen; müşteri tekrar dener). Oran matrisi
+  `BankCommissionRate` read-model'inde (banka otorite, PG öngörü); bilinmeyen BIN → aile null, on-us yok,
+  DefaultCommissionRate (fail-open). *(090'ın çok-banka failover'ı 093'te bu bağlı-acquirer modeliyle değişti.)*
+- **Taksitli fiyatlama (093).** Müşteri BIN girince taksit seçenekleri gelir; her biri o taksitin en-avantajlı
+  bankası + taksitli toplam (= Amount × (1+oran), vade farkı) + aylık tutar. Seçilen taksitin banka+tutarı Pay'de
+  SUNUCUDA yeniden hesaplanır (client'a güvenilmez); çekim + store bildirim FinalAmount üzerinden. Acquirer
+  banka müşteriye GÖSTERİLMEZ (gerçek-hayat UX; routing gizli iç karar) — ekranda yalnız taksit + tutar.
 - **In-doubt / çift-çekim emniyeti (Ders 16).** Çekim çağrısı cevapsız kalırsa (ağ/timeout) banka adapter'ı
   kör "başarısız" demeden AYNI OrderId'yi durum-sorgular `(InterVposResponseMapper)` — banka Authorized/
   Settled gösteriyorsa onay KURTARILIR, değilse NOTCHARGED (güvenli) ya da INDOUBT. INDOUBT'ta dayanıklı

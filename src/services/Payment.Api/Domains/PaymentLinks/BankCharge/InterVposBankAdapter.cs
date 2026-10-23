@@ -184,7 +184,8 @@ public sealed class InterVposBankAdapter : IBankPaymentAdapter, IThreeDCapableAd
             new("PurchAmount", r.Amount.ToString(CultureInfo.InvariantCulture)),
             new("Currency", MapCurrency(r.Currency)),
             new("OrderId", orderId),
-            new("InstallmentCount", string.Empty), // tek çekim
+            // 093: taksit. InterVpos tek-çekimde boş, taksitte sayı bekler → 1/0 ise boş, >1 ise N.
+            new("InstallmentCount", r.InstallmentCount <= 1 ? string.Empty : r.InstallmentCount.ToString(CultureInfo.InvariantCulture)),
             new("CardType", "0")                     // VISA varsayılan (BIN-şema eşlemesi seam)
         };
     }

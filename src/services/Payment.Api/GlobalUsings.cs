@@ -28,6 +28,7 @@ global using Shared;
 global using Wolverine.RabbitMQ;
 global using System.Globalization;
 global using Payment.Api.Domains.BinCards;
+global using Payment.Api.Domains.AcquirerRates;
 global using Payment.Api.Domains.StoreOnboarding;
 global using Payment.Api.Domains.StoreOnboarding.ValueObjects;
 global using Payment.Api.Domains.StoreOnboarding.BankOnboarding;

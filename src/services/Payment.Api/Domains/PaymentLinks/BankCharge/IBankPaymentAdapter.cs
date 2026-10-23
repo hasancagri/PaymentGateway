@@ -30,5 +30,7 @@ public interface IBankPaymentAdapter
 // request → wire). ASLA saklanmaz/loglanmaz/aggregate'e veya dayanıklı outbox'a girmez.
 public sealed record CardData(string Pan, string HolderName, string ExpiryMonth, string ExpiryYear, string Cvv);
 
-// 090: tek çekim isteği (transient — kart dahil). Saklanmaz (İlke VI).
-public sealed record BankChargeRequest(CardData Card, decimal Amount, string Currency, string OrderRef, Guid PaymentLinkId);
+// 090/093: çekim isteği (transient — kart dahil). Saklanmaz (İlke VI). Amount = taksitli toplam (FinalAmount);
+// InstallmentCount = seçilen taksit (1 = peşin). Adapter wire'a InstallmentCount'u geçirir.
+public sealed record BankChargeRequest(
+    CardData Card, decimal Amount, string Currency, string OrderRef, Guid PaymentLinkId, int InstallmentCount = 1);

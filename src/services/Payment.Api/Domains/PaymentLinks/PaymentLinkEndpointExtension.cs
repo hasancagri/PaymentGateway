@@ -51,7 +51,8 @@ public static class PaymentLinkEndpointExtension
                 var result = await bus.InvokeAsync<FeatureObjectResultModel<PayPaymentLink.PayPaymentLinkResponse>>(
                     new PayPaymentLink.PayPaymentLinkCommand(
                         openToken,
-                        new CardData(body.CardNumber, body.HolderName, body.ExpiryMonth, body.ExpiryYear, body.Cvv)));
+                        new CardData(body.CardNumber, body.HolderName, body.ExpiryMonth, body.ExpiryYear, body.Cvv),
+                        body.InstallmentCount));
 
                 if (result.IsSuccess) return Results.Ok(result.Data);
                 var code = result.Messages?.FirstOrDefault()?.Code;
@@ -60,6 +61,18 @@ public static class PaymentLinkEndpointExtension
                     : Results.BadRequest(result);
             })
             .WithName("PayPaymentLink")
+            .WithTags("payment-links")
+            .AllowAnonymous();
+
+        // (3a') Müşteri → PG: BIN girince taksit seçenekleri (093). Her taksit için en-avantajlı banka + taksitli
+        // toplam/aylık. Anonim, gizli token kapılı. BIN prefix (tam PAN değil — İlke VI). Banka adı ekranda gösterilir.
+        app.MapGet("/payment-links/{openToken}/installments", async (string openToken, string bin, IMessageBus bus) =>
+            {
+                var result = await bus.InvokeAsync<FeatureObjectResultModel<QuoteInstallments.Response>>(
+                    new QuoteInstallments.Query(openToken, bin));
+                return result.IsSuccess ? Results.Ok(result.Data) : Results.NotFound();
+            })
+            .WithName("QuoteInstallments")
             .WithTags("payment-links")
             .AllowAnonymous();
 
@@ -152,8 +165,9 @@ public static class PaymentLinkEndpointExtension
         string ReturnUrl, string StoreName, string OrderSummary);
 
     // Müşteri "Öde" kart gövdesi (contracts/pay-endpoint.md). Transient — saklanmaz/loglanmaz (İlke VI).
+    // 093: InstallmentCount = seçilen taksit (1 = peşin); sunucu acquirer+tutarı yeniden hesaplar (client'a güvenilmez).
     public record PayCardBody(
-        string CardNumber, string HolderName, string ExpiryMonth, string ExpiryYear, string Cvv);
+        string CardNumber, string HolderName, string ExpiryMonth, string ExpiryYear, string Cvv, int InstallmentCount = 1);
 
     // Store iade gövdesi (kısmi tutar).
     public record RefundBody(decimal Amount);

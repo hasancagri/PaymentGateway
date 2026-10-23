@@ -43,6 +43,10 @@ builder.Services.AddMarten(opts =>
         // 090: BinCard = BC-içi salt-okur referans doküman (BIN tablosu). Kimlik = Bin (string). Startup'ta
         // BinCardSeeder embedded JSON'dan upsert eder (idempotent reseed).
         opts.Schema.For<Payment.Api.Domains.BinCards.BinCard>().Identity(x => x.Bin);
+
+        // 093: BankCommissionRate = BC-içi salt-okur öngörü read-model (acquirer komisyon oranı). Kimlik =
+        // BankCode. Startup'ta BankCommissionRateSeeder embedded JSON'dan upsert eder (gerçek banka-besleme sonra).
+        opts.Schema.For<Payment.Api.Domains.AcquirerRates.BankCommissionRate>().Identity(x => x.BankCode);
     })
     .IntegrateWithWolverine()
     .ApplyAllDatabaseChangesOnStartup();
@@ -77,6 +81,7 @@ builder.Host.UseWolverine(opts =>
     opts.Discovery.IncludeType(typeof(Payment.Api.Domains.PaymentLinks.Features.Commands.VoidPaymentLink.VoidPaymentLinkCommandHandler));
     opts.Discovery.IncludeType(typeof(Payment.Api.Domains.PaymentLinks.Features.Commands.RefundPaymentLink.RefundPaymentLinkCommandHandler));
     opts.Discovery.IncludeType(typeof(Payment.Api.Domains.PaymentLinks.Features.Queries.QueryPaymentStatus.QueryPaymentStatusHandler));
+    opts.Discovery.IncludeType(typeof(Payment.Api.Domains.PaymentLinks.Features.Queries.QuoteInstallments.QuoteInstallmentsHandler));
     opts.Discovery.IncludeType(typeof(Payment.Api.Domains.PaymentLinks.Features.Commands.Initiate3DPayment.Handler));
     opts.Discovery.IncludeType(typeof(Payment.Api.Domains.PaymentLinks.Features.Commands.Complete3DPayment.Handler));
     opts.Discovery.IncludeType(typeof(Payment.Api.Domains.PaymentLinks.Process.EndOfDayReconciliation.RunHandler));
@@ -208,6 +213,8 @@ await using (var seedScope = app.Services.CreateAsyncScope())
 {
     var seedSession = seedScope.ServiceProvider.GetRequiredService<IDocumentSession>();
     await Payment.Api.Domains.BinCards.BinCardSeeder.SeedAsync(seedSession);
+    // 093: acquirer komisyon oranı öngörü read-model'ini embedded seed'den yükle (idempotent).
+    await Payment.Api.Domains.AcquirerRates.BankCommissionRateSeeder.SeedAsync(seedSession);
 
     // 091 DEV-ONLY: onboarding trafiğini atlayıp "baştan Live" store seed'le (test hızlandırma). YALNIZ
     // Development; prod'da ASLA. Options validation'a sokulmaz (prod'da section gerekmesin) → composition

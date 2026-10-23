@@ -7,12 +7,34 @@ apiVersion: v1
 kind: Namespace
 metadata: { name: pg }
 ---
+# Uygulama sırları (İlke VI). DEV-placeholder değerler; GERÇEK canlıda bu Secret repo'dan DEĞİL, operatör
+# `kubectl create secret generic pg-secrets ...` ile dışarıdan uygulanır (güçlü değerler, commit edilmez).
+# CredentialEncryptionOptions.Key = Base64 32 byte (AES-256); kaybolursa saklı credential'lar çözülemez.
+apiVersion: v1
+kind: Secret
+metadata: { name: pg-secrets, namespace: pg }
+type: Opaque
+stringData:
+  store-api-key: "CHANGE-ME-store-api-key"
+  store-callback-secret: "CHANGE-ME-store-callback-secret"
+  onboarding-callback-secret: "CHANGE-ME-onboarding-secret"
+  credential-encryption-key: "QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVowMTIzNDU="
+---
 apiVersion: v1
 kind: ConfigMap
 metadata: { name: postgres-init, namespace: pg }
 data:
   init.sql: |
     CREATE DATABASE "paymentDb";
+---
+# Kalıcı disk (PVC): Postgres verisi pod restart/redeploy'da SİLİNMESİN diye. Ephemeral'ı değiştirir —
+# ödeme defteri + şifreli credential'lar diskte kalır. ReadWriteOnce (tek node mount), default StorageClass.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: postgres-data, namespace: pg }
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  resources: { requests: { storage: 2Gi } }
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -30,8 +52,12 @@ spec:
             - { name: POSTGRES_USER, value: postgres }
             - { name: POSTGRES_PASSWORD, value: PgwPg2026 }
           ports: [ { containerPort: 5432 } ]
-          volumeMounts: [ { name: init, mountPath: /docker-entrypoint-initdb.d } ]
-      volumes: [ { name: init, configMap: { name: postgres-init } } ]
+          volumeMounts:
+            - { name: init, mountPath: /docker-entrypoint-initdb.d }
+            - { name: data, mountPath: /var/lib/postgresql/data }   # kalıcı PVC (init.sql yalnız boş diskte ilk kez koşar)
+      volumes:
+        - { name: init, configMap: { name: postgres-init } }
+        - { name: data, persistentVolumeClaim: { claimName: postgres-data } }
 ---
 apiVersion: v1
 kind: Service
@@ -76,22 +102,62 @@ spec:
           ports: [ { containerPort: 8080 } ]
           env:
             - { name: ASPNETCORE_URLS, value: "http://+:8080" }
+            # Canlı = Production (dev seeder'lar KAPALI → StoreOnboardingDevSeeder çalışmaz; Scalar/dev davranışı kapalı).
+            - { name: ASPNETCORE_ENVIRONMENT, value: "Production" }
             - { name: "ConnectionStrings__paymentDb", value: "Host=postgres;Port=5432;Username=postgres;Password=PgwPg2026;Database=paymentDb" }
             - { name: "ConnectionStrings__rabbitmq", value: "amqp://guest:guest@rabbitmq:5672" }
-            # Kimlik birleşimi: PG IdP söküldü. EC→PG = API key (StoreApiKeyOptions.ExpectedKey required/
-            # ValidateOnStart → placeholder; gerçek canlı: secret-store). IdentityOption__* kaldırıldı.
-            - { name: "StoreApiKeyOptions__ExpectedKey", value: "dummy-store-api-key" }
+            # EC→PG = API key + callback/credential sırları → k8s Secret (pg-secrets), secretKeyRef (plaintext yaml DEĞİL, İlke VI).
+            - { name: "StoreApiKeyOptions__ExpectedKey", valueFrom: { secretKeyRef: { name: pg-secrets, key: store-api-key } } }
             # 088/089/090: HostedPaymentOptions SÖKÜLDÜ → PaymentLinkOptions + StoreCallbackOptions (required,
             # ValidateOnStart). LinkBaseUrl/TrustPageTitle/TrustPageIntro + CallbackUrl/CallbackSecret zorunlu →
             # eksikse pod crashloop. Değerler placeholder (gerçek canlı: ingress/TLS + gerçek sır). PosAccount/
             # InterVposBank/BankRouting bu versiyonda EMPTY (boot olur, çekim routing'i yok — placeholder).
-            - { name: "PaymentLinkOptions__LinkBaseUrl", value: "http://payment-api:8080/payment-links" }
+            # Müşteri-görünür tabanlar = PUBLIC domain (telefon tarayıcısı + banka→PG callback buradan erişir;
+            # ingress pay.hasancagridemiriz.com → payment-api). İç S2S store-webhook'ları (aşağıda) cluster DNS kalır.
+            - { name: "PaymentLinkOptions__LinkBaseUrl", value: "https://pay.hasancagridemiriz.com/payment-links" }
             - { name: "PaymentLinkOptions__TrustPageTitle", value: "Odeme" }
             - { name: "PaymentLinkOptions__TrustPageIntro", value: "Guvenli odeme sayfasi" }
             - { name: "StoreCallbackOptions__CallbackUrl", value: "http://payment-api:8080/internal/callback" }
-            - { name: "StoreCallbackOptions__CallbackSecret", value: "dummy-callback-secret" }
+            - { name: "StoreCallbackOptions__CallbackSecret", valueFrom: { secretKeyRef: { name: pg-secrets, key: store-callback-secret } } }
+            # 091: StoreOnboarding (store aktivasyon). FormBaseUrl/CallbackBaseUrl/FormPageTitle/FormPageIntro +
+            # BankCodes (MinLength 1) + OnboardingStoreCallback + CredentialEncryption.Key ZORUNLU (ValidateOnStart)
+            # → eksikse crashloop. Placeholder (gerçek canlı: ingress domain + secret-store). Ttl default (24h).
+            - { name: "StoreOnboardingOptions__FormBaseUrl", value: "https://pay.hasancagridemiriz.com/store-onboarding" }
+            - { name: "StoreOnboardingOptions__CallbackBaseUrl", value: "https://pay.hasancagridemiriz.com" }
+            - { name: "StoreOnboardingOptions__FormPageTitle", value: "Uye Isyeri Basvurusu" }
+            - { name: "StoreOnboardingOptions__FormPageIntro", value: "Isyeri bilgilerini gir" }
+            - { name: "StoreOnboardingOptions__BankCodes__0", value: "MAVIBANK" }
+            - { name: "StoreOnboardingOptions__BankCodes__1", value: "SARIBANK" }
+            - { name: "StoreOnboardingOptions__BankCodes__2", value: "TURUNCUBANK" }
+            - { name: "OnboardingStoreCallbackOptions__CallbackUrl", value: "http://payment-api:8080/internal/onboarding-callback" }
+            - { name: "OnboardingStoreCallbackOptions__CallbackSecret", valueFrom: { secretKeyRef: { name: pg-secrets, key: onboarding-callback-secret } } }
+            # 093: at-rest credential AES DEK — Secret'tan (Base64 32 byte). Kaybolursa saklı credential'lar çözülemez.
+            - { name: "CredentialEncryptionOptions__Key", valueFrom: { secretKeyRef: { name: pg-secrets, key: credential-encryption-key } } }
 ---
 apiVersion: v1
 kind: Service
 metadata: { name: payment-api, namespace: pg }
 spec: { selector: { app: payment-api }, ports: [ { port: 8080, targetPort: 8080 } ] }
+---
+# Public giriş: pay.hasancagridemiriz.com → payment-api (hosted ödeme sayfası + müşteri/banka callback'leri).
+# VARSAYIM: Traefik ingress controller + cert-manager ClusterIssuer "letsencrypt-prod" kurulu. Cloudflare DNS
+# pay.hasancagridemiriz.com → cluster giriş IP'sine A/CNAME. (Cloudflare Tunnel kullanılacaksa bu Ingress yerine
+# cloudflared + tunnel ingress-rule — o zaman ingressClassName/TLS gerekmez.)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: payment-api
+  namespace: pg
+  annotations: { cert-manager.io/cluster-issuer: "letsencrypt-prod" }
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [ "pay.hasancagridemiriz.com" ]
+      secretName: pay-tls
+  rules:
+    - host: "pay.hasancagridemiriz.com"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: payment-api, port: { number: 8080 } } }

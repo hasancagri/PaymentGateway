@@ -12,7 +12,7 @@ namespace Payment.Api.Domains.PaymentLinks.Features.Commands;
 /// </summary>
 public static class PayPaymentLink
 {
-    public record PayPaymentLinkCommand(string OpenToken, CardData Card);
+    public record PayPaymentLinkCommand(string OpenToken, CardData Card, int InstallmentCount = 1);
 
     public class PayPaymentLinkResponse
     {
@@ -45,20 +45,37 @@ public static class PayPaymentLink
                 return FeatureObjectResultModel<PayPaymentLinkResponse>.Error(payable.Messages);
             }
 
-            // Çekim isteği (kart transient — saklanmaz/loglanmaz, İlke VI).
-            var request = new BankChargeRequest(cmd.Card, link.Amount, link.Currency, link.OrderRef, link.Id);
-            // BIN çözümü için TÜM tabloyu çekme (hot path + canlı feed'de binlerce kayıt). PAN'ın prefix'leri
-            // = aday BIN id'leri (Bin = Marten PK) → yalnız onları key'le yükle (PK lookup, full-scan değil).
-            // Prefix MaxBinLength'te kesilir → tam PAN asla sorgu key'i olmaz (İlke VI). ResolveByPan en uzun eşleşeni seçer.
-            // TODO (geçici): BIN salt-okur küçük referans → her ödemede DB yerine CACHE (bellek/dağıtık,
-            // startup/feed'de doldur) daha doğru. Şimdilik PK lookup yeterli; cache sonraki iyileştirme.
+            // BIN çözümü için TÜM tabloyu çekme (hot path). PAN'ın prefix'leri = aday BIN id'leri (Bin = Marten
+            // PK) → yalnız onları key'le yükle (PK lookup). Prefix MaxBinLength'te kesilir → tam PAN asla sorgu
+            // key'i olmaz (İlke VI). ResolveByPan en uzun eşleşeni seçer.
             var pan = cmd.Card.Pan;
             var binPrefixes = Enumerable.Range(1, Math.Min(pan.Length, BinCard.MaxBinLength))
                 .Select(len => pan[..len])
                 .ToArray();
             var binCards = await session.LoadManyAsync<BinCard>(ct, binPrefixes);
+            var rates = await session.Query<BankCommissionRate>().ToListAsync(ct);
 
-            var attempts = await router.RouteAsync(request, binCards, ct);
+            // 093: seçilen taksitin en-avantajlı acquirer'ı + taksitli toplam SUNUCUDA hesaplanır (quote mantığının
+            // aynısı — client'tan gelen banka/tutara GÜVENİLMEZ, FR-009). Uygun banka yoksa geçici PROVIDER_UNAVAILABLE.
+            var installment = cmd.InstallmentCount < 1 ? 1 : cmd.InstallmentCount;
+            var best = router.SelectCandidates(pan, binCards, link.Amount, installment, rates).FirstOrDefault();
+            if (best is null)
+                return FeatureObjectResultModel<PayPaymentLinkResponse>.Error(
+                    new MessageItem { Code = PaymentLinkResourceConstants.PROVIDER_UNAVAILABLE });
+
+            var finalAmount = Math.Round(link.Amount * (1 + best.EffectiveRate), 2, MidpointRounding.AwayFromZero);
+            var applied = link.ApplyInstallment(installment, finalAmount, now, options.GraceWindow);
+            if (!applied.IsSuccess)
+            {
+                session.Store(link);
+                return FeatureObjectResultModel<PayPaymentLinkResponse>.Error(applied.Messages);
+            }
+
+            // Çekim isteği (kart transient — saklanmaz/loglanmaz, İlke VI). Tutar = taksitli toplam (FinalAmount).
+            var request = new BankChargeRequest(cmd.Card, link.FinalAmount, link.Currency, link.OrderRef, link.Id, installment);
+
+            // 093: FAILOVER YOK — yalnız o taksitin gösterilen (en-avantajlı) acquirer'ı denenir (gösterilen=çekilen).
+            var attempts = await router.RouteAsync(request, binCards, rates, ct);
 
             // Aday yok / hepsi yönlendirilemez hata → geçici "sağlayıcı yok" (link Opened kalır, tekrar denenebilir).
             if (attempts.Count == 0)
@@ -79,10 +96,10 @@ public static class PayPaymentLink
             // Onay → Paid + tamamlandı olayı + store imzalı webhook (terminal sonuç).
             if (deciding.Outcome.IsApproved)
             {
-                await bus.PublishAsync(new IntegrationEvents.PaymentCompletedEvent(link.Id, link.OrderRef, link.Amount, deciding.BankCode));
+                await bus.PublishAsync(new IntegrationEvents.PaymentCompletedEvent(link.Id, link.OrderRef, link.FinalAmount, deciding.BankCode));
                 await bus.PublishAsync(new StoreResultDelivery.Deliver(
                     callbackOptions.CallbackUrl, link.Id.ToString(), link.OrderRef, nameof(PaymentLinkStatus.Paid),
-                    link.Amount, link.Currency, deciding.BankCode, null));
+                    link.FinalAmount, link.Currency, deciding.BankCode, null));
 
                 return FeatureObjectResultModel<PayPaymentLinkResponse>.Ok(new PayPaymentLinkResponse
                 {
@@ -95,10 +112,10 @@ public static class PayPaymentLink
             if (deciding.Outcome.DeclineClass is DeclineClass.IssuerDecline or DeclineClass.FraudDecline)
             {
                 await bus.PublishAsync(new IntegrationEvents.PaymentFailedEvent(
-                    link.Id, link.OrderRef, link.Amount, PaymentLinkResourceConstants.CHARGE_DECLINED));
+                    link.Id, link.OrderRef, link.FinalAmount, PaymentLinkResourceConstants.CHARGE_DECLINED));
                 await bus.PublishAsync(new StoreResultDelivery.Deliver(
                     callbackOptions.CallbackUrl, link.Id.ToString(), link.OrderRef, "Failed",
-                    link.Amount, link.Currency, deciding.BankCode, PaymentLinkResourceConstants.CHARGE_DECLINED));
+                    link.FinalAmount, link.Currency, deciding.BankCode, PaymentLinkResourceConstants.CHARGE_DECLINED));
 
                 return FeatureObjectResultModel<PayPaymentLinkResponse>.Error(
                     new MessageItem { Code = PaymentLinkResourceConstants.CHARGE_DECLINED });
